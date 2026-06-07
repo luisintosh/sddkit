@@ -1,0 +1,31 @@
+# {{PROJECT_NAME}}
+
+{{PROJECT_DESC}}
+
+## Commands
+
+- Install: `{{INSTALL_CMD}}`
+- Dev: `{{DEV_CMD}}`
+- Build: `{{BUILD_CMD}}`
+- Test: `{{TEST_CMD}}`
+- Lint: `{{LINT_CMD}}`
+- Typecheck: `{{TYPECHECK_CMD}}`
+
+## Conventions
+
+- Tests live next to code (`*.test.ts` / `*.spec.ts`) or under `__tests__/`; e2e under `e2e/`.
+- Conventional Commits (`feat:`, `fix:`, `chore:` …). One feature per branch/PR.
+- Follow existing patterns; keep diffs small and focused.
+
+## Response style — terse mode
+
+Lead with the answer. Token-efficient, clear, to the point — no preamble or filler. Show code over
+prose; surface only what matters (decisions, blockers, results).
+
+## Where things live (read on demand — not auto-loaded)
+
+- `docs/ARCHITECTURE.md` — system design, module map, key decisions.
+- `docs/feats/<feature>/` — per-feature spec.md, plan.md, tasks.md, contracts/*.feature.
+- `docs/memory/` — durable facts (`MEMORY.md` index + `log.md` + one-fact files); grep before re-deriving.
+
+This file is the always-loaded memory. Keep it SHORT; promote durable lessons here via `/distill`.

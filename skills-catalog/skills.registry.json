@@ -1,0 +1,44 @@
+{
+  "$comment": "Default selectable-skills catalog, sourced from skills.sh. The init picker merges this with the consuming repo's .opencode-skills.json whitelist. 'source' form: skills.sh:<owner>/<repo>/<skill>@<ref>. 'stacks' uses '*' = always relevant; otherwise matched against detected stack tags. Pin <ref> to a commit/tag for reproducibility (CHANGEME -> real pin).",
+  "skills": [
+    { "name": "tdd", "description": "Red-green-refactor TDD discipline",
+      "stacks": ["*"], "recommended": true,
+      "source": "skills.sh:mattpocock/skills/tdd" },
+
+    { "name": "gh-cli", "description": "GitHub CLI usage (PRs, issues, reviews)",
+      "stacks": ["*"], "recommended": true,
+      "source": "skills.sh:trailofbits/skills/gh-cli" },
+
+    { "name": "context7-cli", "description": "Fetch up-to-date library docs via the context7 CLI",
+      "stacks": ["*"], "recommended": true,
+      "source": "skills.sh:upstash/context7/context7-cli" },
+
+    { "name": "excalidraw-diagram-generator", "description": "Generate Excalidraw diagrams for docs/ARCHITECTURE",
+      "stacks": ["*"], "recommended": true,
+      "source": "skills.sh:github/awesome-copilot/excalidraw-diagram-generator" },
+
+    { "name": "supabase", "description": "Supabase schema/query/RLS patterns via the supabase CLI",
+      "stacks": ["supabase"], "recommended": false,
+      "source": "skills.sh:supabase/agent-skills/supabase" },
+
+    { "name": "vercel-react-best-practices", "description": "React/Next best practices",
+      "stacks": ["react", "next"], "recommended": true,
+      "source": "skills.sh:vercel-labs/agent-skills/vercel-react-best-practices" },
+
+    { "name": "frontend-design", "description": "Frontend design guidance",
+      "stacks": ["react", "next", "frontend"], "recommended": true,
+      "source": "skills.sh:anthropics/skills/frontend-design" },
+
+    { "name": "web-design-guidelines", "description": "Web design guidelines",
+      "stacks": ["frontend"], "recommended": true,
+      "source": "skills.sh:vercel-labs/agent-skills/web-design-guidelines" },
+
+    { "name": "ui-ux-pro-max", "description": "UI/UX best practices",
+      "stacks": ["frontend"], "recommended": true,
+      "source": "skills.sh:nextlevelbuilder/ui-ux-pro-max-skill/ui-ux-pro-max" },
+
+    { "name": "agent-browser", "description": "Browser automation for e2e/Playwright flows",
+      "stacks": ["playwright", "e2e"], "recommended": false,
+      "source": "skills.sh:vercel-labs/agent-browser/agent-browser" }
+  ]
+}
