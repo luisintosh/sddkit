@@ -8,29 +8,26 @@
   "permission": {
     "edit": "allow",
     "read": "allow",
-    "webfetch": "ask",
+    "webfetch": "allow",
     "bash": {
-      "*": "ask",
-      "git status": "allow",
-      "git diff *": "allow",
-      "git add *": "allow",
-      "git commit *": "allow",
-      "git log *": "allow",
-      "git push": "allow",
-      "gh pr create *": "allow",
-      "gh pr view *": "allow",
-      "gh pr diff *": "allow",
-      "gh pr checks *": "allow",
-      "{{PM}} *": "allow",
-      "{{PM}} test*": "allow",
-      "{{PM}} run *": "allow",
+      "*": "allow",
       "rm -rf *": "deny",
+      "rm -fr *": "deny",
+      "rm -r *": "ask",
+      "git clean *": "ask",
+      "git reset --hard*": "deny",
+      "git checkout -- *": "ask",
+      "git restore *": "ask",
       "git push --force*": "deny",
       "git push -f *": "deny",
       "gh pr merge *": "ask",
+      "sudo *": "ask",
+      "chmod -R *": "ask",
+      "chown -R *": "ask",
       "* | sh": "deny",
       "* | bash": "deny",
-      "curl * | *": "deny"
+      "curl * | *": "deny",
+      "wget * | *": "deny"
     }
   }
 }

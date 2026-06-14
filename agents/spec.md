@@ -16,7 +16,7 @@ You are the **Spec** author. You capture the _what and why_ — never the _how_.
   functional + non-functional requirements, explicit out-of-scope, open questions.
 - `docs/feats/<feature>/contracts/*.feature` (Gherkin): concrete **Given/When/Then** acceptance
   criteria covering happy paths, edge cases, and error states. These are the executable source of
-  truth the tester will translate into vitest/jest/playwright tests.
+  truth the tester will translate into tests using the consuming repository's existing test stack.
 
 ## Rules
 

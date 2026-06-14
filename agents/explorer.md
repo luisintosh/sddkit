@@ -1,7 +1,7 @@
 ---
 description: Cheap, fast read-only search. Locates code/patterns and returns distilled conclusions — never raw transcripts or full files.
 mode: subagent
-model: opencode-go/minimax-m2.7
+model: opencode-go/mimo-v2.5
 temperature: 0.1
 permission:
   edit: deny
