@@ -67,6 +67,9 @@ worktree: $dir
 stage: worktree
 completed: [worktree]
 pending_gate: ""
+current_loop: ""
+loop_phase: ""
+completed_loops: []
 created: $(date +%Y-%m-%dT%H:%M:%S)
 YAML
       ok "state: $fdir/doit.yaml"

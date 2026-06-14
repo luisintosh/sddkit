@@ -158,7 +158,7 @@ fetch_skill() { # fetch_skill <name> <source>
   local tmp; tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' RETURN
   local url ref skill
   if [[ "$src" == skills.sh:* ]]; then
-    local body="${src#skills.sh:}"; ref="main"
+    local body="${src#skills.sh:}"; ref=""
     [[ "$body" == *@* ]] && { ref="${body##*@}"; body="${body%@*}"; }
     local owner repo; owner="${body%%/*}"; body="${body#*/}"; repo="${body%%/*}"; skill="${body#*/}"
     url="https://github.com/$owner/$repo.git"
@@ -171,6 +171,7 @@ fetch_skill() { # fetch_skill <name> <source>
     warn "$name: unsupported source '$src'"; return 1
   fi
 
+  info "installing $name from $url${ref:+#$ref}"
   if ! git clone --depth 1 ${ref:+--branch "$ref"} -q "$url" "$tmp/repo" 2>/dev/null; then
     # branch-specific shallow clone can fail for commit pins; fall back to full clone + checkout
     git clone -q "$url" "$tmp/repo" 2>/dev/null || { warn "$name: clone failed ($url)"; return 1; }

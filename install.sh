@@ -52,7 +52,7 @@ else
   info "adding $REPO as $DEST (pinned to $REF)"
   git submodule add "$REPO" "$DEST"
   checkout_ref
-  git submodule update --init --recursive "$DEST"
+  git -C "$DEST" submodule update --init --recursive
 fi
 
 [ -x "$DEST/bin/init.sh" ] || die "$DEST/bin/init.sh not found or not executable."
