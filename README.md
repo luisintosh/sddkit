@@ -1,7 +1,7 @@
 # opencode-harness-toolkit
 
 A reusable [opencode](https://opencode.ai) harness you drop into any repo. It bakes in
-**spec-driven development**, **Gherkin acceptance contracts**, **TDD** (vitest/jest/playwright),
+**spec-driven development**, **Gherkin acceptance contracts**, **TDD** using the consuming repo's test stack,
 **git-worktree isolation**, a **multi-agent** pipeline, and a file-based **Markdown memory** —
 all driven by a single command, `/doit`, that runs an autonomous-but-human-in-the-loop workflow and
 is resumable with `/re-doit`.
@@ -19,7 +19,7 @@ curl -fsSL https://raw.githubusercontent.com/luisintosh/opencode-harness-toolkit
 
 This adds the harness as the `.opencode` submodule (pinned) and runs `init.sh`, which:
 
-- renders `opencode.json` (model tiering + safe-by-default permissions),
+- renders `opencode.json` (model tiering + low-friction local permissions with destructive actions gated),
 - scaffolds a short `AGENTS.md` and the `docs/` tree (`ARCHITECTURE.md`, `memory/`, `feats/`),
 - runs an **interactive skill picker** (configurable registry; recommends skills for your stack).
 
@@ -32,13 +32,14 @@ This adds the harness as the `.opencode` submodule (pinned) and runs `init.sh`, 
 /re-doit [feature]              # resume an interrupted/paused feature
 ```
 
-Pipeline stages: worktree → specify → contracts (Gherkin) → plan → tasks → tdd-red →
-implement(green) → review-loop → verify → docs-sync → draft PR.
+Pipeline stages: worktree → specify → contracts (Gherkin) → plan → tasks → repeated feature-slice
+loops (failing tests → implementation → targeted tests → review → commit) → verify → docs-sync →
+draft PR.
 
 ## Update
 
 ```bash
-.opencode/bin/update.sh [ref]   # bump the pinned submodule + re-sync skills; never touches your state
+.opencode/bin/update.sh [ref]   # bump the submodule, re-sync skills, then ask about permission refresh
 ```
 
 ## Layout

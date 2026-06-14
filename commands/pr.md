@@ -7,7 +7,8 @@ Current branch / status:
 !`git rev-parse --abbrev-ref HEAD; echo '---'; git status --short; echo '--- commits ahead ---'; git log --oneline @{u}..HEAD 2>/dev/null || git log --oneline -5`
 
 Preconditions (verify, don't bypass):
-- `/verify` is `VERIFY: GREEN` and the review loop is clean. If not, stop and report.
+- All feature slices are committed, their per-slice review loops are clean, docs-sync is complete, and
+  `/verify` is `VERIFY: GREEN`. If not, stop and report.
 - You are on the feature's `feat/<slug>` branch (created at /doit stage 0).
 
 Steps (use the **gh-cli** skill):
@@ -19,6 +20,7 @@ Steps (use the **gh-cli** skill):
    and links to `docs/feats/<slug>/{spec,plan}.md` + `contracts/`.
 4. Create the PR as a **draft** requesting review:
    `gh pr create --draft --title "feat: <slug>" --body-file <filled-template>`.
-   **Never** merge (`gh pr merge` is gated to ask).
+   Stop after PR creation. **Never** merge or push directly into `main` or `master`; that is for the
+   human PR workflow.
 
 Return the PR URL.

@@ -20,7 +20,7 @@
 
 ## Gates
 
-- [ ] `/review` ran; findings resolved
+- [ ] Per-slice `/review` ran; findings resolved
 - [ ] `/verify` green (build + test + lint + typecheck)
 - [ ] Docs updated (ARCHITECTURE / memory / feature) in this PR
 

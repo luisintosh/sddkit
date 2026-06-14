@@ -1,5 +1,5 @@
 ---
-description: The done-gate — run build + test + lint + typecheck and report a structured pass/fail.
+description: The final verification gate — run build + test + lint + typecheck and report a structured pass/fail.
 ---
 Run the project verification gate and report a structured result.
 
@@ -16,5 +16,5 @@ Rules:
 - Output a compact table: `step · PASS|FAIL|n/a` and a final verdict line `VERIFY: GREEN` or
   `VERIFY: RED (<which steps failed>)`.
 
-This verdict is the only authoritative "done" signal — the orchestrator must see `VERIFY: GREEN`
-before finishing a feature.
+This verdict is the authoritative verification signal — the orchestrator must see `VERIFY: GREEN`
+before docs-sync and draft PR creation.

@@ -25,4 +25,4 @@ _Schema, endpoints, types (if any)._
 
 ## Test strategy
 
-_Which `.feature` scenarios map to unit vs integration vs e2e (vitest/jest/playwright)._
+_Which `.feature` scenarios map to unit vs integration vs e2e._

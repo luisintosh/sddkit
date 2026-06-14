@@ -5,9 +5,10 @@ subtask: true
 ---
 Make the failing tests pass for: **$ARGUMENTS**
 
-- Work against the failing tests + `docs/feats/<slug>/plan.md`. Implement the smallest correct change.
+- Work against the failing tests + `docs/feats/<slug>/plan.md` + the active slice in
+  `docs/feats/<slug>/tasks.md`. Implement the smallest correct change for that slice.
 - **Do not edit test files.** Reuse existing code where possible (`@explorer`).
-- The harness re-runs touched tests after edits; fix failures within the turn until green.
+- Re-run the slice's targeted tests after edits; fix failures within the turn until green.
 - If you hit a genuine design fork the spec/plan/contracts don't settle, stop and ask (opinion gate).
 
-Return: files changed and the passing test summary.
+Return: the slice/task scope, files changed, targeted test command, and the passing test summary.

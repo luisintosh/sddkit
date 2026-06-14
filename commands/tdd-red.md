@@ -5,8 +5,12 @@ subtask: true
 ---
 Write failing tests for: **$ARGUMENTS**
 
-- Read `docs/feats/<slug>/contracts/*.feature`. Translate each scenario into a plain vitest/jest or
-  Playwright test (per the stack), named after the scenario.
-- Edit **test files only**. Run the suite and confirm the new tests **fail for the right reason**.
+- Read `docs/feats/<slug>/tasks.md` and `contracts/*.feature`. If `$ARGUMENTS` names a slice or task
+  scope, translate only that slice's related scenarios into tests using the consuming repository's
+  existing test framework, naming style, fixtures, and layout. If no scope is provided, cover the next
+  incomplete slice.
+- Edit **test-only files/locations**. Run the targeted test command/scope for this slice and confirm
+  the new tests **fail for the right reason**.
 
-Return: the test files created and which scenarios are now covered (and confirm they fail).
+Return: the slice/task scope, test files created, scenarios now covered, targeted test command, and
+confirmation that the new tests fail for the right reason.
