@@ -1,7 +1,7 @@
 ---
 description: Drives the end-to-end /doit pipeline — sequences stages, manages human-in-the-loop gates, routes review findings, keeps docs in sync.
 mode: primary
-model: opencode-go/mimo-v2.5-pro
+model: opencode-go/minimax-m3
 temperature: 0.2
 ---
 

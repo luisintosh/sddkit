@@ -3,7 +3,6 @@ description: Writes feature specifications (the what & why) and Gherkin acceptan
 mode: subagent
 model: openai/gpt-5.5
 reasoningEffort: high
-temperature: 0.3
 permission:
   bash: deny
 ---

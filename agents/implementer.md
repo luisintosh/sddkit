@@ -1,6 +1,6 @@
 ---
 description: TDD green phase. Writes the minimal implementation to make failing tests pass. Never edits test files.
-mode: primary
+mode: subagent
 model: opencode-go/deepseek-v4-flash
 reasoningEffort: high
 temperature: 0.2

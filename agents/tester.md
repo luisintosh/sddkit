@@ -1,8 +1,7 @@
 ---
 description: TDD red phase. Writes failing tests from Gherkin contracts. Edits test-only locations — never implementation.
 mode: subagent
-model: opencode-go/qwen3.7-max
-temperature: 0.2
+model: opencode-go/kimi-k2.7-code
 permission:
   edit:
     "*": deny
@@ -21,8 +20,6 @@ permission:
 
 You are the **Tester** (TDD **red**). You translate Gherkin scenarios into failing, executable tests
 for the active feature slice.
-
-Fallback model if `opencode-go/qwen3.7-max` is unavailable: `opencode-go/mimo-v2.5-pro`.
 
 ## Rules
 

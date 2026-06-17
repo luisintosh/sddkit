@@ -1,8 +1,8 @@
 ---
 description: Independent, READ-ONLY code reviewer. Emits structured findings; never edits source. Runs on a different provider than the implementer.
 mode: subagent
-model: opencode-go/kimi-k2.7-code
-reasoningEffort: high
+model: opencode-go/minimax-m3
+effort: high
 temperature: 0.1
 permission:
   edit: deny
