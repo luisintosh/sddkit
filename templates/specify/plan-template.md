@@ -19,6 +19,12 @@ _High-level strategy and the chosen technical direction._
 
 _Schema, endpoints, types (if any)._
 
+## Human-provided requirements
+
+_Only list items that block completion and require human action or private access._
+
+- _<secret/env var/API key/account/access approval/software install>_ — _<who provides it and why it is required>_
+
 ## Risks & trade-offs
 
 - _<risk>_ → _<mitigation>_
