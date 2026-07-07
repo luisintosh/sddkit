@@ -51,8 +51,17 @@ The reviewer (`kimi`) deliberately runs on a different provider than the impleme
 
 ## Use
 
-Mount this repo as the consuming repo's `.opencode/` (git submodule pinned, or a copy), then open
-`opencode`.
+### Install
+
+Run the installer from the root of the consuming repository:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/luisintosh/opencode-harness-toolkit/refs/heads/master/install.sh | bash
+```
+
+This copies `opencode.jsonc` and the agent instructions into `.opencode/`.
+
+Alternatively, mount this repo as the consuming repo's `.opencode/` (git submodule pinned, or a copy), then open `opencode`.
 
 ### Setup Docs
 
