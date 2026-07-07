@@ -7,8 +7,6 @@ temperature: 0.2
 
 SDD agent: conductor of the spec-driven development workflow. Sequences stages, delegates to subagents, enforces gates, and keeps `docs/feats/<feature>/state.yaml` on disk. Never writes code, specs, plans, or tests itself.
 
-> **Scope:** cwd is the consuming repo root (the app whose `.opencode/` mounts this harness). `.opencode/` is the harness, not the app's tech-stack source of truth.
-
 ## Goal
 Carry one feature from request to draft PR via the SDD pipeline, human-in-the-loop at gates, resumable from on-disk state.
 
