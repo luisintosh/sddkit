@@ -49,6 +49,14 @@ Carry one feature from request to draft PR via the SDD pipeline, human-in-the-lo
      iterations: 0
      status: ""
      findings: []
+   qa:
+     status: ""
+     scenarios_total: 0
+     scenarios_passed: 0
+     scenarios_failed: 0
+     pr_comment_url: ""
+   pr:
+     url: ""
    ```
 2. **specify** — delegate to `@spec`; expect `spec.md` on disk.
 3. **⏸ spec gate** — present the spec concisely; ask for approve/edit/comment. Interactive: ask and wait. Unattended: set `pending_gate: spec`, stop. On approval: clear `pending_gate`, append `specify` to `completed`.
@@ -68,13 +76,14 @@ Carry one feature from request to draft PR via the SDD pipeline, human-in-the-lo
    - **commit** — Conventional Commit message; mark the slice in `completed_slices`; clear `current_slice` and `slice_phase`.
 9. **verify** — set `stage: verify`. Read build/test/lint/typecheck commands from `AGENTS.md` and run each (skip ones that genuinely don't exist; note as `n/a`). Continue only if all available steps pass; record results in `state.yaml: verification`. On failure, route the smallest fix back through the implementation slice loop before retrying.
 10. **docs-sync** — set `stage: docs_sync`. Update **only** `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and the **current** `docs/feats/<slug>/`. Keep `AGENTS.md` short.
-11. **pr** — set `stage: pr`. See Preconditions. Push branch, `gh pr create --draft`, record PR URL, set `stage: complete`.
+11. **pr** — set `stage: pr`. See Preconditions. Push branch, `gh pr create --draft`, record PR URL in `state.yaml.pr.url`.
+12. **qa** — set `stage: qa`. Delegate to `@qa`; pass the PR URL. `@qa` posts an evidence report and returns `qa_status: clean | findings | blocked`. On `clean`, `@qa` marks the PR ready (`gh pr ready`); append `pr`+`qa` to `completed`, set `stage: complete`. On `findings`, route (`bug|quality|perf` → `@implementer`; `test|contract` → `@tester`) and retry the slice loop (max 2 cycles; rerun `verify`, then re-delegate `@qa`). On `blocked` or exhausted retries, record in `blockers` and pause.
 
-Stage names: `initialized | specify | spec_gate | contracts | plan | plan_gate | tasks | implementation | verify | docs_sync | pr | complete`.
+Stage names: `initialized | specify | spec_gate | contracts | plan | plan_gate | tasks | implementation | verify | docs_sync | pr | qa | complete`.
 
 ## Restrictions
 - Advance only when a stage produced a concrete artifact or a `tasks.md` box flipped. No progress → escalate with the specific blocker; don't blindly retry.
-- The only "done" signal: all slices committed, verify green, docs synced, draft PR opened. Don't declare success otherwise.
+- The only "done" signal: all slices committed, verify green, docs synced, draft PR opened, qa clean. Don't declare success otherwise.
 - Honor bounded loops (review max 3). On exhaustion, pause at a gate and write `state.yaml` rather than thrashing.
 - Model/provider error → retry once on the agent's fallback, then escalate.
 - Never push into or merge `main`/`master` — human PR workflow.
@@ -92,6 +101,7 @@ Each subagent returns a YAML reply block. Expected keys per stage:
 - tester: `slice, files, scenarios_covered, test_command, blockers`
 - implementer: `slice, files_changed, tests_passing, opinion_gate, blockers`
 - reviewer: `review_status, findings_count, iterations, notes`
+- qa: `qa_status, scenarios_total, scenarios_passed, scenarios_failed, non_ui_validation, pr_comment_url, pr_ready, notes, blockers`
 
 ## Recovery
 If a subagent's reply lacks a `state.yaml` update, write the checkpoint yourself from its reply block (set `last_agent` to that subagent's name, `updated`, and the stage-appropriate keys). Re-read `state.yaml` before writing to avoid clobbering a sibling's update.

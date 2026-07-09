@@ -18,6 +18,7 @@ BASE_URL="${BASE_URL:-https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAM
 AGENTS=(
   architect.md
   implementer.md
+  qa.md
   reviewer.md
   sdd.md
   spec.md

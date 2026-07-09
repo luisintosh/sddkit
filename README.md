@@ -16,6 +16,7 @@ agents/
   tester.md      red phase — failing tests from acceptance contracts (test-only edits)
   implementer.md green phase — minimal impl to pass tests (no test edits)
   reviewer.md    read-only review of the active slice diff
+  qa.md          validates the implementation against spec/contracts on the draft PR
 ```
 
 State lives in the **consuming repo's root**, owned by that repo:
@@ -45,6 +46,7 @@ Each agent is pinned to a model by task complexity (effort tier), keeping cost a
 | reviewer | medium | `opencode-go/kimi-k2.7-code` |
 | tester | medium | `opencode-go/kimi-k2.7-code` |
 | sdd | medium | `opencode-go/kimi-k2.7-code` |
+| qa | high | `opencode-go/glm-5.2` |
 | implementer | low | `opencode-go/deepseek-v4-flash` |
 
 The reviewer (`kimi`) deliberately runs on a different provider than the implementer (`deepseek`) for an independent second perspective.
@@ -88,7 +90,7 @@ pipeline below. To resume an interrupted or gated run, ask `sdd` to continue.
 ## Pipeline
 
 ```
-initialize → specify → ⏸spec gate → acceptance contracts → plan → ⏸plan gate → tasks → implementation slices → verify → docs-sync → pr
+initialize → specify → ⏸spec gate → acceptance contracts → plan → ⏸plan gate → tasks → implementation slices → verify → docs-sync → pr → qa → complete
 ```
 
 Each implementation slice is:
@@ -98,7 +100,7 @@ red(@tester) → green(@implementer) → targeted test → review loop(@reviewer
 ```
 
 Gates pause for human approval. The reviewer is read-only and bounded (max 3 iterations); the
-only "done" is: all slices committed, `verify` green, docs synced, draft PR opened.
+only "done" is: all slices committed, `verify` green, docs synced, draft PR opened, `qa` clean.
 
 ## Notes
 
