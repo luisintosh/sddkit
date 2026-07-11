@@ -1,0 +1,14 @@
+{
+  "name": "opencode-harness-toolkit",
+  "private": true,
+  "type": "module",
+  "description": "Plugin dependencies for the SDD harness — installed into the consuming repo's .opencode/ so opencode auto-installs them for plugins/sdd-guard.ts.",
+  "scripts": {
+    "test": "bun test plugins/"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.17.18",
+    "yaml": "^2.9.0",
+    "zod": "^4.1.8"
+  }
+}
