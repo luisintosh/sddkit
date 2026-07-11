@@ -1,0 +1,17 @@
+{
+  "name": "fixture-repo",
+  "private": true,
+  "type": "module",
+  "description": "Tiny Node project used by test/e2e-pipeline.sh to exercise the SDD harness end-to-end against a real (small, cheap) opencode run.",
+  "scripts": {
+    "dev": "node src/index.js",
+    "build": "node --check src/index.js",
+    "test": "vitest run",
+    "test:file": "vitest run",
+    "lint": "node -e \"console.log('lint: n/a (no linter configured)')\"",
+    "typecheck": "node -e \"console.log('typecheck: n/a (plain JS, no TypeScript)')\""
+  },
+  "devDependencies": {
+    "vitest": "^2.1.0"
+  }
+}
