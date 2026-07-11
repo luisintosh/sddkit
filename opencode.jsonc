@@ -8,14 +8,19 @@
   "command": {
     "setup-docs": {
       "description": "Scaffold project docs required for the AI working context.",
-      "template": "Set up the project's AI working context.\n\nCreate missing files only; never overwrite existing files unless the user explicitly asks to refresh.\n\nInspect the repository enough to infer project name, purpose, stack, commands, conventions, architecture, and durable constraints.\n\nCreate:\n- AGENTS.md: concise always-loaded AI instructions with project commands, conventions, and links to docs/ARCHITECTURE.md and docs/CONSTITUTION.md.\n- docs/ARCHITECTURE.md: concise system overview, module map, data flow, key decisions, dependencies, and testing strategy.\n- docs/CONSTITUTION.md: concise governing principles for implementation and review.\n- docs/feats/.gitkeep: ensure feature artifact directory exists.\n\nAGENTS.md must include install/dev/build/test/lint/typecheck commands, using n/a when unknown.\n\nReturn a compact summary: created, skipped, inferred commands, and unknowns.",
+      "template": "Set up the project's AI working context.\n\nCreate missing files only; never overwrite existing files unless the user explicitly asks to refresh.\n\nInspect the repository enough to infer project name, purpose, stack, commands, conventions, architecture, and durable constraints.\n\nCreate:\n- AGENTS.md: concise always-loaded AI instructions with project commands, conventions, and links to docs/ARCHITECTURE.md and docs/CONSTITUTION.md.\n- docs/ARCHITECTURE.md: concise system overview, module map, data flow, key decisions, dependencies, and testing strategy.\n- docs/CONSTITUTION.md: concise governing principles for implementation and review.\n- docs/feats/.gitkeep: ensure the feature artifact directory exists.\n\nAGENTS.md must include these commands, using n/a when genuinely unknown: install, dev/run (how to start the app locally — the QA agent depends on this), build, test (plus how to run a single test file), lint, typecheck.\n\nVerify, don't guess: where possible confirm each command exists in the project manifest/scripts before writing it.\n\nReturn a compact summary: created, skipped, inferred commands, and unknowns.",
     },
   },
 
   "lsp": true,
   "formatter": true,
   "permission": {
-    "edit": "allow",
+    "edit": {
+      "*": "allow",
+      "docs/feats/**/state.yaml": "deny",
+      "**/journal.ndjson": "deny",
+      ".opencode/**": "deny",
+    },
     "read": "allow",
     "webfetch": "allow",
     "bash": {
@@ -29,6 +34,8 @@
       "git restore *": "ask",
       "git push --force*": "deny",
       "git push -f *": "deny",
+      "git push* main*": "deny",
+      "git push* master*": "deny",
       "gh pr merge *": "ask",
       "sudo *": "ask",
       "chmod -R *": "ask",
