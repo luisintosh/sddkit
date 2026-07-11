@@ -9,7 +9,6 @@ permission:
     "*": deny
     "docs/feats/**": allow
     "docs/feats/**/state.yaml": deny
-    "docs/CONSTITUTION.md": allow
   bash: allow
 ---
 
