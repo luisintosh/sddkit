@@ -1,4 +1,4 @@
-import { tool, type Plugin } from "@opencode-ai/plugin"
+import { tool, type Plugin, type PluginModule } from "@opencode-ai/plugin"
 import { z } from "zod"
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml"
 import * as fs from "node:fs/promises"
@@ -367,4 +367,13 @@ export const SddGuardPlugin: Plugin = async ({ directory, worktree }) => {
   }
 }
 
-export default SddGuardPlugin
+// opencode's plugin loader first looks for a V1-shaped default export
+// (`{ id, server() }`); only if that's absent does it fall back to scanning
+// every named export in this module and requiring each one to itself be a
+// plugin function — which throws on this file's non-plugin exports (Zod
+// schemas, helpers). Exporting the V1 shape makes the loader take the first
+// branch and return before ever reaching that scan.
+export default {
+  id: "sdd-guard",
+  server: SddGuardPlugin,
+} satisfies PluginModule
