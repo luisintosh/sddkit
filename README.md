@@ -49,6 +49,8 @@ docs/
     contracts/*.feature  Given/When/Then scenarios tagged @S1, @S2, ...
     plan.md
     tasks.md
+.codesight/
+  wiki/                 codebase context map (index.md + topic articles) — see Codebase Context below
 ```
 
 ## Models
@@ -97,6 +99,14 @@ Options (environment variables):
 - `BRANCH=some-branch` — install from a branch instead of a tag
 - `LOCAL_SOURCE=/path/to/checkout` — install from a local copy instead of downloading (CI/testing)
 - `TARGET_DIR=/path` — install into a directory other than the current one
+- `INSTALL_RTK=true` — opt-in: set up [`rtk`](https://github.com/rtk-ai/rtk) — run its own
+  `rtk init --opencode` setup and configure its **global** config (`~/.config/rtk/config.toml`) to
+  exclude `git diff`/`git show` from rewriting, so the SDD reviewer never sees a truncated diff. If
+  `rtk` isn't on `PATH` and you're running this interactively on macOS with Homebrew installed, it
+  offers to `brew install rtk` (y/N) first — skipped automatically, never prompted, under a piped
+  `curl | bash` or any other non-interactive install. Off by default because it touches machine-wide
+  state, not just this repo; existing `exclude_commands` entries are never overwritten — `--doctor`
+  reports what's missing if you skip this.
 
 Flags: `--dry-run` (show what would change without writing anything), `--doctor` (environment checks
 only — this also runs automatically, warn-only, after a real install).
@@ -112,6 +122,20 @@ Run once in the consuming repo:
 This creates the project AI working context: `AGENTS.md` (including a dev/run command, since `qa`
 depends on it, and a single-test-file command, since the implementation slice loop depends on it),
 `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and `docs/feats/.gitkeep` if missing.
+
+### Setup Context (optional)
+
+Run once in the consuming repo, after `Node >= 18` is available:
+
+```text
+/setup-context
+```
+
+This runs [`codesight`](https://github.com/Houseofmvps/codesight) to generate `.codesight/wiki/` — a
+committable, structured map of the codebase (routes, schema, hot files, topic articles). `@spec`,
+`@architect`, and `@implementer` read `.codesight/wiki/index.md` first as an orientation hint before
+falling back to Grep/Glob, and `@sdd` best-effort refreshes it at the plan stage and again at
+docs-sync so the committed map stays current. See [Codebase Context](#codebase-context) below.
 
 ### Start a Feature
 
@@ -176,10 +200,28 @@ Agent frontmatter (`permission.edit`) denies the same paths declaratively as a s
 `opencode.jsonc` denies `git push* main*`/`git push* master*` outright while keeping `gh pr merge *`
 on `ask`.
 
+## Codebase Context
+
+Two optional, non-blocking tools cut the tokens spent exploring and reading the codebase:
+
+- **[`codesight`](https://github.com/Houseofmvps/codesight)** — `/setup-context` generates
+  `.codesight/wiki/`, a committable map of the codebase (index + topic articles). `@spec`,
+  `@architect`, and `@implementer` read the index first as a hint, then verify with Grep/Glob before
+  citing `file:line` — the wiki is never treated as ground truth. `@sdd` best-effort refreshes it at
+  the plan stage and again at docs-sync (`npx codesight --wiki`); failures are silently skipped, never
+  block the pipeline. `opencode.jsonc` also registers a `codesight` MCP server (`npx codesight --mcp`)
+  so any agent can query it (routes, schema, blast radius) on demand.
+- **[`rtk`](https://github.com/rtk-ai/rtk)** — opt-in via `INSTALL_RTK=true` at install time. Filters
+  noisy bash output (test runs, lint, `git status`/`log`) before it reaches the model. It only affects
+  the `bash` tool — opencode's built-in Grep/Glob/Read bypass it — so its effect is scoped to the
+  verify/review/qa stages. The installer configures its global `exclude_commands` to leave `git
+  diff`/`git show` untouched, since the review loop depends on seeing the full uncommitted diff.
+
 ## Notes
 
-- No commands or scripts are required beyond the bundled `/setup-docs` command and the shipped
-  `sdd-guard` plugin — `opencode` auto-installs the plugin's dependencies from `.opencode/package.json`.
+- No commands or scripts are required beyond the bundled `/setup-docs`/`/setup-context` commands and
+  the shipped `sdd-guard` plugin — `opencode` auto-installs the plugin's dependencies from
+  `.opencode/package.json`.
 - The workflow runs in the current repository checkout — no worktree isolation.
 - `AGENTS.md` must list the project's install/dev/build/test/lint/typecheck commands; `sdd` and `qa`
   read them at the `verify` and `qa` stages respectively.
