@@ -11,6 +11,7 @@ import {
   appendJournal,
   resolveActiveFeature,
   runCheckpoint,
+  runCompactSession,
   isProtectedStateFile,
   isOpencodeSelfWrite,
   isCrossFeatureWrite,
@@ -199,6 +200,64 @@ describe("runCheckpoint", () => {
     await expect(runCheckpoint(root, { feature: "account-export", init: true }, "implementer")).rejects.toThrow(
       /only be called by @sdd/,
     )
+  })
+})
+
+describe("runCompactSession", () => {
+  test("non-sdd agents may not call compact", async () => {
+    const client = { session: { summarize: async () => ({}) } }
+    await expect(
+      runCompactSession(client, root, { feature: "account-export", trigger: "plan_gate" }, "implementer", "sess1"),
+    ).rejects.toThrow(/only be called by @sdd/)
+  })
+
+  test("successful summarize journals a compact entry and returns without throwing", async () => {
+    const client = { session: { summarize: async () => ({}) } }
+    const message = await runCompactSession(
+      client,
+      root,
+      { feature: "account-export", trigger: "verify" },
+      "sdd",
+      "sess1",
+    )
+    expect(message).toContain("Compacted")
+    const raw = await fs.readFile(journalPath(root, "account-export"), "utf8")
+    const entry = JSON.parse(raw.trim())
+    expect(entry.action).toBe("compact")
+    expect(entry.trigger).toBe("verify")
+    expect(entry.agent).toBe("sdd")
+  })
+
+  test("an API-level error result is journaled as compact_skipped and does not throw", async () => {
+    const client = { session: { summarize: async () => ({ error: "boom" }) } }
+    const message = await runCompactSession(
+      client,
+      root,
+      { feature: "account-export", trigger: "plan_gate" },
+      "sdd",
+      "sess1",
+    )
+    expect(message).toContain("Compaction skipped")
+    const raw = await fs.readFile(journalPath(root, "account-export"), "utf8")
+    const entry = JSON.parse(raw.trim())
+    expect(entry.action).toBe("compact_skipped")
+    expect(entry.error).toContain("boom")
+  })
+
+  test("a rejecting/hanging summarize call is journaled as compact_skipped and does not throw", async () => {
+    const client = { session: { summarize: async () => { throw new Error("network error") } } }
+    const message = await runCompactSession(
+      client,
+      root,
+      { feature: "account-export", trigger: "verify" },
+      "sdd",
+      "sess1",
+    )
+    expect(message).toContain("Compaction skipped")
+    const raw = await fs.readFile(journalPath(root, "account-export"), "utf8")
+    const entry = JSON.parse(raw.trim())
+    expect(entry.action).toBe("compact_skipped")
+    expect(entry.error).toContain("network error")
   })
 })
 

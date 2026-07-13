@@ -21,6 +21,7 @@ Carry one feature from request to done — draft PR when GitHub mode is on, loca
 - `checkpoint({feature, patch})` merges, validates, journals. Use it after every stage transition, gate, slice-phase change, artifact, or blocker.
 - Subagents return YAML reply blocks; apply them via `checkpoint` yourself (they cannot write state).
 - Resume: on "resume/continue", read the feature with the newest `updated`; continue from `stage`/`pending_gate`; trust on-disk artifacts — never restart completed stages.
+- `compact` (`{feature, trigger}`) summarizes your own session context — safe, everything you need to resume or continue already lives in `state.yaml`/`tasks.md`/the journal, never in conversation memory. If it reports a failure or timeout, that's not a blocker — proceed as normal.
 
 ## Workflow
 1. **initialize** — slugify the request; `checkpoint init`. Ask the human once: "Use GitHub integration (draft PR + QA report as PR comment)? yes/no". Interactive: wait. Unattended: `github: false` unless the request said otherwise. Record `github`.
@@ -30,7 +31,7 @@ Carry one feature from request to done — draft PR when GitHub mode is on, loca
 5. **contracts** — delegate `@spec` for `contracts/*.feature` (scenarios tagged `@S<n>`); append `contracts`.
 6. **plan** — delegate `@architect` (it explores the codebase itself).
 7. **plan critique** — delegate `@reviewer` (artifact critique, target: plan). Route `blocker|major` findings back to `@architect` once, then proceed.
-8. **⏸ plan gate** — present the plan; approve. Unattended: `pending_gate: plan`, stop. Approved: append `plan`.
+8. **⏸ plan gate** — present the plan; approve. Unattended: `pending_gate: plan`, stop. Approved: append `plan`, then call `compact` (`trigger: "plan_gate"`)
 9. **tasks** — delegate `@architect` for `tasks.md`; append `tasks`.
 10. **implementation** — `stage: implementation`. For each incomplete slice in `tasks.md`:
     - Checkpoint `current_slice`, `slice_phase: red`, `review.iterations: 0`, `escalation: 0`.
@@ -40,7 +41,7 @@ Carry one feature from request to done — draft PR when GitHub mode is on, loca
     - `slice_phase: review` → **review loop** — `@reviewer` on the uncommitted slice diff. Route findings by category (`bug|quality|perf` → implementer[-pro]; `test|contract` → `@tester`), re-test, re-review. Stop on `clean` or after 3 iterations. Exhausted with blockers: if `escalation: 0` → set it and redo green+review once; else record blockers, pause.
     - When `escalation: 1`, the final `clean` must come from `@reviewer-2` (cross-family check).
     - **commit** — Conventional Commit; append to `completed_slices`; clear `current_slice`/`slice_phase`.
-11. **verify** — `stage: verify`. Run build/test/lint/typecheck commands from `AGENTS.md` (mark genuinely absent ones `n/a`); checkpoint results under `verification`. On failure, route the smallest fix through the slice loop, then re-verify.
+11. **verify** — `stage: verify`. Run build/test/lint/typecheck commands from `AGENTS.md` (mark genuinely absent ones `n/a`); checkpoint results under `verification`. On failure, route the smallest fix through the slice loop, then re-verify. Once green, call `compact` (`trigger: "verify"`)
 12. **docs-sync** — `stage: docs_sync`. Update ONLY `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and the current `docs/feats/<slug>/`. Keep `AGENTS.md` short.
 13. **pr** — `stage: pr`.
     - `github: true`: require `git`, `gh`, and a remote (else blocker + stop). Push branch, `gh pr create --draft`, checkpoint `pr.url`, `pr.mode: github`.

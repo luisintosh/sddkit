@@ -209,6 +209,67 @@ export async function resolveActiveFeature(root: string): Promise<string | null>
 // applies via this tool.
 // ---------------------------------------------------------------------------
 
+const COMPACT_TIMEOUT_MS = 20_000
+
+type SummarizeClient = {
+  session: {
+    summarize(opts: { path: { id: string }; signal?: AbortSignal }): Promise<{ error?: unknown } | void>
+  }
+}
+
+// Programmatic equivalent of the TUI's /compact — POST /session/{id}/summarize
+// via the plugin's opencode client. Treated as a pure optimization: any
+// failure (API error, network error, hang) is caught, journaled as
+// compact_skipped, and swallowed rather than thrown, so a bad compaction never
+// blocks @sdd's workflow. Restricted to @sdd, same single-writer reasoning as
+// checkpoint — only @sdd knows when its own session is at a safe point to
+// summarize.
+export async function runCompactSession(
+  client: SummarizeClient,
+  root: string,
+  args: { feature: string; trigger: "plan_gate" | "verify" },
+  agent: string,
+  sessionID: string,
+  parentSignal?: AbortSignal,
+): Promise<string> {
+  if (agent && agent !== "sdd") {
+    throw new Error(`sdd-guard: compact may only be called by @sdd (called by @${agent}).`)
+  }
+
+  const { feature, trigger } = args
+  if (!feature) throw new Error("sdd-guard: compact requires a feature slug")
+
+  const controller = new AbortController()
+  const timer = setTimeout(
+    () => controller.abort(new Error(`sdd-guard: compact timed out after ${COMPACT_TIMEOUT_MS}ms`)),
+    COMPACT_TIMEOUT_MS,
+  )
+  const onParentAbort = () => controller.abort(parentSignal?.reason)
+  parentSignal?.addEventListener("abort", onParentAbort)
+
+  try {
+    const result = await client.session.summarize({ path: { id: sessionID }, signal: controller.signal })
+    if (result && typeof result === "object" && "error" in result && result.error) {
+      throw new Error(typeof result.error === "string" ? result.error : JSON.stringify(result.error))
+    }
+    await appendJournal(root, feature, { ts: new Date().toISOString(), agent, action: "compact", trigger })
+    return `Compacted session context (trigger: ${trigger}).`
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    await appendJournal(root, feature, {
+      ts: new Date().toISOString(),
+      agent,
+      action: "compact_skipped",
+      trigger,
+      error: message,
+    })
+    return `Compaction skipped (${trigger}): ${message} — continuing without it.`
+  } finally {
+    clearTimeout(timer)
+    parentSignal?.removeEventListener("abort", onParentAbort)
+  }
+}
+
 export async function runCheckpoint(
   root: string,
   args: { feature: string; init?: boolean; patch?: Record<string, unknown> },
@@ -314,11 +375,22 @@ function extractFilePath(args: unknown): string | undefined {
 // Plugin entrypoint
 // ---------------------------------------------------------------------------
 
-export const SddGuardPlugin: Plugin = async ({ directory, worktree }) => {
+export const SddGuardPlugin: Plugin = async ({ directory, worktree, client }) => {
   const root = worktree || directory
 
   return {
     tool: {
+      compact: tool({
+        description:
+          "Summarize and compact this session's context — the programmatic equivalent of /compact (POST /session/{id}/summarize). Call at low-information-loss points in the SDD pipeline (after the plan gate, after verify goes green). Callable only by @sdd. Never blocks the workflow: failures/timeouts are journaled and swallowed, not thrown.",
+        args: {
+          feature: tool.schema.string().describe("Feature slug, for journaling."),
+          trigger: tool.schema.enum(["plan_gate", "verify"]).describe("Which pipeline checkpoint triggered this compaction."),
+        },
+        async execute(args, context) {
+          return runCompactSession(client, root, args, context.agent, context.sessionID, context.abort)
+        },
+      }),
       checkpoint: tool({
         description:
           "Read-merge-validate-write docs/feats/<feature>/state.yaml. The only sanctioned way to update SDD checkpoint state — never edit state.yaml directly. init:true scaffolds a new feature (errors if it already exists); patch deep-merges into the existing document (nested objects merge, arrays/scalars replace). Every call is validated against the state schema and journaled. Callable only by @sdd.",
@@ -363,6 +435,13 @@ export const SddGuardPlugin: Plugin = async ({ directory, worktree }) => {
           throw new Error("sdd-guard: pushing directly to main/master is blocked — open a pull request instead.")
         }
       }
+    },
+    // @sdd's compact calls happen mid-turn, inside its own active generation —
+    // the synthetic "continue" turn opencode may inject after compaction is
+    // meant for context-overflow compaction between turns, and would be
+    // redundant with sdd.md's own step-by-step prompt. Scoped to @sdd only.
+    "experimental.compaction.autocontinue": async (input, output) => {
+      if (input.agent === "sdd") output.enabled = false
     },
   }
 }

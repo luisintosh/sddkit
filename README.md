@@ -24,7 +24,7 @@ agents/
   reviewer-2.md            hidden cross-family final reviewer for escalated slices
   qa.md                    validates the finished feature against spec/contracts
 plugins/
-  sdd-guard.ts           checkpoint tool + guardrails + append-only journal (opencode plugin)
+  sdd-guard.ts           checkpoint + compact tools, guardrails, append-only journal (opencode plugin)
   sdd-guard.test.ts       bun test suite for the plugin's merge/validate/guard logic
 scripts/
   gen-manifest.sh         regenerates manifest.txt
@@ -167,6 +167,10 @@ state; they return a YAML reply block that `@sdd` applies. The plugin:
   feature is active — all via a `tool.execute.before` hook that throws to stop the write
 - adds defense-in-depth against pushing straight to `main`/`master` from a bash tool call, beyond the
   declarative deny rules in `opencode.jsonc`
+- exposes a `compact` tool — the programmatic equivalent of `/compact` — that `@sdd` calls at two
+  points in the pipeline (after the plan gate, after `verify` goes green) to summarize its own session
+  context. Callable only by `@sdd`; failures/timeouts are journaled and swallowed, never block the
+  workflow.
 
 Agent frontmatter (`permission.edit`) denies the same paths declaratively as a second layer, and
 `opencode.jsonc` denies `git push* main*`/`git push* master*` outright while keeping `gh pr merge *`
