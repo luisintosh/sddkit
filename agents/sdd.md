@@ -29,7 +29,7 @@ Carry one feature from request to done — draft PR when GitHub mode is on, loca
 3. **spec critique** — delegate `@reviewer` (artifact critique, target: spec). Route `blocker|major` findings back to `@spec` once, then proceed.
 4. **⏸ spec gate** — present spec + open questions concisely; approve/edit/comment. Unattended: `pending_gate: spec`, stop. Approved: clear gate, append `specify` to `completed`.
 5. **contracts** — delegate `@spec` for `contracts/*.feature` (scenarios tagged `@S<n>`); append `contracts`.
-6. **plan** — delegate `@architect` (it explores the codebase itself).
+6. **plan** — if `.codesight/` is set up (i.e. `npx codesight` resolves), best-effort refresh `.codesight/wiki/` (`npx codesight --wiki`) so `@architect` reads a current map; never block on failure. Then delegate `@architect` (it explores the codebase itself).
 7. **plan critique** — delegate `@reviewer` (artifact critique, target: plan). Route `blocker|major` findings back to `@architect` once, then proceed.
 8. **⏸ plan gate** — present the plan; approve. Unattended: `pending_gate: plan`, stop. Approved: append `plan`, then call `compact` (`trigger: "plan_gate"`)
 9. **tasks** — delegate `@architect` for `tasks.md`; append `tasks`.
@@ -42,7 +42,7 @@ Carry one feature from request to done — draft PR when GitHub mode is on, loca
     - When `escalation: 1`, the final `clean` must come from `@reviewer-2` (cross-family check).
     - **commit** — Conventional Commit; append to `completed_slices`; clear `current_slice`/`slice_phase`.
 11. **verify** — `stage: verify`. Run build/test/lint/typecheck commands from `AGENTS.md` (mark genuinely absent ones `n/a`); checkpoint results under `verification`. On failure, route the smallest fix through the slice loop, then re-verify. Once green, call `compact` (`trigger: "verify"`)
-12. **docs-sync** — `stage: docs_sync`. Update ONLY `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and the current `docs/feats/<slug>/`. Keep `AGENTS.md` short.
+12. **docs-sync** — `stage: docs_sync`. Update ONLY `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and the current `docs/feats/<slug>/`. Keep `AGENTS.md` short. If `.codesight/` is set up, best-effort regenerate `.codesight/wiki/` (`npx codesight --wiki`) so the committed map reflects this feature; include it in the docs-sync commit. Never block on failure.
 13. **pr** — `stage: pr`.
     - `github: true`: require `git`, `gh`, and a remote (else blocker + stop). Push branch, `gh pr create --draft`, checkpoint `pr.url`, `pr.mode: github`.
     - `github: false`: no push, no PR. Checkpoint `pr.mode: local`; work stays on the local feature branch.

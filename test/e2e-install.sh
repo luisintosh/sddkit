@@ -146,6 +146,80 @@ after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/spec.md" | awk '{print $
 assert_eq "$after_hash" "$before_hash" "no partial write occurred after checksum mismatch"
 
 # ---------------------------------------------------------------------------
+# 7. doctor reports the codesight/rtk checks
+# ---------------------------------------------------------------------------
+
+doctor_output="$(TARGET_DIR="$TARGET" bash "${REPO_ROOT}/install.sh" --doctor 2>&1)"
+if grep -q 'npx is on PATH' <<<"$doctor_output" || grep -q 'npx not found' <<<"$doctor_output"; then
+  ok "doctor reports npx/codesight readiness"
+else
+  bad "doctor should report npx/codesight readiness: $doctor_output"
+fi
+if grep -q '\.codesight/wiki/ missing' <<<"$doctor_output"; then
+  ok "doctor reports missing .codesight/wiki/"
+else
+  bad "doctor should report missing .codesight/wiki/: $doctor_output"
+fi
+if grep -q 'rtk not found' <<<"$doctor_output" || grep -q 'rtk is on PATH' <<<"$doctor_output"; then
+  ok "doctor reports rtk status"
+else
+  bad "doctor should report rtk status: $doctor_output"
+fi
+
+# ---------------------------------------------------------------------------
+# 8. INSTALL_RTK=true: opt-in setup is sandboxed (fake HOME/PATH — never
+#    touches the real machine), idempotent, and never clobbers an existing
+#    exclude_commands entry.
+# ---------------------------------------------------------------------------
+
+RTK_BIN_DIR="${WORK}/rtk-bin"
+mkdir -p "$RTK_BIN_DIR"
+cat > "${RTK_BIN_DIR}/rtk" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+chmod +x "${RTK_BIN_DIR}/rtk"
+
+RTK_HOME="${WORK}/rtk-home"
+mkdir -p "$RTK_HOME"
+RTK_CONFIG="${RTK_HOME}/.config/rtk/config.toml"
+
+env -u XDG_CONFIG_HOME PATH="${RTK_BIN_DIR}:${PATH}" HOME="$RTK_HOME" \
+  LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_RTK=true \
+  bash "${REPO_ROOT}/install.sh" >/dev/null 2>&1
+
+assert_file_exists "$RTK_CONFIG" "INSTALL_RTK=true creates ~/.config/rtk/config.toml"
+if grep -q 'git diff' "$RTK_CONFIG" 2>/dev/null && grep -q 'git show' "$RTK_CONFIG" 2>/dev/null; then
+  ok "rtk config excludes git diff/git show"
+else
+  bad "rtk config should exclude git diff/git show"
+fi
+
+before_rtk_config="$(cat "$RTK_CONFIG")"
+env -u XDG_CONFIG_HOME PATH="${RTK_BIN_DIR}:${PATH}" HOME="$RTK_HOME" \
+  LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_RTK=true \
+  bash "${REPO_ROOT}/install.sh" >/dev/null 2>&1
+after_rtk_config="$(cat "$RTK_CONFIG")"
+assert_eq "$after_rtk_config" "$before_rtk_config" "re-running INSTALL_RTK=true is a no-op on an already-configured rtk config"
+
+RTK_HOME2="${WORK}/rtk-home-existing"
+mkdir -p "${RTK_HOME2}/.config/rtk"
+cat > "${RTK_HOME2}/.config/rtk/config.toml" <<'EOF'
+[hooks]
+exclude_commands = ["docker exec"]
+EOF
+
+env -u XDG_CONFIG_HOME PATH="${RTK_BIN_DIR}:${PATH}" HOME="$RTK_HOME2" \
+  LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_RTK=true \
+  bash "${REPO_ROOT}/install.sh" >/dev/null 2>&1
+
+if grep -q 'docker exec' "${RTK_HOME2}/.config/rtk/config.toml"; then
+  ok "pre-existing exclude_commands entry is preserved, not clobbered"
+else
+  bad "pre-existing exclude_commands entry should be preserved"
+fi
+
+# ---------------------------------------------------------------------------
 
 echo ""
 echo "${pass} passed, ${fail} failed"

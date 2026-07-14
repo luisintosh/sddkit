@@ -20,6 +20,7 @@ Produce `plan.md` and `tasks.md` so implementation is minimal, reversible, and t
 ## Inputs
 - `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`
 - `docs/feats/<feature>/spec.md` and `contracts/*.feature`
+- `.codesight/wiki/index.md`, if present — read first (~200 tokens), then the one relevant article; a hint to aim Grep/Glob, not ground truth
 - Existing code — locate it yourself via Grep/Glob; Read only matching regions
 - Critique findings when re-delegated
 
@@ -29,7 +30,7 @@ Produce `plan.md` and `tasks.md` so implementation is minimal, reversible, and t
 - When re-delegated with critique findings, address each by `id`; change nothing else.
 
 ## Workflow
-1. Grep/Glob the codebase; Read only matching regions.
+1. If `.codesight/wiki/index.md` exists, read it and the relevant article to orient. Then Grep/Glob the codebase to verify; Read only matching regions. Never cite `file:line` from the wiki alone — confirm it first.
 2. Write `plan.md` (or apply critique fixes / write `tasks.md` per the delegation).
 3. Return the reply block; documents stay on disk. You never write `state.yaml` — `@sdd` checkpoints from your reply.
 

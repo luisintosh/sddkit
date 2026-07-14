@@ -10,6 +10,18 @@
       "description": "Scaffold project docs required for the AI working context.",
       "template": "Set up the project's AI working context.\n\nCreate missing files only; never overwrite existing files unless the user explicitly asks to refresh.\n\nInspect the repository enough to infer project name, purpose, stack, commands, conventions, architecture, and durable constraints.\n\nCreate:\n- AGENTS.md: concise always-loaded AI instructions with project commands, conventions, and links to docs/ARCHITECTURE.md and docs/CONSTITUTION.md.\n- docs/ARCHITECTURE.md: concise system overview, module map, data flow, key decisions, dependencies, and testing strategy.\n- docs/CONSTITUTION.md: concise governing principles for implementation and review.\n- docs/feats/.gitkeep: ensure the feature artifact directory exists.\n\nAGENTS.md must include these commands, using n/a when genuinely unknown: install, dev/run (how to start the app locally — the QA agent depends on this), build, test (plus how to run a single test file), lint, typecheck.\n\nVerify, don't guess: where possible confirm each command exists in the project manifest/scripts before writing it.\n\nReturn a compact summary: created, skipped, inferred commands, and unknowns.",
     },
+    "setup-context": {
+      "description": "Bootstrap the CodeSight codebase context map used by spec/architect/implementer.",
+      "template": "Bootstrap the CodeSight AI context map.\n\nSkip if `.codesight/wiki/` already exists, unless explicitly asked to refresh.\n\nRequires Node >= 18 / `npx`; if missing, report and stop — never fabricate a wiki by hand.\n\nRun `npx codesight --wiki` at the repo root to generate `.codesight/wiki/` (index.md + topic articles) that `@spec`, `@architect`, and `@implementer` read before Grep/Glob.\n\nStage `.codesight/` for commit; don't commit automatically.\n\nReturn a compact summary: generated/skipped, article count, npx availability.",
+    },
+  },
+
+  "mcp": {
+    "codesight": {
+      "type": "local",
+      "command": ["npx", "codesight", "--mcp"],
+      "enabled": true,
+    },
   },
 
   "lsp": true,

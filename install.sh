@@ -11,6 +11,15 @@ set -euo pipefail
 #   VERSION       git tag to install, e.g. v0.2.0 (default: latest tag, falling back to master)
 #   BRANCH        install from a branch instead of a tag (overrides VERSION)
 #   LOCAL_SOURCE  install from a local checkout instead of downloading (for CI/testing)
+#   INSTALL_RTK   opt-in: if "true", set up `rtk` — running `rtk init --opencode`
+#                 and configuring its global config (~/.config/rtk/config.toml)
+#                 to exclude `git diff`/`git show` from rewriting, so the SDD
+#                 reviewer never sees a truncated diff. If `rtk` isn't on PATH
+#                 and this is an interactive macOS terminal with Homebrew
+#                 installed, offers to `brew install rtk` (y/N) — skipped,
+#                 never prompted, under a piped/non-interactive install. Off by
+#                 default — this touches machine-wide state, not just this
+#                 repo. Existing exclude_commands are never clobbered.
 #
 # Flags:
 #   --dry-run     show what would change without writing anything
@@ -27,6 +36,7 @@ TARGET_DIR="${TARGET_DIR:-$PWD}"
 VERSION="${VERSION:-}"
 BRANCH="${BRANCH:-}"
 LOCAL_SOURCE="${LOCAL_SOURCE:-}"
+INSTALL_RTK="${INSTALL_RTK:-false}"
 
 DRY_RUN=false
 DOCTOR_ONLY=false
@@ -86,6 +96,91 @@ manifest_paths_of() {
   awk '{ n = split($0, a, /  /); if (n >= 2) print a[2] }' "$manifest"
 }
 
+rtk_config_path() {
+  printf '%s/rtk/config.toml' "${XDG_CONFIG_HOME:-$HOME/.config}"
+}
+
+rtk_excludes_diff() {
+  local rtk_config="$1"
+  [[ -f "$rtk_config" ]] || return 1
+  grep -q 'git diff' "$rtk_config" 2>/dev/null && grep -q 'git show' "$rtk_config" 2>/dev/null
+}
+
+# Offer to install rtk via Homebrew when it's missing. Only fires on macOS,
+# with brew present, and stdin actually a terminal (`[[ -t 0 ]]`, not
+# /dev/tty) — so a piped `curl | bash` install or any non-interactive run
+# (CI, this installer's own e2e tests) never blocks waiting on input; it just
+# falls through to the printed hint instead.
+maybe_install_rtk_via_brew() {
+  [[ "$(uname -s)" == "Darwin" ]] || return 1
+  command -v brew >/dev/null 2>&1 || return 1
+  [[ -t 0 ]] || return 1
+
+  local reply
+  read -r -p "rtk not found. Install it now via 'brew install rtk'? [y/N] " reply
+  case "$reply" in
+    y | Y | yes | YES | Yes) ;;
+    *) return 1 ;;
+  esac
+
+  log "Installing rtk via Homebrew..."
+  if brew install rtk; then
+    log "  [ok]   rtk installed via Homebrew"
+    return 0
+  fi
+  log "  [warn] 'brew install rtk' failed — install manually from https://github.com/rtk-ai/rtk"
+  return 1
+}
+
+# Opt-in (INSTALL_RTK=true): run rtk's own idempotent setup, then make sure
+# its global config never lets the SDD review loop see a truncated diff.
+# Only ever appends — an existing exclude_commands entry is left untouched
+# and reported instead, since rewriting someone's array in place is not safe
+# to do blindly.
+setup_rtk() {
+  if ! command -v rtk >/dev/null 2>&1; then
+    if ! maybe_install_rtk_via_brew; then
+      log "  [hint] rtk not found — install from https://github.com/rtk-ai/rtk (macOS: brew install rtk), then re-run with INSTALL_RTK=true"
+      return
+    fi
+  fi
+
+  log "Setting up rtk..."
+  rtk init --opencode >/dev/null 2>&1 || log "  [warn] 'rtk init --opencode' failed — run it manually to enable the bash token-reduction hook"
+
+  local rtk_config want_line
+  rtk_config="$(rtk_config_path)"
+  want_line='exclude_commands = ["git diff", "git show"]'
+
+  if [[ ! -f "$rtk_config" ]]; then
+    mkdir -p "$(dirname "$rtk_config")"
+    printf '[hooks]\n%s\n' "$want_line" > "$rtk_config"
+    log "  [ok]   wrote ${rtk_config} excluding git diff/git show from rewriting"
+    return
+  fi
+
+  if grep -q 'exclude_commands' "$rtk_config"; then
+    if rtk_excludes_diff "$rtk_config"; then
+      log "  [ok]   ${rtk_config} already excludes git diff/git show"
+    else
+      log "  [warn] ${rtk_config} already sets exclude_commands — add \"git diff\" and \"git show\" yourself so the SDD reviewer never sees a truncated diff:"
+      log "         ${want_line}"
+    fi
+    return
+  fi
+
+  if grep -q '^\[hooks\]' "$rtk_config"; then
+    local tmp
+    tmp="$(mktemp)"
+    awk -v line="$want_line" '{print} /^\[hooks\]/ && !done {print line; done=1}' "$rtk_config" > "$tmp"
+    mv "$tmp" "$rtk_config"
+    log "  [ok]   added exclude_commands to the existing [hooks] section in ${rtk_config}"
+  else
+    printf '\n[hooks]\n%s\n' "$want_line" >> "$rtk_config"
+    log "  [ok]   appended a [hooks] section with exclude_commands to ${rtk_config}"
+  fi
+}
+
 doctor() {
   log ""
   log "Doctor:"
@@ -116,6 +211,29 @@ doctor() {
     fi
   else
     log "  [warn] gh not found (only needed if you enable GitHub mode)"
+  fi
+
+  if command -v npx >/dev/null 2>&1; then
+    log "  [ok]   npx is on PATH (needed for the codesight context map)"
+  else
+    log "  [warn] npx not found — install Node.js >= 18 to use /setup-context (codesight)"
+  fi
+
+  if [[ -f "${TARGET_DIR}/.codesight/wiki/index.md" ]]; then
+    log "  [ok]   .codesight/wiki/ present"
+  else
+    log "  [warn] .codesight/wiki/ missing — run /setup-context in opencode to bootstrap the codebase context map"
+  fi
+
+  if command -v rtk >/dev/null 2>&1; then
+    log "  [ok]   rtk is on PATH (optional — reduces agent token usage on bash commands)"
+    if rtk_excludes_diff "$(rtk_config_path)"; then
+      log "  [ok]   rtk excludes git diff/git show from rewriting"
+    else
+      log "  [warn] rtk does not yet exclude git diff/git show — re-run with INSTALL_RTK=true, or add manually to $(rtk_config_path): exclude_commands = [\"git diff\", \"git show\"]"
+    fi
+  else
+    log "  [warn] rtk not found (optional) — install from https://github.com/rtk-ai/rtk, then re-run with INSTALL_RTK=true"
   fi
 
   log ""
@@ -282,6 +400,10 @@ main() {
   $backup_used && log "Locally modified files were preserved under ${harness_dir#"$TARGET_DIR"/}/.backup-*/"
   log ""
   log "Open this directory with opencode to use the spec-driven development harness."
+
+  if [[ "$INSTALL_RTK" == "true" ]]; then
+    setup_rtk
+  fi
 
   doctor
 }
