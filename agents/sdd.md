@@ -23,7 +23,7 @@ Carry one feature from request to done — draft PR when GitHub mode is on, loca
 - `checkpoint({feature, patch})` merges, validates, journals. Use it after every stage transition, gate, slice-phase change, artifact, or blocker.
 - Subagents return YAML reply blocks; apply them via `checkpoint` yourself (they cannot write state).
 - Resume: on "resume/continue", read the feature with the newest `updated`; continue from `stage`/`pending_gate`; trust on-disk artifacts — never restart completed stages.
-- `compact` (`{feature, trigger}`) summarizes your own session context — safe, everything you need to resume or continue already lives in `state.yaml`/`tasks.md`/the journal, never in conversation memory. If it reports a failure or timeout, that's not a blocker — proceed as normal.
+- `compact` (`{feature, trigger}`) summarizes your own session context — safe, everything you need to resume or continue already lives in `state.yaml`/`tasks.md`/the journal, never in conversation memory. Triggers: `plan_gate`, `verify`, `slice_commit` (after every slice commit). If it reports a failure or timeout, that's not a blocker — proceed as normal.
 
 ## Workflow
 1. **initialize** — slugify the request. Detect the current branch (`git branch --show-current`) and ask the human once: "Create a new branch `feat/<slug>` or continue on the current branch (`<current-branch>`)?". Interactive: wait. Unattended: create `feat/<slug>`. Record `branch`. Then `checkpoint init`. Ask the human once: "Use GitHub integration (draft PR + QA report as PR comment)? yes/no". Interactive: wait. Unattended: `github: false` unless the request said otherwise. Record `github`.
@@ -35,14 +35,16 @@ Carry one feature from request to done — draft PR when GitHub mode is on, loca
 7. **plan critique** — delegate `@reviewer` (artifact critique, target: plan). Route `blocker|major` findings back to `@architect` once, then proceed.
 8. **⏸ plan gate** — present the plan; approve. Unattended: `pending_gate: plan`, stop. Approved: append `plan`, then call `compact` (`trigger: "plan_gate"`)
 9. **tasks** — delegate `@architect` for `tasks.md`; append `tasks`.
-10. **implementation** — `stage: implementation`. For each incomplete slice in `tasks.md`:
-    - Checkpoint `current_slice`, `slice_phase: red`, `review.iterations: 0`, `escalation: 0`.
-    - **red** — `@tester`; confirm new tests fail for the right reason.
-    - `slice_phase: green` → **green** — `@implementer` (use `@implementer-pro` when `escalation: 1`). Opinion gate raised → pause for the human.
-    - `slice_phase: targeted_test` → run the slice's targeted test command. On failure route back with the failure output. **Second failed green attempt on the same slice → `escalation: 1`, re-run green via `@implementer-pro`.**
-    - `slice_phase: review` → **review loop** — `@reviewer` on the uncommitted slice diff. Route findings by category (`bug|quality|perf` → implementer[-pro]; `test|contract` → `@tester`), re-test, re-review. Stop on `clean` or after 3 iterations. Exhausted with blockers: if `escalation: 0` → set it and redo green+review once; else record blockers, pause.
+10. **implementation** — `stage: implementation`. For each incomplete slice in `tasks.md`, read its `risk: low | standard` tag (default `standard` if absent) and build a **slice brief** once (the slice's `tasks.md` section, its `@S<n>` scenario text from `contracts/*.feature`, and its targeted test command); pass this brief to every delegation for the slice.
+    - Checkpoint `current_slice`, `slice_phase` (`red` for `standard`, `green` for `low`), `review.iterations: 0`, `escalation: 0`.
+    - **red** (`standard` only) — `@tester` with the slice brief; confirm new tests fail for the right reason. `low`-risk slices skip this phase entirely.
+    - `slice_phase: green` → **green** — `@implementer` with the slice brief (use `@implementer-pro` when `escalation: 1`). Opinion gate raised → pause for the human.
+    - `slice_phase: targeted_test` → run the slice's targeted test command. On failure route back only the failing test names + first error lines (≤40 lines), never the full raw output. **Second failed green attempt on the same slice → `escalation: 1`, re-run green via `@implementer-pro`.**
+    - `slice_phase: review` → **review loop**:
+      - `standard`: `@reviewer` on the uncommitted slice diff, scoped to the brief's `@S<n>` scenarios. Route findings by category (`bug|quality|perf` → implementer[-pro]; `test|contract` → `@tester`), re-test, re-review. On iteration >1, tell `@reviewer` to verify only the prior findings' fixes plus the delta since the last pass, not a full re-review. Stop on `clean` or after 3 iterations. Exhausted with blockers: if `escalation: 0` → set it and redo green+review once; else record blockers, pause.
+      - `low`: a single `@reviewer` pass (no loop). Any `blocker` finding upgrades the slice to `standard` in place — reset to `slice_phase: red` and run the full red→green→review flow as the safety valve.
     - When `escalation: 1`, the final `clean` must come from `@reviewer-2` (cross-family check).
-    - **commit** — Conventional Commit; append to `completed_slices`; clear `current_slice`/`slice_phase`.
+    - **commit** — Conventional Commit; append to `completed_slices`; clear `current_slice`/`slice_phase`; call `compact` (`trigger: "slice_commit"`).
 11. **verify** — `stage: verify`. Run build/test/lint/typecheck commands from `AGENTS.md` (mark genuinely absent ones `n/a`); checkpoint results under `verification`. On failure, route the smallest fix through the slice loop, then re-verify. Once green, call `compact` (`trigger: "verify"`)
 12. **docs-sync** — `stage: docs_sync`. Update ONLY `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and the current `docs/feats/<slug>/`. Keep `AGENTS.md` short. If `.codesight/` is set up, best-effort regenerate `.codesight/wiki/` (`npx codesight --wiki`) so the committed map reflects this feature; include it in the docs-sync commit. Never block on failure.
 13. **pr** — `stage: pr`.

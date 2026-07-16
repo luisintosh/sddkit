@@ -157,15 +157,24 @@ initialize → specify → spec critique → ⏸spec gate → acceptance contrac
   → ⏸plan gate → tasks → implementation slices → verify → docs-sync → pr → qa → complete
 ```
 
-Each implementation slice is:
+`@architect` tags each slice in `tasks.md` with a risk tier — `standard` (behavior-changing, maps to
+an `@S<n>` scenario) or `low` (config/wiring/glue with no new behavior) — visible to the human at the
+plan gate. Each implementation slice then runs one of two flows:
 
 ```
-red(@tester) → green(@implementer) → targeted test → review loop(@reviewer) → commit
+standard: red(@tester) → green(@implementer) → targeted test → review loop(@reviewer) → commit
+low:                      green(@implementer) → targeted test → single review pass    → commit
 ```
 
-Gates pause for human approval. The reviewer is read-only and bounded (max 3 iterations per slice,
-max 2 QA-driven fix cycles). Before each human gate, `@reviewer` also runs a one-shot artifact
-critique on the spec/plan so gates see pre-hardened drafts.
+A `blocker` finding on a `low`-risk slice upgrades it to the `standard` flow in place (re-run red +
+the full review loop) — the safety valve if a slice was mis-tiered. `@sdd` builds one **slice
+brief** (task section, `@S<n>` scenario text, targeted test command) per slice and passes it to every
+delegation, instead of pointing each subagent back at the full spec/contracts/tasks artifacts.
+
+Gates pause for human approval. The reviewer is read-only and bounded (max 3 iterations per
+`standard` slice, max 2 QA-driven fix cycles); re-review iterations after the first check only that
+prior findings were fixed plus the delta since, not the full diff again. Before each human gate,
+`@reviewer` also runs a one-shot artifact critique on the spec/plan so gates see pre-hardened drafts.
 
 **Escalation ladder**: if `@implementer` fails the slice's targeted tests twice, or a review loop
 exhausts with unresolved blocker findings, `@sdd` sets `escalation: 1` and re-runs the green phase via
@@ -191,9 +200,9 @@ state; they return a YAML reply block that `@sdd` applies. The plugin:
   feature is active — all via a `tool.execute.before` hook that throws to stop the write
 - adds defense-in-depth against pushing straight to `main`/`master` from a bash tool call, beyond the
   declarative deny rules in `opencode.jsonc`
-- exposes a `compact` tool — the programmatic equivalent of `/compact` — that `@sdd` calls at two
-  points in the pipeline (after the plan gate, after `verify` goes green) to summarize its own session
-  context. Callable only by `@sdd`; failures/timeouts are journaled and swallowed, never block the
+- exposes a `compact` tool — the programmatic equivalent of `/compact` — that `@sdd` calls at three
+  points in the pipeline (after the plan gate, after every slice commit, after `verify` goes green) to
+  summarize its own session context. Callable only by `@sdd`; failures/timeouts are journaled and swallowed, never block the
   workflow.
 
 Agent frontmatter (`permission.edit`) denies the same paths declaratively as a second layer, and

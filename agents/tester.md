@@ -26,7 +26,7 @@ Tester (TDD **red**): translates acceptance contract scenarios into failing, exe
 Cover the active slice's `@S<n>` scenarios with tests that fail for the right reason, using the consuming repo's existing test stack.
 
 ## Inputs
-- `docs/feats/<feature>/contracts/*.feature` and the active slice in `tasks.md` (read-only for you)
+- The slice brief from `@sdd` (task section, `@S<n>` scenario text, test command) — prefer it over re-reading `docs/feats/<feature>/contracts/*.feature`/`tasks.md` in full; read from disk only if the brief is missing or ambiguous
 - Existing tests, project manifest/config, `AGENTS.md` — match framework, naming, fixtures, layout
 - Routed `test|contract` findings when re-delegated
 
@@ -36,6 +36,7 @@ Cover the active slice's `@S<n>` scenarios with tests that fail for the right re
 - Cover happy path, edges, and error states from the contracts — don't over-test beyond them.
 - Run the slice's targeted test command; confirm failure is an assertion failure, not an import/syntax error.
 - When re-delegated with findings, fix exactly those findings by `id`.
+- Prefer a quiet/failures-only reporter for the `test_command` you return when the repo's runner supports one (e.g. `--reporter=dot`, `-q`) — the command must still be copy-runnable as-is.
 
 ## Workflow
 1. If the slice is already `green` per the delegation context, return `done` without editing.

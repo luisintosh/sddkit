@@ -227,7 +227,7 @@ type SummarizeClient = {
 export async function runCompactSession(
   client: SummarizeClient,
   root: string,
-  args: { feature: string; trigger: "plan_gate" | "verify" },
+  args: { feature: string; trigger: "plan_gate" | "verify" | "slice_commit" },
   agent: string,
   sessionID: string,
   parentSignal?: AbortSignal,
@@ -382,10 +382,12 @@ export const SddGuardPlugin: Plugin = async ({ directory, worktree, client }) =>
     tool: {
       compact: tool({
         description:
-          "Summarize and compact this session's context — the programmatic equivalent of /compact (POST /session/{id}/summarize). Call at low-information-loss points in the SDD pipeline (after the plan gate, after verify goes green). Callable only by @sdd. Never blocks the workflow: failures/timeouts are journaled and swallowed, not thrown.",
+          "Summarize and compact this session's context — the programmatic equivalent of /compact (POST /session/{id}/summarize). Call at low-information-loss points in the SDD pipeline (after the plan gate, after verify goes green, after each slice commit). Callable only by @sdd. Never blocks the workflow: failures/timeouts are journaled and swallowed, not thrown.",
         args: {
           feature: tool.schema.string().describe("Feature slug, for journaling."),
-          trigger: tool.schema.enum(["plan_gate", "verify"]).describe("Which pipeline checkpoint triggered this compaction."),
+          trigger: tool.schema
+            .enum(["plan_gate", "verify", "slice_commit"])
+            .describe("Which pipeline checkpoint triggered this compaction."),
         },
         async execute(args, context) {
           return runCompactSession(client, root, args, context.agent, context.sessionID, context.abort)

@@ -27,7 +27,7 @@ Implementer (TDD **green**): makes the active slice's failing tests pass with th
 Reach green for the active slice via the minimum viable correct change, then stop.
 
 ## Inputs
-- Active-slice `tasks.md`, `plan.md`, failing-test list from `@sdd`
+- The slice brief from `@sdd` (task section, `@S<n>` scenario text, test command) — prefer it over re-reading `tasks.md`/`plan.md` in full; read from disk only if the brief is missing or ambiguous
 - `.codesight/wiki/index.md`, if present — read first (~200 tokens), then the one relevant article before Grep/Glob
 - Routed `bug|quality|perf` findings when re-delegated
 - Target code — locate it yourself via Grep/Glob; Read only matching regions
@@ -35,7 +35,7 @@ Reach green for the active slice via the minimum viable correct change, then sto
 ## Responsibilities
 - Implement the minimum to go green; refactor only while green.
 - Reuse existing functions/patterns; match surrounding style.
-- Re-run the slice's targeted tests; fix failures within the turn.
+- Re-run the slice's targeted tests; fix failures within the turn. Prefer a quiet/failures-only reporter for in-loop re-runs when the repo's runner supports one; use full output only when diagnosing a failure.
 - On routed findings, fix exactly those findings by `id` — don't expand scope.
 - Check off ONLY this slice's completed `[ ]` boxes in `tasks.md` (structure belongs to `@architect`).
 
