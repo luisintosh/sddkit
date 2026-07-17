@@ -1,0 +1,9 @@
+{
+  "name": "sdd-harness-opencode",
+  "private": true,
+  "type": "module",
+  "description": "Installed into the consuming repo's .opencode/ so opencode resolves the sdd-guard plugin's runtime import. The plugin's own logic (core state-engine, yaml, zod) is bundled into plugins/sdd-guard.js; only opencode's plugin runtime stays external.",
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.17.18"
+  }
+}

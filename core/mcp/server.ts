@@ -59,17 +59,12 @@ export function resolveRoot(argv: string[], env: NodeJS.ProcessEnv, cwd: string)
   return env.SDD_ROOT || cwd
 }
 
-async function main(): Promise<void> {
+// Wire the checkpoint server to stdio and connect. Called by the bundled entry
+// (core/mcp/bin.ts); kept out of module top-level so importing this file (tests,
+// the adapters) has no side effects.
+export async function runStdioServer(): Promise<void> {
   const root = resolveRoot(process.argv.slice(2), process.env, process.cwd())
   const server = createCheckpointServer(root)
   const transport = new StdioServerTransport()
   await server.connect(transport)
-}
-
-// Only run the stdio server when invoked directly, not when imported by tests.
-if (import.meta.main) {
-  main().catch((err) => {
-    console.error("sdd-checkpoint MCP server failed to start:", err)
-    process.exit(1)
-  })
 }

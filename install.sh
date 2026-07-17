@@ -129,6 +129,13 @@ main() {
 
   [[ -d "$TARGET_DIR" ]] || die "target directory does not exist: $TARGET_DIR"
 
+  # NOTE (harness-agnostic refactor, §7 pending): the installable tree is now
+  # generated (build/<harness>/) and published as a per-harness release asset,
+  # not served from the raw repo. The LOCAL_SOURCE path below already works
+  # against a built tree (point it at build/opencode/); the network path still
+  # targets raw repo files and will be repointed at release artifacts + gain a
+  # HARNESS selector in §7. Until then, network install is expected to be used
+  # only via LOCAL_SOURCE in CI/e2e.
   local ref base_url
   if [[ -n "$LOCAL_SOURCE" ]]; then
     [[ -d "$LOCAL_SOURCE" ]] || die "LOCAL_SOURCE does not exist: $LOCAL_SOURCE"

@@ -35,17 +35,24 @@ assert_eq() {
   if [[ "$1" == "$2" ]]; then ok "$3"; else bad "$3 (expected [$2], got [$1])"; fi
 }
 
+# Regenerate manifest.txt for an arbitrary install tree (used after mutating the
+# fixture). Mirrors scripts/gen-manifest.sh's format without its harness layout.
+regen_manifest() {
+  local tree="$1"
+  ( cd "$tree" && find . -type f ! -name manifest.txt ! -name .harness-manifest \
+      | sed 's|^\./||' | sort \
+      | while IFS= read -r f; do shasum -a 256 "$f"; done ) > "${tree}/manifest.txt"
+}
+
 # ---------------------------------------------------------------------------
-# Fixture: a mutable "upstream" copy of this repo (so pruning/updating tests
-# don't require mutating the real source tree).
+# Fixture: build the OpenCode install tree, then use a mutable copy of it as the
+# LOCAL_SOURCE upstream (so pruning/updating tests can mutate it freely).
 # ---------------------------------------------------------------------------
 
+(cd "$REPO_ROOT" && bun run build:opencode >/dev/null 2>&1) || { echo "build:opencode failed" >&2; exit 1; }
+
 UPSTREAM="${WORK}/upstream"
-mkdir -p "$UPSTREAM"
-for f in opencode.jsonc package.json agents plugins scripts; do
-  cp -R "${REPO_ROOT}/${f}" "${UPSTREAM}/${f}"
-done
-(cd "$UPSTREAM" && bash scripts/gen-manifest.sh >/dev/null)
+cp -R "${REPO_ROOT}/build/opencode" "$UPSTREAM"
 
 TARGET="${WORK}/consumer-repo"
 mkdir -p "$TARGET"
@@ -64,6 +71,16 @@ manifest_files="$(awk '{ n=split($0,a,/  /); if (n>=2) print a[2] }' "${UPSTREAM
 assert_eq "$installed_files" "$manifest_files" "fresh install tree matches manifest.txt"
 
 assert_file_exists "${TARGET}/.opencode/.harness-manifest" "records .harness-manifest after install"
+
+# The tree ships the BUNDLED plugin + MCP server, not raw TypeScript sources.
+assert_file_exists "${TARGET}/.opencode/plugins/sdd-guard.js" "ships bundled plugin sdd-guard.js"
+assert_file_exists "${TARGET}/.opencode/mcp/server.js" "ships bundled checkpoint MCP server"
+assert_file_absent "${TARGET}/.opencode/plugins/sdd-guard.ts" "does not ship raw plugin TypeScript"
+if grep -q 'sdd-checkpoint' "${TARGET}/.opencode/opencode.jsonc"; then
+  ok "opencode.jsonc registers the checkpoint MCP server"
+else
+  bad "opencode.jsonc should register the sdd-checkpoint MCP server"
+fi
 
 # ---------------------------------------------------------------------------
 # 2. re-run with no upstream changes: dry-run reports nothing to do
@@ -101,7 +118,7 @@ assert_eq "$after_hash" "$before_hash" "locally-modified file was restored to up
 # ---------------------------------------------------------------------------
 
 rm "${UPSTREAM}/agents/qa.md"
-(cd "$UPSTREAM" && bash scripts/gen-manifest.sh >/dev/null)
+regen_manifest "$UPSTREAM"
 
 prune_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" bash "${REPO_ROOT}/install.sh" 2>&1)"
 if grep -q "prune    agents/qa.md" <<<"$prune_output"; then

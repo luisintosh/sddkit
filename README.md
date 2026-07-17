@@ -9,10 +9,14 @@ state.
 
 ## Layout
 
+The toolkit is being made **harness-agnostic**: a shared, harness-free core plus thin per-harness
+adapters. `core/` and `adapters/` are the only hand-edited source; each harness's installable tree is
+**generated** into `build/<harness>/` (gitignored) by the build step and installed from there.
+
 ```text
-opencode.jsonc
-package.json          plugin runtime deps (yaml, zod, @opencode-ai/plugin) — installed to .opencode/
-manifest.txt           sha256 manifest of every installable file, CI-verified
+core/                    harness-free shared code
+  state-engine/          state.yaml schema, deep-merge, atomic IO, guard predicates, checkpoint
+  mcp/server.ts          stdio MCP server exposing the `checkpoint` tool — used by every harness
 agents/
   sdd.md                primary — sequences stages, owns gates, routes findings, checkpoints state
   spec.md               writes spec.md + acceptance contracts/*.feature (@S<n> tagged), together
@@ -22,17 +26,23 @@ agents/
   implementer-pro.md      hidden escalation rung — stronger model, invoked after 2 failed attempts
   reviewer.md              read-only reviewer — slice-diff review + pre-gate spec/plan critique
   qa.md                    validates the finished feature against spec/contracts
-plugins/
-  sdd-guard.ts           checkpoint + compact tools, guardrails, append-only journal (opencode plugin)
-  sdd-guard.test.ts       bun test suite for the plugin's merge/validate/guard logic
+adapters/opencode/       OpenCode-specific wiring
+  opencode.jsonc         config — registers the checkpoint MCP server + guard plugin
+  package.json           the one runtime dep the plugin can't bundle (@opencode-ai/plugin)
+  plugin/sdd-guard.ts    thin: guard hooks + compact tool (imports core; checkpoint is the MCP server)
+build/
+  assemble.mjs           copies each adapter's static files into build/<harness>/
+  bundle.mjs             esbuild-bundles the plugin + MCP server into standalone JS (no npm needed)
 scripts/
-  gen-manifest.sh         regenerates manifest.txt
-  check.mjs               CI hygiene checks (frontmatter schema, README drift, manifest freshness)
+  gen-manifest.sh         regenerates build/<harness>/manifest.txt from the built tree
+  check.mjs               CI hygiene checks (frontmatter, opencode.jsonc, README drift, tree manifest)
 test/
-  e2e-install.sh          Tier 1 — installer lifecycle, runs in CI, no network needed
+  e2e-install.sh          Tier 1 — installer lifecycle over a built tree, runs in CI, no network needed
   e2e-pipeline.sh         Tier 2 — one real (cheap) opencode run, manual, not wired into CI
   fixture-repo/           tiny Node project e2e-pipeline.sh installs the harness into
 ```
+
+Build the OpenCode install tree with `bun run build:opencode` → `build/opencode/`.
 
 State lives in the **consuming repo's root**, owned by that repo:
 
@@ -177,22 +187,33 @@ GitHub mode is on. `sdd` doesn't declare success otherwise.
 
 ## State enforcement
 
-`docs/feats/<feature>/state.yaml` has exactly one writer: `@sdd`, and only through the `checkpoint`
-custom tool shipped in `plugins/sdd-guard.ts` — never by editing the file. Subagents never touch
-state; they return a YAML reply block that `@sdd` applies. The plugin:
+`docs/feats/<feature>/state.yaml` is written only through the `checkpoint` tool — never by editing the
+file. In the pipeline only `@sdd` calls it; subagents never touch state, they return a YAML reply
+block that `@sdd` applies. `checkpoint` is served by the shared **core MCP server**
+(`core/mcp/server.ts`), which:
 
 - **validates** every write against a Zod schema (stage/slice_phase enums, required keys, finding
   records) before it touches disk, and writes atomically (tmp file + rename)
 - **journals** every checkpoint to `docs/feats/<feature>/journal.ndjson` — a full audit trail
+
+The thin OpenCode guard plugin (`adapters/opencode/plugin/sdd-guard.ts`, bundled to
+`.opencode/plugins/sdd-guard.js`) enforces the hard, path/command-based guardrails via a
+`tool.execute.before` hook that throws to stop the write:
+
 - **blocks** direct edits to `state.yaml`/`journal.ndjson`, any write into `.opencode/**`
   (self-modification), and writes into another feature's `docs/feats/<other>/` while a different
-  feature is active — all via a `tool.execute.before` hook that throws to stop the write
+  feature is active
 - adds defense-in-depth against pushing straight to `main`/`master` from a bash tool call, beyond the
   declarative deny rules in `opencode.jsonc`
 - exposes a `compact` tool — the programmatic equivalent of `/compact` — that `@sdd` calls at three
   points in the pipeline (after the plan gate, after every slice commit, after `verify` goes green) to
   summarize its own session context. Callable only by `@sdd`; failures/timeouts are journaled and swallowed, never block the
   workflow.
+
+The `checkpoint` MCP tool can't see which agent calls it (MCP has no caller identity), so the
+single-writer rule is prompt discipline — `@sdd` is the only agent told to call it, and subagents
+always return reply blocks instead. The hard guardrails above don't depend on caller identity, so they
+hold regardless.
 
 Agent frontmatter (`permission.edit`) denies the same paths declaratively as a second layer, and
 `opencode.jsonc` denies `git push* main*`/`git push* master*` outright while keeping `gh pr merge *`

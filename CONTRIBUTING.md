@@ -1,33 +1,38 @@
 # Contributing
 
-## Changing an installable file
+## Source vs. generated
 
-`manifest.txt` is generated, not hand-edited. It's a `sha256  path` list of
-every file `install.sh` downloads and installs: `opencode.jsonc`,
-`package.json`, `agents/*.md`, and `plugins/*.ts` (excluding `*.test.ts`).
-
-Whenever you touch one of those files, regenerate it:
+`core/` and `adapters/` are the only hand-edited source. Each harness's
+installable tree is **generated** into `build/<harness>/` (gitignored) — the
+static files copied by `build/assemble.mjs`, the plugin + checkpoint MCP server
+bundled by `build/bundle.mjs`, and `build/<harness>/manifest.txt` regenerated
+from the tree. Build it with:
 
 ```bash
-bash scripts/gen-manifest.sh
+bun run build:opencode      # -> build/opencode/
 ```
 
-If you forget, `node scripts/check.mjs` catches it — it recomputes every
-hash and fails with `stale hash for <path> — run scripts/gen-manifest.sh`
-(or `missing entry for <path>`, or `lists <path>, which no longer exists`).
-That check also validates:
+The manifest is a `sha256  path` list of every file in the built tree and is
+always fresh by construction (regenerated from the tree on each build), so there
+is no committed manifest to keep in sync.
 
-- `opencode.jsonc` parses and has the expected shape (`default_agent: sdd`,
-  a `permission` block, the `setup-docs` command)
-- every `agents/*.md` frontmatter matches the harness's agent schema
+`node scripts/check.mjs` validates:
+
+- `adapters/opencode/opencode.jsonc` parses and has the expected shape
+  (`default_agent: sdd`, a `permission` block, the `setup-docs` command, the
+  `sdd-checkpoint` MCP server)
+- every `agents/*.md` frontmatter matches the OpenCode agent schema
   (`description`, `mode: primary|subagent`, `model` prefixed
   `opencode-go/`, `temperature` in `[0,1]` if present, `steps` a positive
   integer if present, `hidden: true` agents must be `mode: subagent`)
 - README's model table matches each agent's frontmatter exactly (kills doc
   drift structurally — update both together)
+- when a `build/<harness>/` tree exists, its `manifest.txt` is internally
+  consistent with the files on disk
 
-It's wired into CI (`.github/workflows/ci.yml`) on every push, so a stale
-manifest or a drifted README table fails loud rather than merging silently.
+It's wired into CI (`.github/workflows/ci.yml`) on every push (which builds
+first), so a drifted README table or a stale built tree fails loud rather than
+merging silently.
 
 ## Before committing
 
@@ -36,8 +41,8 @@ Run what CI runs:
 ```bash
 find . -name '*.sh' -not -path './node_modules/*' -not -path './test/fixture-repo/node_modules/*' -print0 | xargs -0 -n1 bash -n
 find . -name '*.sh' -not -path './node_modules/*' -not -path './test/fixture-repo/node_modules/*' -print0 | xargs -0 shellcheck
-bun install && node scripts/check.mjs
-bun test plugins/
+bun install && bun run build:opencode && node scripts/check.mjs
+bun test core/ adapters/
 bash test/e2e-install.sh
 ```
 
@@ -45,7 +50,7 @@ bash test/e2e-install.sh
 deliberately not part of CI — run it manually when you want to exercise the
 full pipeline end to end.
 
-If you're editing `plugins/sdd-guard.ts`, verify it still loads under
+If you're editing `adapters/opencode/plugin/sdd-guard.ts`, verify it still loads under
 opencode's actual plugin loader, not just that it typechecks: opencode
 first looks for a V1-shaped default export (`{ id, server() }`) and only
 falls back to scanning every named export in the file — including things

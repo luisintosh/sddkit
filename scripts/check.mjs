@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Toolkit hygiene checks, run in CI (Tier 0) on every push:
-//   1. opencode.jsonc parses and has the expected shape.
-//   2. Every agents/*.md frontmatter matches the harness's agent schema.
+//   1. adapters/opencode/opencode.jsonc parses and has the expected shape.
+//   2. Every agents/*.md frontmatter matches the OpenCode agent schema.
 //   3. README's model table doesn't drift from agent frontmatter.
-//   4. manifest.txt is up to date with the files it should cover.
-import { readFile, readdir } from "node:fs/promises";
+//   4. If a build tree exists, its manifest.txt is internally consistent.
+import { readFile, readdir, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -85,18 +85,20 @@ function parseJsonc(raw) {
 // 1. opencode.jsonc
 // ---------------------------------------------------------------------------
 
-const opencodeJsoncPath = path.join(root, "opencode.jsonc");
+const opencodeJsoncPath = path.join(root, "adapters", "opencode", "opencode.jsonc");
 let config;
 try {
   config = parseJsonc(await readFile(opencodeJsoncPath, "utf8"));
 } catch (err) {
-  fail(`opencode.jsonc: failed to parse — ${err.message}`);
+  fail(`adapters/opencode/opencode.jsonc: failed to parse — ${err.message}`);
 }
 
+const OJ = "adapters/opencode/opencode.jsonc";
 if (config) {
-  if (config.default_agent !== "sdd") fail(`opencode.jsonc: default_agent should be "sdd", got ${JSON.stringify(config.default_agent)}`);
-  if (!config.permission || typeof config.permission !== "object") fail("opencode.jsonc: missing permission block");
-  if (!config.command?.["setup-docs"]) fail("opencode.jsonc: missing command.setup-docs");
+  if (config.default_agent !== "sdd") fail(`${OJ}: default_agent should be "sdd", got ${JSON.stringify(config.default_agent)}`);
+  if (!config.permission || typeof config.permission !== "object") fail(`${OJ}: missing permission block`);
+  if (!config.command?.["setup-docs"]) fail(`${OJ}: missing command.setup-docs`);
+  if (!config.mcp?.["sdd-checkpoint"]) fail(`${OJ}: missing mcp.sdd-checkpoint (the core checkpoint server)`);
 }
 
 // ---------------------------------------------------------------------------
@@ -190,7 +192,13 @@ if (readmeModels.size === 0) {
 }
 
 // ---------------------------------------------------------------------------
-// 4. manifest.txt freshness
+// 4. built tree manifest integrity (when a build exists)
+//
+// The installable trees are generated (build/<harness>/, gitignored) and their
+// manifest.txt is regenerated from the tree on every build, so there is no
+// committed manifest to drift. When a build is present we verify the manifest
+// is internally consistent: every tree file is listed with a matching hash and
+// vice-versa. On a fresh checkout with no build, this check is skipped.
 // ---------------------------------------------------------------------------
 
 async function sha256(filePath) {
@@ -198,57 +206,60 @@ async function sha256(filePath) {
   return createHash("sha256").update(buf).digest("hex");
 }
 
-async function expectedManifestEntries() {
-  const entries = [];
-  entries.push("opencode.jsonc");
-  entries.push("package.json");
-  for (const f of agentFiles) entries.push(path.join("agents", f));
-
-  const pluginsDir = path.join(root, "plugins");
-  const pluginFiles = (await readdir(pluginsDir)).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")).sort();
-  for (const f of pluginFiles) entries.push(path.join("plugins", f));
-
-  entries.sort();
-  const withHashes = [];
-  for (const rel of entries) {
-    withHashes.push([await sha256(path.join(root, rel)), rel]);
+async function walkFiles(dir, base = dir) {
+  const out = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const abs = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...(await walkFiles(abs, base)));
+    else out.push(path.relative(base, abs).split(path.sep).join("/"));
   }
-  return withHashes;
+  return out;
 }
 
-const manifestPath = path.join(root, "manifest.txt");
-let manifestRaw;
-try {
-  manifestRaw = await readFile(manifestPath, "utf8");
-} catch {
-  fail("manifest.txt: missing — run scripts/gen-manifest.sh");
-}
+let builtHarnesses = 0;
+for (const harness of ["opencode", "cursor"]) {
+  const treeDir = path.join(root, "build", harness);
+  let exists = false;
+  try {
+    exists = (await stat(treeDir)).isDirectory();
+  } catch {
+    exists = false;
+  }
+  if (!exists) continue;
+  builtHarnesses++;
 
-if (manifestRaw !== undefined) {
-  const actualLines = manifestRaw
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => {
-      const m = line.match(/^([a-f0-9]{64})\s+\*?(.+)$/);
-      if (!m) return null;
-      return [m[1], m[2]];
-    });
+  const label = `build/${harness}`;
+  let manifestRaw;
+  try {
+    manifestRaw = await readFile(path.join(treeDir, "manifest.txt"), "utf8");
+  } catch {
+    fail(`${label}/manifest.txt: missing — run the build (bun run build:${harness})`);
+    continue;
+  }
 
-  if (actualLines.some((l) => l === null)) {
-    fail("manifest.txt: contains a malformed line (expected `<sha256>  <path>`)");
-  } else {
-    const expected = await expectedManifestEntries();
-    const expectedSet = new Map(expected.map(([hash, rel]) => [rel, hash]));
-    const actualSet = new Map(actualLines.map(([hash, rel]) => [rel, hash]));
-
-    for (const [rel, hash] of expectedSet) {
-      if (!actualSet.has(rel)) fail(`manifest.txt: missing entry for ${rel} — run scripts/gen-manifest.sh`);
-      else if (actualSet.get(rel) !== hash) fail(`manifest.txt: stale hash for ${rel} — run scripts/gen-manifest.sh`);
+  const listed = new Map();
+  let malformed = false;
+  for (const line of manifestRaw.trim().split("\n").filter(Boolean)) {
+    const m = line.match(/^([a-f0-9]{64})\s+\*?(.+)$/);
+    if (!m) {
+      malformed = true;
+      break;
     }
-    for (const rel of actualSet.keys()) {
-      if (!expectedSet.has(rel)) fail(`manifest.txt: lists ${rel}, which no longer exists or shouldn't be installed`);
-    }
+    listed.set(m[2], m[1]);
+  }
+  if (malformed) {
+    fail(`${label}/manifest.txt: contains a malformed line (expected \`<sha256>  <path>\`)`);
+    continue;
+  }
+
+  const onDisk = (await walkFiles(treeDir)).filter((rel) => rel !== "manifest.txt" && rel !== ".harness-manifest");
+  for (const rel of onDisk) {
+    if (!listed.has(rel)) fail(`${label}/manifest.txt: missing entry for ${rel} — rebuild`);
+    else if (listed.get(rel) !== (await sha256(path.join(treeDir, rel)))) fail(`${label}/manifest.txt: stale hash for ${rel} — rebuild`);
+  }
+  const onDiskSet = new Set(onDisk);
+  for (const rel of listed.keys()) {
+    if (!onDiskSet.has(rel)) fail(`${label}/manifest.txt: lists ${rel}, which is not in the tree — rebuild`);
   }
 }
 
@@ -260,4 +271,5 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`check.mjs: ok (${agentFiles.length} agents, ${readmeModels.size} README rows, manifest.txt fresh)`);
+const manifestNote = builtHarnesses ? `${builtHarnesses} built tree(s) verified` : "no build tree (skipped manifest check)";
+console.log(`check.mjs: ok (${agentFiles.length} agents, ${readmeModels.size} README rows, ${manifestNote})`);

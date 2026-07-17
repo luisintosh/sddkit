@@ -12,6 +12,17 @@
     },
   },
 
+  // The checkpoint tool — the single sanctioned writer of state.yaml — is the
+  // shared core MCP server, launched from the repo root (its cwd) so it resolves
+  // docs/feats/<feature>/ correctly. Bundled to .opencode/mcp/server.js at build.
+  "mcp": {
+    "sdd-checkpoint": {
+      "type": "local",
+      "command": ["node", ".opencode/mcp/server.js"],
+      "enabled": true,
+    },
+  },
+
   "lsp": true,
   "formatter": true,
   "permission": {

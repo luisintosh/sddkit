@@ -31,10 +31,12 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
-      - name: Hygiene checks (frontmatter, opencode.jsonc, README drift, manifest freshness)
+      - name: Build the OpenCode install tree
+        run: bun run build:opencode
+      - name: Hygiene checks (frontmatter, opencode.jsonc, README drift, built-tree manifest integrity)
         run: node scripts/check.mjs
 
-  plugin-tests:
+  unit-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,10 +44,14 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
-      - run: bun test plugins/
+      - run: bun test core/ adapters/
 
   e2e-install:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
       - run: bash test/e2e-install.sh
