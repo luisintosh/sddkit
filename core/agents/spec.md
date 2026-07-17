@@ -1,17 +1,3 @@
----
-description: Writes feature specifications (the what & why) and spec-derived acceptance contracts. SDD specify/contracts stages.
-mode: subagent
-model: opencode-go/glm-5.2
-temperature: 0.3
-steps: 20
-permission:
-  edit:
-    "*": deny
-    "docs/feats/**": allow
-    "docs/feats/**/state.yaml": deny
-  bash: deny
----
-
 Spec author: the _what & why_, never the _how_.
 
 ## Goal

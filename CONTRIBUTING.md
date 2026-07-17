@@ -21,12 +21,14 @@ is no committed manifest to keep in sync.
 - `adapters/opencode/opencode.jsonc` parses and has the expected shape
   (`default_agent: sdd`, a `permission` block, the `setup-docs` command, the
   `sdd-checkpoint` MCP server)
-- every `agents/*.md` frontmatter matches the OpenCode agent schema
-  (`description`, `mode: primary|subagent`, `model` prefixed
-  `opencode-go/`, `temperature` in `[0,1]` if present, `steps` a positive
-  integer if present, `hidden: true` agents must be `mode: subagent`)
-- README's model table matches each agent's frontmatter exactly (kills doc
-  drift structurally — update both together)
+- `core/roles.yml` and `core/agents/*.md` are in 1:1 correspondence (every
+  role has a body, every body has a role), and each role has a valid
+  `description`/`mode`/`hidden`
+- every `core/roles.yml` entry has a matching `adapters/opencode/agents.yml`
+  entry with a valid `model` (prefixed `opencode-go/`), `temperature` in
+  `[0,1]` if present, and `steps` a positive integer if present
+- README's model table matches `adapters/opencode/agents.yml` exactly (kills
+  doc drift structurally — update both together)
 - when a `build/<harness>/` tree exists, its `manifest.txt` is internally
   consistent with the files on disk
 
@@ -42,7 +44,7 @@ Run what CI runs:
 find . -name '*.sh' -not -path './node_modules/*' -not -path './test/fixture-repo/node_modules/*' -print0 | xargs -0 -n1 bash -n
 find . -name '*.sh' -not -path './node_modules/*' -not -path './test/fixture-repo/node_modules/*' -print0 | xargs -0 shellcheck
 bun install && bun run build:opencode && node scripts/check.mjs
-bun test core/ adapters/
+bun test core/ adapters/ build/
 bash test/e2e-install.sh
 ```
 

@@ -17,30 +17,42 @@ adapters. `core/` and `adapters/` are the only hand-edited source; each harness'
 core/                    harness-free shared code
   state-engine/          state.yaml schema, deep-merge, atomic IO, guard predicates, checkpoint
   mcp/server.ts          stdio MCP server exposing the `checkpoint` tool — used by every harness
-agents/
-  sdd.md                primary — sequences stages, owns gates, routes findings, checkpoints state
-  spec.md               writes spec.md + acceptance contracts/*.feature (@S<n> tagged), together
-  architect.md           explores the codebase, writes plan.md (includes the Slices section)
-  tester.md               red phase — failing tests from acceptance contracts (test-only edits)
-  implementer.md          green phase — minimal impl to pass tests (no test edits)
-  implementer-pro.md      hidden escalation rung — stronger model, invoked after 2 failed attempts
-  reviewer.md              read-only reviewer — slice-diff review + pre-gate spec/plan critique
-  qa.md                    validates the finished feature against spec/contracts
+  roles.yml              harness-agnostic agent roster: description, mode, hidden — one entry per agent
+  agents/                agent prompt BODIES only, no frontmatter — the 8 agents below
+    sdd.md                primary — sequences stages, owns gates, routes findings, checkpoints state
+    spec.md               writes spec.md + acceptance contracts/*.feature (@S<n> tagged), together
+    architect.md           explores the codebase, writes plan.md (includes the Slices section)
+    tester.md               red phase — failing tests from acceptance contracts (test-only edits)
+    implementer.md          green phase — minimal impl to pass tests (no test edits)
+    implementer-pro.md      hidden escalation rung — stronger model, invoked after 2 failed attempts
+    reviewer.md              read-only reviewer — slice-diff review + pre-gate spec/plan critique
+    qa.md                    validates the finished feature against spec/contracts
 adapters/opencode/       OpenCode-specific wiring
   opencode.jsonc         config — registers the checkpoint MCP server + guard plugin
   package.json           the one runtime dep the plugin can't bundle (@opencode-ai/plugin)
+  agents.yml             per-agent OpenCode frontmatter: model, temperature, steps, permission
   plugin/sdd-guard.ts    thin: guard hooks + compact tool (imports core; checkpoint is the MCP server)
 build/
   assemble.mjs           copies each adapter's static files into build/<harness>/
+  agents.mjs             composes core/roles.yml + core/agents/*.md + adapters/<h>/agents.yml into
+                         build/<harness>/agents/*.md; applies the {{#compact}} guard (see below)
   bundle.mjs             esbuild-bundles the plugin + MCP server into standalone JS (no npm needed)
 scripts/
   gen-manifest.sh         regenerates build/<harness>/manifest.txt from the built tree
-  check.mjs               CI hygiene checks (frontmatter, opencode.jsonc, README drift, tree manifest)
+  check.mjs               CI hygiene checks (roster/frontmatter schema, opencode.jsonc, README drift,
+                         tree manifest)
 test/
   e2e-install.sh          Tier 1 — installer lifecycle over a built tree, runs in CI, no network needed
   e2e-pipeline.sh         Tier 2 — one real (cheap) opencode run, manual, not wired into CI
   fixture-repo/           tiny Node project e2e-pipeline.sh installs the harness into
 ```
+
+Token substitution in agent bodies is deliberately minimal: the only one today is
+`{{#compact}}…{{/compact}}`, a guard around the handful of sentences in `sdd.md` that only make sense
+on a harness with a programmatic compact tool. `build/agents.mjs` keeps the guarded text (markers
+stripped) for harnesses that declare `supportsCompact: true`, or drops it entirely (and collapses any
+resulting blank-line run) for harnesses that don't. Prefer rewording the shared body to be
+harness-neutral over adding new guards.
 
 Build the OpenCode install tree with `bun run build:opencode` → `build/opencode/`.
 

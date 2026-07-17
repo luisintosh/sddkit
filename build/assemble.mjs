@@ -5,6 +5,7 @@
 import { cp, mkdir, rm } from "node:fs/promises"
 import path from "node:path"
 import { repoRoot, buildRoot, requireHarness, harnessNames } from "./harnesses.mjs"
+import { assembleAgents } from "./agents.mjs"
 
 async function assemble(harness) {
   const spec = requireHarness(harness)
@@ -18,7 +19,13 @@ async function assemble(harness) {
     await mkdir(path.dirname(dest), { recursive: true })
     await cp(src, dest, { recursive: true })
   }
-  console.log(`assemble: wrote build/${harness}/ (${spec.copy.length} static entries)`)
+
+  let agentCount = 0
+  if (spec.agents) {
+    agentCount = await assembleAgents(repoRoot, harness, out, spec.agents)
+  }
+
+  console.log(`assemble: wrote build/${harness}/ (${spec.copy.length} static entries, ${agentCount} assembled agents)`)
 }
 
 const harness = process.argv[2]

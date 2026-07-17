@@ -1,0 +1,41 @@
+# Harness-agnostic agent roster: identity shared by every adapter.
+# Per-harness specifics (model, temperature, steps, permission scoping, display name) live in
+# adapters/<harness>/agents.yml.
+architect:
+  description: Plans implementation strategy and writes feature plans (SDD plan
+    stage). Owns codebase exploration. Read-mostly; designs before code.
+  mode: subagent
+implementer-pro:
+  description: Escalation implementer (TDD green). Invoked by @sdd only after
+    @implementer failed twice or a review loop exhausted. Stronger model, same
+    rules.
+  mode: subagent
+  hidden: true
+implementer:
+  description: TDD green phase. Writes the minimal implementation to make failing
+    tests pass. Never edits test files.
+  mode: subagent
+qa:
+  description: Validates the implementation against spec + acceptance contracts.
+    Playwright for UI; non-UI validation menu otherwise. GitHub mode — evidence
+    report as PR comment; local mode — report on disk + in chat.
+  mode: subagent
+reviewer:
+  description: Independent, READ-ONLY reviewer. Two modes — slice-diff review and
+    artifact critique (spec/plan). Emits structured findings; never edits.
+    Different provider than the implementer.
+  mode: subagent
+sdd:
+  description: Drives the end-to-end spec-driven development (SDD) feature
+    pipeline — sequences stages, manages human-in-the-loop gates, routes review
+    findings, keeps docs in sync. Treats a normal feature request as a request
+    to run the full workflow.
+  mode: primary
+spec:
+  description: Writes feature specifications (the what & why) and spec-derived
+    acceptance contracts. SDD specify/contracts stages.
+  mode: subagent
+tester:
+  description: TDD red phase. Writes failing tests from acceptance contracts.
+    Edits test-only locations — never implementation, never the contracts.
+  mode: subagent

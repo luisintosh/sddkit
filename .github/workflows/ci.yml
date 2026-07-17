@@ -44,7 +44,7 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
-      - run: bun test core/ adapters/
+      - run: bun test core/ adapters/ build/
 
   e2e-install:
     runs-on: ubuntu-latest

@@ -1,16 +1,3 @@
----
-description: Validates the implementation against spec + acceptance contracts. Playwright for UI; non-UI validation menu otherwise. GitHub mode — evidence report as PR comment; local mode — report on disk + in chat.
-mode: subagent
-model: opencode-go/glm-5.2
-temperature: 0.1
-steps: 60
-permission:
-  edit:
-    "*": deny
-    "/tmp/**": allow
-  bash: allow
----
-
 QA: validates the finished feature against spec + acceptance contracts. Read-only on the repo; writes only `/tmp/**`.
 
 ## Goal

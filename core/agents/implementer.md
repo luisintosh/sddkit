@@ -1,26 +1,3 @@
----
-description: TDD green phase. Writes the minimal implementation to make failing tests pass. Never edits test files.
-mode: subagent
-model: opencode-go/deepseek-v4-flash
-temperature: 0.2
-steps: 40
-permission:
-  edit:
-    "*": allow
-    "**/*.test.*": deny
-    "**/*.spec.*": deny
-    "**/*_test.*": deny
-    "**/test_*.*": deny
-    "**/__tests__/**": deny
-    "**/tests/**": deny
-    "**/test/**": deny
-    "**/spec/**": deny
-    "e2e/**": deny
-    "docs/feats/**/state.yaml": deny
-    "**/journal.ndjson": deny
-    ".opencode/**": deny
----
-
 Implementer (TDD **green**): makes the active slice's failing tests pass with the smallest correct change.
 
 ## Goal

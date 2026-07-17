@@ -9,12 +9,9 @@ export const buildRoot = path.join(repoRoot, "build")
 export const HARNESSES = {
   opencode: {
     // Static files copied verbatim into build/opencode/<dest>.
-    // NOTE: agents/ are copied as-is for now; §3 replaces this with a
-    // body+frontmatter assembly step. Kept here so the tree stays shippable.
     copy: [
       { from: "adapters/opencode/opencode.jsonc", to: "opencode.jsonc" },
       { from: "adapters/opencode/package.json", to: "package.json" },
-      { from: "agents", to: "agents" },
     ],
     // esbuild bundles: entry -> dest, with optional externals.
     bundle: [
@@ -25,6 +22,11 @@ export const HARNESSES = {
       },
       { entry: "core/mcp/bin.ts", to: "mcp/server.js", external: [] },
     ],
+    // Agents are ASSEMBLED (core/agents/*.md body + core/roles.yml +
+    // adapters/opencode/agents.yml), not copied — see build/agents.mjs.
+    // OpenCode has a programmatic compact tool, so the {{#compact}} guard is
+    // kept (markers stripped, content preserved).
+    agents: { supportsCompact: true },
   },
 }
 

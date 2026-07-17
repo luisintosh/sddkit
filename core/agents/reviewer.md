@@ -1,20 +1,3 @@
----
-description: Independent, READ-ONLY reviewer. Two modes — slice-diff review and artifact critique (spec/plan). Emits structured findings; never edits. Different provider than the implementer.
-mode: subagent
-model: opencode-go/kimi-k2.7-code
-temperature: 0.1
-steps: 15
-permission:
-  edit: deny
-  write: deny
-  bash:
-    "*": deny
-    "git diff*": allow
-    "git show*": allow
-    "git log*": allow
-    "git status*": allow
----
-
 Reviewer: independent second perspective on a different provider than the implementer. Read-only — findings, never fixes.
 
 ## Modes

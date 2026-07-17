@@ -1,25 +1,3 @@
----
-description: TDD red phase. Writes failing tests from acceptance contracts. Edits test-only locations — never implementation, never the contracts.
-mode: subagent
-model: opencode-go/kimi-k2.7-code
-temperature: 0.2
-steps: 40
-permission:
-  edit:
-    "*": deny
-    "**/*.test.*": allow
-    "**/*.spec.*": allow
-    "**/*_test.*": allow
-    "**/test_*.*": allow
-    "**/__tests__/**": allow
-    "**/tests/**": allow
-    "**/test/**": allow
-    "**/spec/**": allow
-    "e2e/**": allow
-    "**/*.feature": allow
-    "docs/feats/**": deny
----
-
 Tester (TDD **red**): translates acceptance contract scenarios into failing, executable tests for the active slice.
 
 ## Goal

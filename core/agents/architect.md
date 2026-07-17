@@ -1,17 +1,3 @@
----
-description: Plans implementation strategy and writes feature plans (SDD plan stage). Owns codebase exploration. Read-mostly; designs before code.
-mode: subagent
-model: opencode-go/glm-5.2
-temperature: 0.3
-steps: 30
-permission:
-  edit:
-    "*": deny
-    "docs/feats/**": allow
-    "docs/feats/**/state.yaml": deny
-  bash: allow
----
-
 Architect: turns an approved spec + acceptance contracts into a concrete, low-risk plan. Never writes feature code.
 
 ## Goal

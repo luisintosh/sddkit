@@ -102,63 +102,79 @@ if (config) {
 }
 
 // ---------------------------------------------------------------------------
-// 2. agents/*.md frontmatter schema
+// 2. core/roles.yml (harness-agnostic roster) + adapters/opencode/agents.yml
+//    (OpenCode-specific frontmatter fields), and core/agents/*.md bodies
 // ---------------------------------------------------------------------------
 
 const MODE_VALUES = new Set(["primary", "subagent"]);
-const agentsDir = path.join(root, "agents");
-const agentFiles = (await readdir(agentsDir)).filter((f) => f.endsWith(".md")).sort();
-const agentFrontmatter = new Map(); // name -> frontmatter object
 
-for (const file of agentFiles) {
-  const name = file.replace(/\.md$/, "");
-  const raw = await readFile(path.join(agentsDir, file), "utf8");
-  const match = raw.match(/^---\n([\s\S]*?)\n---\n/);
-  if (!match) {
-    fail(`agents/${file}: missing frontmatter block`);
-    continue;
-  }
-
-  let fm;
-  try {
-    fm = parseYaml(match[1]);
-  } catch (err) {
-    fail(`agents/${file}: frontmatter is not valid YAML — ${err.message}`);
-    continue;
-  }
-
-  agentFrontmatter.set(name, fm);
-
-  if (typeof fm.description !== "string" || fm.description.trim() === "") {
-    fail(`agents/${file}: description must be a non-empty string`);
-  }
-  if (!MODE_VALUES.has(fm.mode)) {
-    fail(`agents/${file}: mode must be "primary" or "subagent", got ${JSON.stringify(fm.mode)}`);
-  }
-  if (typeof fm.model !== "string" || !fm.model.startsWith("opencode-go/")) {
-    fail(`agents/${file}: model must start with "opencode-go/", got ${JSON.stringify(fm.model)}`);
-  }
-  if (fm.temperature !== undefined) {
-    if (typeof fm.temperature !== "number" || fm.temperature < 0 || fm.temperature > 1) {
-      fail(`agents/${file}: temperature must be a number in [0, 1], got ${JSON.stringify(fm.temperature)}`);
-    }
-  }
-  if (fm.steps !== undefined) {
-    if (!Number.isInteger(fm.steps) || fm.steps <= 0) {
-      fail(`agents/${file}: steps must be a positive integer, got ${JSON.stringify(fm.steps)}`);
-    }
-  }
-  if (fm.hidden === true && fm.mode !== "subagent") {
-    fail(`agents/${file}: hidden agents must be mode: subagent`);
-  }
+const rolesPath = path.join(root, "core", "roles.yml");
+let roles = {};
+try {
+  roles = parseYaml(await readFile(rolesPath, "utf8")) ?? {};
+} catch (err) {
+  fail(`core/roles.yml: failed to parse — ${err.message}`);
 }
 
-if (agentFrontmatter.get("sdd")?.mode !== "primary") {
-  fail('agents/sdd.md: the conductor must be mode: primary');
+const bodiesDir = path.join(root, "core", "agents");
+const bodyFiles = (await readdir(bodiesDir)).filter((f) => f.endsWith(".md")).sort();
+for (const file of bodyFiles) {
+  const id = file.replace(/\.md$/, "");
+  if (!(id in roles)) fail(`core/agents/${file}: no matching entry in core/roles.yml`);
+}
+for (const id of Object.keys(roles)) {
+  if (!bodyFiles.includes(`${id}.md`)) fail(`core/roles.yml: "${id}" has no core/agents/${id}.md body`);
+}
+
+for (const [id, role] of Object.entries(roles)) {
+  if (typeof role.description !== "string" || role.description.trim() === "") {
+    fail(`core/roles.yml: "${id}".description must be a non-empty string`);
+  }
+  if (!MODE_VALUES.has(role.mode)) {
+    fail(`core/roles.yml: "${id}".mode must be "primary" or "subagent", got ${JSON.stringify(role.mode)}`);
+  }
+  if (role.hidden === true && role.mode !== "subagent") {
+    fail(`core/roles.yml: "${id}" is hidden but not mode: subagent`);
+  }
+}
+if (roles.sdd?.mode !== "primary") {
+  fail('core/roles.yml: "sdd" (the conductor) must be mode: primary');
+}
+
+const opencodeAgentsPath = path.join(root, "adapters", "opencode", "agents.yml");
+let opencodeAgents = {};
+try {
+  opencodeAgents = parseYaml(await readFile(opencodeAgentsPath, "utf8")) ?? {};
+} catch (err) {
+  fail(`adapters/opencode/agents.yml: failed to parse — ${err.message}`);
+}
+
+for (const id of Object.keys(roles)) {
+  const oc = opencodeAgents[id];
+  if (!oc) {
+    fail(`adapters/opencode/agents.yml: missing entry for "${id}"`);
+    continue;
+  }
+  if (typeof oc.model !== "string" || !oc.model.startsWith("opencode-go/")) {
+    fail(`adapters/opencode/agents.yml: "${id}".model must start with "opencode-go/", got ${JSON.stringify(oc.model)}`);
+  }
+  if (oc.temperature !== undefined) {
+    if (typeof oc.temperature !== "number" || oc.temperature < 0 || oc.temperature > 1) {
+      fail(`adapters/opencode/agents.yml: "${id}".temperature must be a number in [0, 1], got ${JSON.stringify(oc.temperature)}`);
+    }
+  }
+  if (oc.steps !== undefined) {
+    if (!Number.isInteger(oc.steps) || oc.steps <= 0) {
+      fail(`adapters/opencode/agents.yml: "${id}".steps must be a positive integer, got ${JSON.stringify(oc.steps)}`);
+    }
+  }
+}
+for (const id of Object.keys(opencodeAgents)) {
+  if (!(id in roles)) fail(`adapters/opencode/agents.yml: lists "${id}", which has no core/roles.yml entry`);
 }
 
 // ---------------------------------------------------------------------------
-// 3. README model table vs frontmatter
+// 3. README model table vs adapters/opencode/agents.yml
 // ---------------------------------------------------------------------------
 
 const readmePath = path.join(root, "README.md");
@@ -174,19 +190,19 @@ for (const m of readme.matchAll(rowRe)) {
 if (readmeModels.size === 0) {
   fail("README.md: no model table rows found (expected `| `<agent>` | `<model>` | ...` rows)");
 } else {
-  for (const [name, fm] of agentFrontmatter) {
-    const readmeModel = readmeModels.get(name);
+  for (const [id, oc] of Object.entries(opencodeAgents)) {
+    const readmeModel = readmeModels.get(id);
     if (!readmeModel) {
-      fail(`README.md: model table is missing a row for "${name}"`);
+      fail(`README.md: model table is missing a row for "${id}"`);
       continue;
     }
-    if (readmeModel !== fm.model) {
-      fail(`README.md: model table says ${name} -> ${readmeModel}, but agents/${name}.md says ${fm.model}`);
+    if (readmeModel !== oc.model) {
+      fail(`README.md: model table says ${id} -> ${readmeModel}, but adapters/opencode/agents.yml says ${oc.model}`);
     }
   }
-  for (const name of readmeModels.keys()) {
-    if (!agentFrontmatter.has(name)) {
-      fail(`README.md: model table lists "${name}", which has no agents/${name}.md`);
+  for (const id of readmeModels.keys()) {
+    if (!(id in opencodeAgents)) {
+      fail(`README.md: model table lists "${id}", which has no adapters/opencode/agents.yml entry`);
     }
   }
 }
@@ -272,4 +288,4 @@ if (errors.length > 0) {
 }
 
 const manifestNote = builtHarnesses ? `${builtHarnesses} built tree(s) verified` : "no build tree (skipped manifest check)";
-console.log(`check.mjs: ok (${agentFiles.length} agents, ${readmeModels.size} README rows, ${manifestNote})`);
+console.log(`check.mjs: ok (${bodyFiles.length} agents, ${readmeModels.size} README rows, ${manifestNote})`);
