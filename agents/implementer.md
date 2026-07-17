@@ -28,7 +28,6 @@ Reach green for the active slice via the minimum viable correct change, then sto
 
 ## Inputs
 - The slice brief from `@sdd` (the slice's section from `plan.md`, `@S<n>` scenario text, test command) — prefer it over re-reading `plan.md` in full; read from disk only if the brief is missing or ambiguous
-- `.codesight/wiki/index.md`, if present — read first (~200 tokens), then the one relevant article before Grep/Glob
 - Routed `bug|quality|perf` findings when re-delegated
 - Target code — locate it yourself via Grep/Glob; Read only matching regions
 
@@ -40,7 +39,7 @@ Reach green for the active slice via the minimum viable correct change, then sto
 
 ## Workflow
 1. If the slice's tests are already green, return `done` without editing.
-2. Load failing tests + the slice's `plan.md` section. If `.codesight/wiki/index.md` exists, read it and the relevant article first; locate target code via Grep/Glob.
+2. Load failing tests + the slice's `plan.md` section; locate target code via Grep/Glob.
 3. Smallest correct change → re-run targeted tests → repeat until green or an opinion gate.
 4. Return the reply block. You never write `state.yaml` — `@sdd` checkpoints from your reply.
 

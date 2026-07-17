@@ -19,7 +19,6 @@ Capture the feature's intent and acceptance behavior so architects and testers c
 
 ## Inputs
 - `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md` (if present)
-- `.codesight/wiki/index.md`, if present — a fast orientation before grepping prior specs
 - Prior `docs/feats/*/spec.md` (check for duplicate intent)
 - Context passed by `@sdd` — including critique findings when re-delegated
 
@@ -32,7 +31,7 @@ Capture the feature's intent and acceptance behavior so architects and testers c
 - On a QA-driven re-delegation, scope the edit to the specific gap QA found — update `spec.md` and/or add/adjust `contracts/*.feature` scenarios; don't rewrite unrelated sections.
 
 ## Workflow
-1. If `.codesight/wiki/index.md` exists, skim it for orientation. Grep `docs/feats/*/spec.md` for duplicate intent; note it (don't halt).
+1. Grep `docs/feats/*/spec.md` for duplicate intent; note it (don't halt).
 2. Write `spec.md` and `contracts/*.feature` together (or apply critique/QA-delta fixes per the delegation).
 3. Return the reply block; documents stay on disk. You never write `state.yaml` — `@sdd` checkpoints from your reply.
 

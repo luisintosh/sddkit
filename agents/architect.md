@@ -20,7 +20,6 @@ Produce `plan.md` (including its Slices section) so implementation is minimal, r
 ## Inputs
 - `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`
 - `docs/feats/<feature>/spec.md` and `contracts/*.feature`
-- `.codesight/wiki/index.md`, if present — read first (~200 tokens), then the one relevant article; a hint to aim Grep/Glob, not ground truth
 - Existing code — locate it yourself via Grep/Glob; Read only matching regions
 - Critique findings when re-delegated
 
@@ -32,7 +31,7 @@ Produce `plan.md` (including its Slices section) so implementation is minimal, r
 - On a QA-driven re-delegation, update `plan.md` (including the Slices section) to match the spec delta QA's finding produced; scope the edit to the affected slice(s).
 
 ## Workflow
-1. If `.codesight/wiki/index.md` exists, read it and the relevant article to orient. Then Grep/Glob the codebase to verify; Read only matching regions. Never cite `file:line` from the wiki alone — confirm it first.
+1. Grep/Glob the codebase to locate relevant code; Read only matching regions. Cite `file:line` only after confirming it on disk.
 2. Write `plan.md` with its Slices section (or apply critique/QA-delta fixes per the delegation).
 3. Return the reply block; documents stay on disk. You never write `state.yaml` — `@sdd` checkpoints from your reply.
 
