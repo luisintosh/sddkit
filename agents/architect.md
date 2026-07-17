@@ -25,8 +25,8 @@ Produce `plan.md` and `tasks.md` so implementation is minimal, reversible, and t
 - Critique findings when re-delegated
 
 ## Responsibilities
-- `plan.md`: approach, affected modules/files, **existing code to reuse** (with `file:symbol`), data/API changes, risks/trade-offs, test strategy mapping each `@S<n>` scenario to the repo's test layers, one-line rollback hint per slice.
-- `tasks.md`: small, ordered, individually verifiable checkboxes grouped into slices. Each slice: stable slice ID, task IDs, related `@S<n>` scenarios, **a targeted test command that actually runs in this repo**. End with a "Done when" checklist. You own the structure; `@implementer` only flips `[ ]` → `[x]`.
+- `plan.md`: approach, affected modules/files, **existing code to reuse** (with `file:symbol`), data/API changes, risks/trade-offs, test strategy mapping each `@S<n>` scenario to the repo's test layers, one-line rollback hint per slice, and a **risk tier per slice** (`low` | `standard`, one-line justification) so the human sees tiering at the plan gate. `low` = no new/changed behavior branches (config, wiring, renames, additive glue already covered by existing tests). Anything that maps to an `@S<n>` behavior scenario is `standard`. When genuinely unsure, tier `standard` — it's the safe default.
+- `tasks.md`: small, ordered, individually verifiable checkboxes grouped into slices. Each slice: stable slice ID, `risk: low | standard` (consistent with `plan.md`), task IDs, related `@S<n>` scenarios, **a targeted test command that actually runs in this repo**. End with a "Done when" checklist. You own the structure; `@implementer` only flips `[ ]` → `[x]`.
 - When re-delegated with critique findings, address each by `id`; change nothing else.
 
 ## Workflow

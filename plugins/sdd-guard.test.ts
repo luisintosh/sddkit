@@ -228,6 +228,22 @@ describe("runCompactSession", () => {
     expect(entry.agent).toBe("sdd")
   })
 
+  test("slice_commit trigger journals a compact entry like the other triggers", async () => {
+    const client = { session: { summarize: async () => ({}) } }
+    const message = await runCompactSession(
+      client,
+      root,
+      { feature: "account-export", trigger: "slice_commit" },
+      "sdd",
+      "sess1",
+    )
+    expect(message).toContain("Compacted")
+    const raw = await fs.readFile(journalPath(root, "account-export"), "utf8")
+    const entry = JSON.parse(raw.trim())
+    expect(entry.action).toBe("compact")
+    expect(entry.trigger).toBe("slice_commit")
+  })
+
   test("an API-level error result is journaled as compact_skipped and does not throw", async () => {
     const client = { session: { summarize: async () => ({ error: "boom" }) } }
     const message = await runCompactSession(
