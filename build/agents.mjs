@@ -23,14 +23,12 @@ export function applyCompactGuard(body, harnessSupportsCompact) {
   return body.replace(COMPACT_GUARD_RE, "").replace(/\n{3,}/g, "\n\n");
 }
 
-// Field order matches the original hand-authored frontmatter: description,
-// mode, hidden, then whatever the adapter contributes (model, temperature,
-// steps, permission, ...), then any adapter-only trailing fields (name,
-// readonly, ...) not covered by roles.yml.
+// `description` is the one field every harness's frontmatter schema actually
+// shares (see core/roles.yml) — everything else (mode/hidden for OpenCode;
+// name/readonly for Cursor; ...) is harness-specific and comes entirely from
+// the adapter's own agents.yml, in whatever order that file declares it.
 function buildFrontmatter(role, adapterFields) {
-  const fm = { description: role.description, mode: role.mode };
-  if (role.hidden) fm.hidden = true;
-  return { ...fm, ...adapterFields };
+  return { description: role.description, ...adapterFields };
 }
 
 export async function loadRoles(repoRoot) {

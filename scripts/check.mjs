@@ -130,15 +130,6 @@ for (const [id, role] of Object.entries(roles)) {
   if (typeof role.description !== "string" || role.description.trim() === "") {
     fail(`core/roles.yml: "${id}".description must be a non-empty string`);
   }
-  if (!MODE_VALUES.has(role.mode)) {
-    fail(`core/roles.yml: "${id}".mode must be "primary" or "subagent", got ${JSON.stringify(role.mode)}`);
-  }
-  if (role.hidden === true && role.mode !== "subagent") {
-    fail(`core/roles.yml: "${id}" is hidden but not mode: subagent`);
-  }
-}
-if (roles.sdd?.mode !== "primary") {
-  fail('core/roles.yml: "sdd" (the conductor) must be mode: primary');
 }
 
 const opencodeAgentsPath = path.join(root, "adapters", "opencode", "agents.yml");
@@ -155,6 +146,12 @@ for (const id of Object.keys(roles)) {
     fail(`adapters/opencode/agents.yml: missing entry for "${id}"`);
     continue;
   }
+  if (!MODE_VALUES.has(oc.mode)) {
+    fail(`adapters/opencode/agents.yml: "${id}".mode must be "primary" or "subagent", got ${JSON.stringify(oc.mode)}`);
+  }
+  if (oc.hidden === true && oc.mode !== "subagent") {
+    fail(`adapters/opencode/agents.yml: "${id}" is hidden but not mode: subagent`);
+  }
   if (typeof oc.model !== "string" || !oc.model.startsWith("opencode-go/")) {
     fail(`adapters/opencode/agents.yml: "${id}".model must start with "opencode-go/", got ${JSON.stringify(oc.model)}`);
   }
@@ -168,6 +165,9 @@ for (const id of Object.keys(roles)) {
       fail(`adapters/opencode/agents.yml: "${id}".steps must be a positive integer, got ${JSON.stringify(oc.steps)}`);
     }
   }
+}
+if (opencodeAgents.sdd?.mode !== "primary") {
+  fail('adapters/opencode/agents.yml: "sdd" (the conductor) must be mode: primary');
 }
 for (const id of Object.keys(opencodeAgents)) {
   if (!(id in roles)) fail(`adapters/opencode/agents.yml: lists "${id}", which has no core/roles.yml entry`);

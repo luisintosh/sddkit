@@ -70,7 +70,6 @@ describe("assembleAgents", () => {
 
     const assembled = await fs.readFile(path.join(out, "agents", "widget.md"), "utf8")
     expect(assembled).toContain("description: Does widget things.")
-    expect(assembled).toContain("mode: subagent")
     expect(assembled).toContain("model: fixture-model/x")
     expect(assembled).toContain("steps: 10")
     expect(assembled).toContain("Widget body. Compact-only tail.")
@@ -85,15 +84,16 @@ describe("assembleAgents", () => {
     expect(assembled).not.toContain("{{#compact}}")
   })
 
-  test("hidden: true is carried into the assembled frontmatter", async () => {
+  test("adapter-only fields (e.g. mode/hidden, which are not shared across harnesses) pass through untouched", async () => {
     await fs.writeFile(
-      path.join(root, "core", "roles.yml"),
-      stringifyYaml({ widget: { description: "Does widget things.", mode: "subagent", hidden: true } }),
+      path.join(root, "adapters", "fixture", "agents.yml"),
+      stringifyYaml({ widget: { mode: "subagent", hidden: true, model: "fixture-model/x", steps: 10 } }),
       "utf8",
     )
     const out = path.join(root, "out")
     await assembleAgents(root, "fixture", out, { supportsCompact: true })
     const assembled = await fs.readFile(path.join(out, "agents", "widget.md"), "utf8")
+    expect(assembled).toContain("mode: subagent")
     expect(assembled).toContain("hidden: true")
   })
 

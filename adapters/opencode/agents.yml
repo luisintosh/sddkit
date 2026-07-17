@@ -1,5 +1,8 @@
-# Per-agent OpenCode frontmatter fields not covered by core/roles.yml.
+# Per-agent OpenCode frontmatter fields not covered by core/roles.yml — mode,
+# hidden, model, temperature, steps, permission. (mode/hidden are OpenCode-only
+# concepts: Cursor's .cursor/agents/*.md are all implicitly subagents.)
 architect:
+  mode: subagent
   model: opencode-go/glm-5.2
   temperature: 0.3
   steps: 30
@@ -10,6 +13,8 @@ architect:
       docs/feats/**/state.yaml: deny
     bash: allow
 implementer-pro:
+  mode: subagent
+  hidden: true
   model: opencode-go/deepseek-v4-pro
   temperature: 0.2
   steps: 40
@@ -29,6 +34,7 @@ implementer-pro:
       "**/journal.ndjson": deny
       .opencode/**: deny
 implementer:
+  mode: subagent
   model: opencode-go/deepseek-v4-flash
   temperature: 0.2
   steps: 40
@@ -48,6 +54,7 @@ implementer:
       "**/journal.ndjson": deny
       .opencode/**: deny
 qa:
+  mode: subagent
   model: opencode-go/glm-5.2
   temperature: 0.1
   steps: 60
@@ -57,6 +64,7 @@ qa:
       /tmp/**: allow
     bash: allow
 reviewer:
+  mode: subagent
   model: opencode-go/kimi-k2.7-code
   temperature: 0.1
   steps: 15
@@ -70,6 +78,7 @@ reviewer:
       git log*: allow
       git status*: allow
 sdd:
+  mode: primary
   model: opencode-go/kimi-k2.7-code
   temperature: 0.2
   steps: 100
@@ -81,6 +90,7 @@ sdd:
     bash:
       git merge*: allow
 spec:
+  mode: subagent
   model: opencode-go/glm-5.2
   temperature: 0.3
   steps: 20
@@ -91,6 +101,7 @@ spec:
       docs/feats/**/state.yaml: deny
     bash: deny
 tester:
+  mode: subagent
   model: opencode-go/kimi-k2.7-code
   temperature: 0.2
   steps: 40
