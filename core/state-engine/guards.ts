@@ -63,3 +63,33 @@ export function extractFilePath(args: unknown): string | undefined {
   const candidate = a.filePath ?? a.path ?? a.file_path
   return typeof candidate === "string" ? candidate : undefined
 }
+
+// The "deny" tier of OpenCode's opencode.jsonc permission.bash block, as glob
+// patterns (`*` = any characters), matched against the full command string.
+// OpenCode enforces these declaratively via that config; Cursor has no
+// declarative bash-permission mechanism, so its hook calls this directly as
+// the sole enforcer. git push-to-main is deliberately excluded — that's
+// isPushToMainCommand's job, which parses ref tokens instead of glob-matching.
+const DANGEROUS_BASH_GLOBS = [
+  "rm -rf *",
+  "rm -fr *",
+  "git reset --hard*",
+  "git push --force*",
+  "git push -f *",
+  "* | sh",
+  "* | bash",
+  "curl * | *",
+  "wget * | *",
+]
+
+function globToRegExp(glob: string): RegExp {
+  const escaped = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*")
+  return new RegExp(`^${escaped}$`)
+}
+
+const DANGEROUS_BASH_PATTERNS = DANGEROUS_BASH_GLOBS.map(globToRegExp)
+
+export function isDangerousBashCommand(command: string): boolean {
+  const trimmed = command.trim()
+  return DANGEROUS_BASH_PATTERNS.some((re) => re.test(trimmed))
+}

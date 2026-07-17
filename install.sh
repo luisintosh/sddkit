@@ -1,29 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install the opencode harness toolkit into the current repository.
+# Install the opencode-harness-toolkit's SDD harness for OpenCode or Cursor
+# into the current repository.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/luisintosh/opencode-harness-toolkit/refs/heads/master/install.sh | bash
+#   curl -fsSL .../install.sh | bash                       # opencode (default)
+#   curl -fsSL .../install.sh | HARNESS=cursor bash         # cursor
 #
 # Environment variables:
 #   TARGET_DIR    directory to install into (default: current working directory)
-#   VERSION       git tag to install, e.g. v0.2.0 (default: latest tag, falling back to master)
-#   BRANCH        install from a branch instead of a tag (overrides VERSION)
-#   LOCAL_SOURCE  install from a local checkout instead of downloading (for CI/testing)
+#   HARNESS       opencode | cursor (default: auto-detect existing .opencode/ or
+#                 .cursor/ if exactly one is present, else "opencode")
+#   VERSION       git tag to install, e.g. v0.2.0 (default: latest tag)
+#   BRANCH        install from a branch instead of a tag — NOT supported over the
+#                 network (the installable tree is generated and published only
+#                 for tagged releases); use LOCAL_SOURCE for branch/local testing
+#   LOCAL_SOURCE  install from a local built tree instead of downloading, e.g.
+#                 LOCAL_SOURCE=build/opencode (for CI/testing)
 #
 # Flags:
-#   --dry-run     show what would change without writing anything
-#   --doctor      run environment checks only (this also runs automatically after a real install)
+#   --dry-run       show what would change without writing anything
+#   --doctor        run environment checks only (this also runs automatically after a real install)
+#   --harness=NAME  same as HARNESS=NAME
 #
 # Re-running this script is safe: unchanged files are left alone, files that
 # changed upstream are updated, files you edited locally are backed up under
-# .opencode/.backup-<timestamp>/ before being replaced, and files removed
+# .<harness>/.backup-<timestamp>/ before being replaced, and files removed
 # upstream are pruned (backed up first if you'd modified them).
 
 REPO_OWNER="${REPO_OWNER:-luisintosh}"
 REPO_NAME="${REPO_NAME:-opencode-harness-toolkit}"
 TARGET_DIR="${TARGET_DIR:-$PWD}"
+HARNESS="${HARNESS:-}"
 VERSION="${VERSION:-}"
 BRANCH="${BRANCH:-}"
 LOCAL_SOURCE="${LOCAL_SOURCE:-}"
@@ -34,9 +43,33 @@ for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
     --doctor) DOCTOR_ONLY=true ;;
+    --harness=*) HARNESS="${arg#--harness=}" ;;
     *) ;;
   esac
 done
+
+# Resolve HARNESS: explicit value wins; else auto-detect from an existing
+# install dir if exactly one of .opencode/.cursor is present; else default to
+# opencode.
+resolve_harness() {
+  case "$HARNESS" in
+    opencode | cursor) return 0 ;;
+    "") ;;
+    *) die "HARNESS must be 'opencode' or 'cursor', got: ${HARNESS}" ;;
+  esac
+
+  local has_opencode=false has_cursor=false
+  [[ -d "${TARGET_DIR}/.opencode" ]] && has_opencode=true
+  [[ -d "${TARGET_DIR}/.cursor" ]] && has_cursor=true
+
+  if $has_opencode && ! $has_cursor; then
+    HARNESS=opencode
+  elif $has_cursor && ! $has_opencode; then
+    HARNESS=cursor
+  else
+    HARNESS=opencode
+  fi
+}
 
 log() {
   printf '%s\n' "$*" >&2
@@ -88,13 +121,24 @@ manifest_paths_of() {
 
 doctor() {
   log ""
-  log "Doctor:"
+  log "Doctor (harness: ${HARNESS:-unresolved}):"
 
-  if command -v opencode >/dev/null 2>&1; then
-    log "  [ok]   opencode is on PATH"
-  else
-    log "  [warn] opencode not found on PATH — install it from https://opencode.ai"
-  fi
+  case "$HARNESS" in
+    cursor)
+      if command -v cursor-agent >/dev/null 2>&1; then
+        log "  [ok]   cursor-agent is on PATH"
+      else
+        log "  [warn] cursor-agent not found on PATH — install Cursor from https://cursor.com"
+      fi
+      ;;
+    *)
+      if command -v opencode >/dev/null 2>&1; then
+        log "  [ok]   opencode is on PATH"
+      else
+        log "  [warn] opencode not found on PATH — install it from https://opencode.ai"
+      fi
+      ;;
+  esac
 
   if git -C "$TARGET_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     log "  [ok]   inside a git repository"
@@ -105,7 +149,7 @@ doctor() {
   if [[ -f "${TARGET_DIR}/AGENTS.md" ]]; then
     log "  [ok]   AGENTS.md present"
   else
-    log "  [warn] AGENTS.md missing — run /setup-docs in opencode first"
+    log "  [warn] AGENTS.md missing — run /setup-docs first"
   fi
 
   if command -v gh >/dev/null 2>&1; then
@@ -122,6 +166,8 @@ doctor() {
 }
 
 main() {
+  resolve_harness
+
   if $DOCTOR_ONLY; then
     doctor
     return 0
@@ -129,57 +175,54 @@ main() {
 
   [[ -d "$TARGET_DIR" ]] || die "target directory does not exist: $TARGET_DIR"
 
-  # NOTE (harness-agnostic refactor, §7 pending): the installable tree is now
-  # generated (build/<harness>/) and published as a per-harness release asset,
-  # not served from the raw repo. The LOCAL_SOURCE path below already works
-  # against a built tree (point it at build/opencode/); the network path still
-  # targets raw repo files and will be repointed at release artifacts + gain a
-  # HARNESS selector in §7. Until then, network install is expected to be used
-  # only via LOCAL_SOURCE in CI/e2e.
-  local ref base_url
-  if [[ -n "$LOCAL_SOURCE" ]]; then
-    [[ -d "$LOCAL_SOURCE" ]] || die "LOCAL_SOURCE does not exist: $LOCAL_SOURCE"
-    log "Installing opencode-harness-toolkit from local source: ${LOCAL_SOURCE}"
-  else
-    if [[ -n "$BRANCH" ]]; then
-      ref="refs/heads/${BRANCH}"
-    elif [[ -n "$VERSION" ]]; then
-      ref="refs/tags/${VERSION}"
-    else
-      local latest_tag=""
+  # The installable tree is generated (build/<harness>/, gitignored — never
+  # committed) and published as a per-harness tarball release asset, so it
+  # cannot be fetched file-by-file from raw.githubusercontent.com (that only
+  # serves committed content). LOCAL_SOURCE points directly at an already-built
+  # tree (e.g. build/opencode/); the network path downloads and extracts
+  # <harness>.tar.gz from a GitHub release, then reuses the same LOCAL_SOURCE
+  # staging logic below. Release assets only exist for TAGGED releases, so
+  # BRANCH installs have no network path — use LOCAL_SOURCE for those.
+  local fetched_dir=""
+  if [[ -z "$LOCAL_SOURCE" ]]; then
+    [[ -z "$BRANCH" ]] || die "BRANCH installs aren't available over the network (no release asset exists for an arbitrary branch) — use LOCAL_SOURCE=/path/to/build/${HARNESS} instead, or install a tagged VERSION."
+
+    local tag="$VERSION"
+    if [[ -z "$tag" ]]; then
       if command -v curl >/dev/null 2>&1; then
-        latest_tag="$(curl -fsSL "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/tags" 2>/dev/null \
+        tag="$(curl -fsSL "https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/tags" 2>/dev/null \
           | grep -m1 '"name"' \
           | sed -E 's/.*"name":[[:space:]]*"([^"]+)".*/\1/' || true)"
       fi
-      if [[ -n "$latest_tag" ]]; then
-        ref="refs/tags/${latest_tag}"
-        log "Resolved latest release: ${latest_tag}"
-      else
-        ref="refs/heads/master"
-        log "Could not resolve a release tag from GitHub; falling back to master"
-      fi
+      [[ -n "$tag" ]] || die "could not resolve a release tag from GitHub — pass VERSION=<tag> explicitly, or use LOCAL_SOURCE"
+      log "Resolved latest release: ${tag}"
     fi
-    base_url="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${ref}"
-    log "Installing opencode-harness-toolkit (${ref}) into ${TARGET_DIR}..."
+
+    local asset_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${tag}/${HARNESS}.tar.gz"
+    fetched_dir="$(mktemp -d)"
+    download "$asset_url" "${fetched_dir}/${HARNESS}.tar.gz" \
+      || die "failed to download ${asset_url} — does a ${HARNESS}.tar.gz release asset exist for ${tag}?"
+    tar -xzf "${fetched_dir}/${HARNESS}.tar.gz" -C "$fetched_dir" \
+      || die "failed to extract ${HARNESS}.tar.gz"
+    rm -f "${fetched_dir}/${HARNESS}.tar.gz"
+    LOCAL_SOURCE="$fetched_dir"
   fi
+
+  [[ -d "$LOCAL_SOURCE" ]] || die "LOCAL_SOURCE does not exist: $LOCAL_SOURCE"
+  log "Installing opencode-harness-toolkit (${HARNESS}) from: ${LOCAL_SOURCE}"
 
   # -------------------------------------------------------------------------
   # Stage: fetch manifest.txt + every file it lists into a scratch dir.
-  # All-or-nothing — nothing under .opencode/ is touched until every file
-  # downloads and its checksum matches the manifest.
+  # All-or-nothing — nothing under .${HARNESS}/ is touched until every file
+  # is verified against the manifest.
   # -------------------------------------------------------------------------
 
   local stage_dir
   stage_dir="$(mktemp -d)"
-  trap '[[ -n "${stage_dir:-}" ]] && rm -rf "$stage_dir"' EXIT
+  trap '[[ -n "${stage_dir:-}" ]] && rm -rf "$stage_dir"; [[ -n "${fetched_dir:-}" ]] && rm -rf "$fetched_dir"' EXIT
 
-  if [[ -n "$LOCAL_SOURCE" ]]; then
-    [[ -f "${LOCAL_SOURCE}/manifest.txt" ]] || die "manifest.txt not found under LOCAL_SOURCE"
-    cp "${LOCAL_SOURCE}/manifest.txt" "${stage_dir}/manifest.txt"
-  else
-    download "${base_url}/manifest.txt" "${stage_dir}/manifest.txt" || die "failed to download manifest.txt"
-  fi
+  [[ -f "${LOCAL_SOURCE}/manifest.txt" ]] || die "manifest.txt not found under LOCAL_SOURCE"
+  cp "${LOCAL_SOURCE}/manifest.txt" "${stage_dir}/manifest.txt"
   [[ -s "${stage_dir}/manifest.txt" ]] || die "manifest.txt is empty"
 
   local file_count=0
@@ -190,12 +233,8 @@ main() {
     rel_path="${line#*  }"
 
     mkdir -p "${stage_dir}/$(dirname "$rel_path")"
-    if [[ -n "$LOCAL_SOURCE" ]]; then
-      [[ -f "${LOCAL_SOURCE}/${rel_path}" ]] || die "missing file in LOCAL_SOURCE: ${rel_path}"
-      cp "${LOCAL_SOURCE}/${rel_path}" "${stage_dir}/${rel_path}"
-    else
-      download "${base_url}/${rel_path}" "${stage_dir}/${rel_path}" || die "failed to download ${rel_path}"
-    fi
+    [[ -f "${LOCAL_SOURCE}/${rel_path}" ]] || die "missing file in LOCAL_SOURCE: ${rel_path}"
+    cp "${LOCAL_SOURCE}/${rel_path}" "${stage_dir}/${rel_path}"
 
     actual_hash="$(sha256_of "${stage_dir}/${rel_path}")"
     [[ "$actual_hash" == "$expected_hash" ]] \
@@ -207,11 +246,11 @@ main() {
   log "Verified ${file_count} files against manifest.txt"
 
   # -------------------------------------------------------------------------
-  # Install: idempotent diff against .opencode/.harness-manifest from the
+  # Install: idempotent diff against .<harness>/.harness-manifest from the
   # previous install.
   # -------------------------------------------------------------------------
 
-  local harness_dir="${TARGET_DIR}/.opencode"
+  local harness_dir="${TARGET_DIR}/.${HARNESS}"
   local old_manifest="${harness_dir}/.harness-manifest"
   local new_manifest="${stage_dir}/manifest.txt"
   local backup_stamp
@@ -288,7 +327,10 @@ main() {
   log "Installed ${installed}, updated ${updated}, backed up ${backed_up}, pruned ${pruned}, unchanged ${skipped}."
   $backup_used && log "Locally modified files were preserved under ${harness_dir#"$TARGET_DIR"/}/.backup-*/"
   log ""
-  log "Open this directory with opencode to use the spec-driven development harness."
+  case "$HARNESS" in
+    cursor) log "Open this directory in Cursor and type /sdd <feature request> to use the spec-driven development harness." ;;
+    *) log "Open this directory with opencode to use the spec-driven development harness." ;;
+  esac
 
   doctor
 }

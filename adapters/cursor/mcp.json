@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sdd-checkpoint": {
+      "command": "node",
+      "args": [".cursor/mcp/server.js"]
+    }
+  }
+}

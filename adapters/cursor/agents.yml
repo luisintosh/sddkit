@@ -1,0 +1,42 @@
+# Per-agent Cursor frontmatter fields not covered by core/roles.yml.
+#
+# `model: inherit` everywhere: Cursor's current model-ID roster (composer-2.5,
+# claude-opus-4-8, gpt-5.x, ...) changes often and isn't something CI can
+# verify against a live account (see README/plan). Pin specific models here
+# once you've confirmed valid IDs for your plan via the Cursor model picker —
+# the intent, mirroring the OpenCode tiering, would be: a stronger reasoning
+# model for spec/architect/reviewer, a fast/cheap one for tester/implementer,
+# a stronger one still for implementer-pro.
+#
+# `readonly: true` marks the agents whose OpenCode permission block is
+# edit-deny-by-default (spec, architect, reviewer, qa) — Cursor's readonly
+# flag is coarser (all-or-nothing, no path-scoped allow list like
+# docs/feats/**), so architect's/spec's narrow docs/feats/** carve-out isn't
+# reproducible here; they write via their reply block to @sdd instead, same as
+# every other subagent's non-checkpoint output.
+#
+# No `mode`/`hidden` fields: every .cursor/agents/*.md file is implicitly a
+# subagent (dispatched via /name or delegation) — Cursor has no confirmed
+# "primary" or "hidden" designation. implementer-pro ships as an ordinary
+# agent file; it stays escalation-only in practice because only sdd.md's
+# prompt ever tells another agent to invoke it.
+architect:
+  model: inherit
+  readonly: true
+implementer-pro:
+  model: inherit
+implementer:
+  model: inherit
+qa:
+  model: inherit
+  readonly: true
+reviewer:
+  model: inherit
+  readonly: true
+sdd:
+  model: inherit
+spec:
+  model: inherit
+  readonly: true
+tester:
+  model: inherit

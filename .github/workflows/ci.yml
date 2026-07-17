@@ -31,8 +31,8 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
-      - name: Build the OpenCode install tree
-        run: bun run build:opencode
+      - name: Build both harness install trees
+        run: bun run build
       - name: Hygiene checks (frontmatter, opencode.jsonc, README drift, built-tree manifest integrity)
         run: node scripts/check.mjs
 

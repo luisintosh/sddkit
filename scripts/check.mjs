@@ -173,6 +173,34 @@ for (const id of Object.keys(opencodeAgents)) {
   if (!(id in roles)) fail(`adapters/opencode/agents.yml: lists "${id}", which has no core/roles.yml entry`);
 }
 
+const cursorAgentsPath = path.join(root, "adapters", "cursor", "agents.yml");
+let cursorAgents = {};
+try {
+  cursorAgents = parseYaml(await readFile(cursorAgentsPath, "utf8")) ?? {};
+} catch (err) {
+  fail(`adapters/cursor/agents.yml: failed to parse — ${err.message}`);
+}
+
+for (const id of Object.keys(roles)) {
+  const cu = cursorAgents[id];
+  if (!cu) {
+    fail(`adapters/cursor/agents.yml: missing entry for "${id}"`);
+    continue;
+  }
+  if (typeof cu.model !== "string" || cu.model.trim() === "") {
+    fail(`adapters/cursor/agents.yml: "${id}".model must be a non-empty string, got ${JSON.stringify(cu.model)}`);
+  }
+  if (cu.readonly !== undefined && typeof cu.readonly !== "boolean") {
+    fail(`adapters/cursor/agents.yml: "${id}".readonly must be a boolean if present, got ${JSON.stringify(cu.readonly)}`);
+  }
+  // No mode/hidden checks here: Cursor has no confirmed equivalent (see
+  // core/roles.yml's header comment) — every .cursor/agents/*.md file is
+  // implicitly a subagent.
+}
+for (const id of Object.keys(cursorAgents)) {
+  if (!(id in roles)) fail(`adapters/cursor/agents.yml: lists "${id}", which has no core/roles.yml entry`);
+}
+
 // ---------------------------------------------------------------------------
 // 3. README model table vs adapters/opencode/agents.yml
 // ---------------------------------------------------------------------------

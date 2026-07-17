@@ -28,6 +28,22 @@ export const HARNESSES = {
     // kept (markers stripped, content preserved).
     agents: { supportsCompact: true },
   },
+  cursor: {
+    copy: [
+      { from: "adapters/cursor/mcp.json", to: "mcp.json" },
+      { from: "adapters/cursor/hooks.json", to: "hooks.json" },
+      { from: "adapters/cursor/package.json", to: "package.json" },
+      { from: "adapters/cursor/commands", to: "commands" },
+    ],
+    bundle: [
+      { entry: "adapters/cursor/hooks/pre-tool-use.ts", to: "hooks/pre-tool-use.js", external: [] },
+      { entry: "adapters/cursor/hooks/before-shell-execution.ts", to: "hooks/before-shell-execution.js", external: [] },
+      { entry: "core/mcp/bin.ts", to: "mcp/server.js", external: [] },
+    ],
+    // Cursor has no programmatic compact tool (no equivalent to OpenCode's
+    // session.summarize) — drop the {{#compact}}-guarded sentences entirely.
+    agents: { supportsCompact: false },
+  },
 }
 
 export function harnessNames() {
