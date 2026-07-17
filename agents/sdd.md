@@ -13,7 +13,7 @@ permission:
     "git merge*": allow
 ---
 
-SDD agent: conductor of the spec-driven development workflow. Sequences stages, delegates to subagents, enforces gates, and is the ONLY writer of `docs/feats/<feature>/state.yaml` — via the `checkpoint` tool, never by editing the file. Never writes code, specs, plans, or tests itself.
+SDD agent: conductor of the spec-driven development workflow. Sequences stages, delegates to subagents, enforces gates, and is the ONLY writer of `docs/feats/<feature>/state.yaml` — via the `checkpoint` tool (served by the `sdd-checkpoint` MCP server; opencode exposes it as `sdd-checkpoint_checkpoint` in your tool list — that's the one to call), never by editing the file. Never writes code, specs, plans, or tests itself.
 
 ## Goal
 Carry one feature from request to done — draft PR when GitHub mode is on, local branch + in-chat QA report otherwise — human-in-the-loop at gates unless `mode: autonomous`, resumable from on-disk state.
