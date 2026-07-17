@@ -69,7 +69,8 @@ describe("validateState", () => {
       expect(result.data.completed).toEqual([])
       expect(result.data.escalation).toBe(0)
       expect(result.data.pending_gate).toBe("")
-      expect(result.data.artifacts).toEqual({ spec: "", contracts: [], plan: "", tasks: "" })
+      expect(result.data.mode).toBe("interactive")
+      expect(result.data.artifacts).toEqual({ spec: "", contracts: [], plan: "" })
     }
   })
 
@@ -88,6 +89,29 @@ describe("validateState", () => {
       workflow: "sdd",
       stage: "initialized",
       updated: new Date().toISOString(),
+    })
+    expect(result.success).toBe(false)
+  })
+
+  test("accepts an autonomous mode value", () => {
+    const result = validateState({
+      feature: "x",
+      workflow: "sdd",
+      stage: "initialized",
+      updated: new Date().toISOString(),
+      mode: "autonomous",
+    })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.mode).toBe("autonomous")
+  })
+
+  test("rejects an unknown mode value", () => {
+    const result = validateState({
+      feature: "x",
+      workflow: "sdd",
+      stage: "initialized",
+      updated: new Date().toISOString(),
+      mode: "yolo",
     })
     expect(result.success).toBe(false)
   })

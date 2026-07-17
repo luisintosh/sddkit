@@ -15,13 +15,12 @@ package.json          plugin runtime deps (yaml, zod, @opencode-ai/plugin) — i
 manifest.txt           sha256 manifest of every installable file, CI-verified
 agents/
   sdd.md                primary — sequences stages, owns gates, routes findings, checkpoints state
-  spec.md               writes spec.md + acceptance contracts/*.feature (@S<n> tagged)
-  architect.md           explores the codebase, writes plan.md + tasks.md (slice breakdown)
+  spec.md               writes spec.md + acceptance contracts/*.feature (@S<n> tagged), together
+  architect.md           explores the codebase, writes plan.md (includes the Slices section)
   tester.md               red phase — failing tests from acceptance contracts (test-only edits)
   implementer.md          green phase — minimal impl to pass tests (no test edits)
   implementer-pro.md      hidden escalation rung — stronger model, invoked after 2 failed attempts
   reviewer.md              read-only reviewer — slice-diff review + pre-gate spec/plan critique
-  reviewer-2.md            hidden cross-family final reviewer for escalated slices
   qa.md                    validates the finished feature against spec/contracts
 plugins/
   sdd-guard.ts           checkpoint + compact tools, guardrails, append-only journal (opencode plugin)
@@ -47,8 +46,7 @@ docs/
     journal.ndjson       append-only audit trail of every checkpoint write
     spec.md
     contracts/*.feature  Given/When/Then scenarios tagged @S1, @S2, ...
-    plan.md
-    tasks.md
+    plan.md              includes the Slices section (slice ID, risk tier, scenarios, test command)
 .codesight/
   wiki/                 codebase context map (index.md + topic articles) — see Codebase Context below
 ```
@@ -56,8 +54,8 @@ docs/
 ## Models
 
 Each agent is pinned to a model chosen for its workload and cost, with a `steps` cap as thrash/budget
-insurance. `implementer-pro` and `reviewer-2` are hidden escalation-only agents — `@sdd` invokes them,
-you never delegate to them directly.
+insurance. `implementer-pro` is a hidden escalation-only agent — `@sdd` invokes it, you never
+delegate to it directly.
 
 | agent | model | notes |
 |---|---|---|
@@ -67,8 +65,7 @@ you never delegate to them directly.
 | `tester` | `opencode-go/kimi-k2.7-code` | test-writing + run-loop heavy |
 | `implementer` | `opencode-go/deepseek-v4-flash` | highest-iteration role; green phase has an oracle (failing tests) |
 | `implementer-pro` | `opencode-go/deepseek-v4-pro` | hidden — escalation rung, same family as implementer |
-| `reviewer` | `opencode-go/kimi-k2.7-code` | cross-provider vs. the implementer, for an independent perspective |
-| `reviewer-2` | `opencode-go/minimax-m3` | hidden — third model family, final review on escalated slices only |
+| `reviewer` | `opencode-go/kimi-k2.7-code` | cross-provider vs. the implementer, for an independent perspective; also gives the final verdict on escalated slices |
 | `qa` | `opencode-go/glm-5.2` | terminal/browser-driven validation workload |
 
 This table is checked in CI (`scripts/check.mjs`) against each agent's frontmatter — it cannot drift
@@ -145,21 +142,24 @@ The default agent is `sdd` — start by typing a feature request:
 Add account export.
 ```
 
-`sdd` asks once whether to use GitHub integration (draft PR + QA report as a PR comment) or stay
-local (everything on the feature branch, QA report in chat + on disk). It then slugifies the feature,
-scaffolds `docs/feats/<slug>/state.yaml`, and runs the pipeline below. To resume an interrupted or
-gated run, ask `sdd` to continue.
+`sdd` asks once, in a single message, whether to create a new branch or continue on the current one,
+whether to use GitHub integration (draft PR + QA report as a PR comment) or stay local (everything on
+the feature branch, QA report in chat + on disk), and whether to run autonomously (no human gates,
+pausing only on unresolvable blockers) or with human review at the spec and plan gates. It then
+slugifies the feature, scaffolds `docs/feats/<slug>/state.yaml`, and runs the pipeline below. To
+resume an interrupted or gated run, ask `sdd` to continue.
 
 ## Pipeline
 
 ```
-initialize → specify → spec critique → ⏸spec gate → acceptance contracts → plan → plan critique
-  → ⏸plan gate → tasks → implementation slices → verify → docs-sync → pr → qa → complete
+initialize → specify (spec + contracts) → spec critique → ⏸spec gate
+  → plan (incl. Slices) → plan critique → ⏸plan gate
+  → implementation slices → verify → docs-sync → pr → qa → complete
 ```
 
-`@architect` tags each slice in `tasks.md` with a risk tier — `standard` (behavior-changing, maps to
-an `@S<n>` scenario) or `low` (config/wiring/glue with no new behavior) — visible to the human at the
-plan gate. Each implementation slice then runs one of two flows:
+`@architect` tags each slice in `plan.md`'s Slices section with a risk tier — `standard`
+(behavior-changing, maps to an `@S<n>` scenario) or `low` (config/wiring/glue with no new behavior) —
+visible to the human at the plan gate. Each implementation slice then runs one of two flows:
 
 ```
 standard: red(@tester) → green(@implementer) → targeted test → review loop(@reviewer) → commit
@@ -168,20 +168,33 @@ low:                      green(@implementer) → targeted test → single revie
 
 A `blocker` finding on a `low`-risk slice upgrades it to the `standard` flow in place (re-run red +
 the full review loop) — the safety valve if a slice was mis-tiered. `@sdd` builds one **slice
-brief** (task section, `@S<n>` scenario text, targeted test command) per slice and passes it to every
-delegation, instead of pointing each subagent back at the full spec/contracts/tasks artifacts.
+brief** (the slice's section from `plan.md`, `@S<n>` scenario text, targeted test command) per slice
+and passes it to every delegation, instead of pointing each subagent back at the full spec/contracts/
+plan artifacts.
 
-Gates pause for human approval. The reviewer is read-only and bounded (max 3 iterations per
-`standard` slice, max 2 QA-driven fix cycles); re-review iterations after the first check only that
-prior findings were fixed plus the delta since, not the full diff again. Before each human gate,
-`@reviewer` also runs a one-shot artifact critique on the spec/plan so gates see pre-hardened drafts.
+In `mode: interactive`, both gates pause for human approval. In `mode: autonomous`, gates auto-approve
+once their pre-gate critique is clean or addressed, and the pipeline runs through to completion or an
+unresolvable blocker without stopping — an opinion gate raised by an implementer still pauses either
+way, since it's a genuine design fork rather than a routine approval. The reviewer is read-only and
+bounded (max 2 iterations per `standard` slice, max 2 QA-driven fix cycles); a `minor`-only verdict is
+recorded as `deferred_findings` on the slice and the slice commits without a fix round; re-review
+iterations after the first check only that prior findings were fixed plus the delta since, not the
+full diff again. Before each gate, `@reviewer` also runs a one-shot artifact critique on the spec+
+contracts or plan so the gate sees a pre-hardened draft.
 
 **Escalation ladder**: if `@implementer` fails the slice's targeted tests twice, or a review loop
-exhausts with unresolved blocker findings, `@sdd` sets `escalation: 1` and re-runs the green phase via
-the hidden `@implementer-pro` (a stronger model in the same family). Once escalated, the slice's final
-clean verdict must come from the hidden `@reviewer-2` — a third model family, so escalated code isn't
-approved solely by the reviewer instance that passed earlier iterations. One rung only; a second
-exhaustion pauses for the human.
+exhausts with unresolved `blocker`/`major` findings, `@sdd` sets `escalation: 1` and re-runs the green
+phase via the hidden `@implementer-pro` (a stronger model in the same family). Once escalated, the
+slice's final clean verdict comes from a fresh `@reviewer` pass over the diff from scratch, treating
+earlier iterations as context rather than authority. One rung only; a second exhaustion pauses for the
+human.
+
+`@qa` validates the finished feature by selecting at most 3 top-of-pyramid end-to-end journeys that
+together exercise as many `@S<n>` scenarios as possible; every other scenario is recorded as covered
+by its tagged test at `verify`. A QA finding re-enters the pipeline at **specify**: `@spec` updates
+`spec.md`/contracts with a delta scoped to the finding, `@architect` updates `plan.md` to match, the
+affected slice(s) run the slice loop again, `verify` re-runs, and `@qa` re-validates only the
+previously failed journey(s). Max 2 QA-driven cycles.
 
 "Done" is: all slices committed, `verify` green, docs synced, `qa` clean — plus a draft PR opened when
 GitHub mode is on. `sdd` doesn't declare success otherwise.

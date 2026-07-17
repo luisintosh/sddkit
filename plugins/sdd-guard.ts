@@ -24,10 +24,8 @@ const STAGES = [
   "initialized",
   "specify",
   "spec_gate",
-  "contracts",
   "plan",
   "plan_gate",
-  "tasks",
   "implementation",
   "verify",
   "docs_sync",
@@ -45,6 +43,7 @@ export const StateSchema = z.object({
   completed: z.array(z.string()).default([]),
   pending_gate: z.enum(["", "spec", "plan"]).default(""),
   github: z.boolean().default(false),
+  mode: z.enum(["interactive", "autonomous"]).default("interactive"),
   current_slice: z.string().default(""),
   slice_phase: z.enum(SLICE_PHASES).default(""),
   escalation: z.union([z.literal(0), z.literal(1)]).default(0),
@@ -57,9 +56,8 @@ export const StateSchema = z.object({
       spec: z.string().default(""),
       contracts: z.array(z.string()).default([]),
       plan: z.string().default(""),
-      tasks: z.string().default(""),
     })
-    .default({ spec: "", contracts: [], plan: "", tasks: "" }),
+    .default({ spec: "", contracts: [], plan: "" }),
   verification: z
     .object({
       status: z.string().default(""),
@@ -71,8 +69,9 @@ export const StateSchema = z.object({
       iterations: z.number().int().default(0),
       status: z.string().default(""),
       findings: z.array(FindingSchema).default([]),
+      deferred_findings: z.array(FindingSchema).default([]),
     })
-    .default({ iterations: 0, status: "", findings: [] }),
+    .default({ iterations: 0, status: "", findings: [], deferred_findings: [] }),
   qa: z
     .object({
       status: z.string().default(""),
