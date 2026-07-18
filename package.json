@@ -4,11 +4,18 @@
   "type": "module",
   "description": "Plugin dependencies for the SDD harness — installed into the consuming repo's .opencode/ so opencode auto-installs them for plugins/sdd-guard.ts.",
   "scripts": {
-    "test": "bun test plugins/"
+    "test": "bun test core/ adapters/ build/",
+    "build": "node build/assemble.mjs opencode && node build/bundle.mjs opencode && bash scripts/gen-manifest.sh opencode && node build/assemble.mjs cursor && node build/bundle.mjs cursor && bash scripts/gen-manifest.sh cursor",
+    "build:opencode": "node build/assemble.mjs opencode && node build/bundle.mjs opencode && bash scripts/gen-manifest.sh opencode",
+    "build:cursor": "node build/assemble.mjs cursor && node build/bundle.mjs cursor && bash scripts/gen-manifest.sh cursor"
   },
   "dependencies": {
     "@opencode-ai/plugin": "^1.17.18",
     "yaml": "^2.9.0",
     "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "esbuild": "^0.28.1"
   }
 }

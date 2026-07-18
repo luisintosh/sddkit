@@ -1,0 +1,6 @@
+{
+  "name": "sdd-harness-cursor",
+  "private": true,
+  "type": "module",
+  "description": "Installed into the consuming repo's .cursor/ so node resolves the bundled checkpoint MCP server and hook scripts as ESM. Everything is pre-bundled at build time — no runtime dependencies."
+}

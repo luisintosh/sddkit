@@ -1,10 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Regenerate manifest.txt: `sha256  path` for every file install.sh installs.
-# Run this after adding/removing/renaming an installable file.
+# Regenerate <tree>/manifest.txt: `sha256  path` for every file in an
+# assembled+bundled install tree. Run after build/assemble.mjs + build/bundle.mjs.
+# Usage:
+#   scripts/gen-manifest.sh <harness>    hashes build/<harness>/ (default: opencode)
+#   scripts/gen-manifest.sh --dir=<path> hashes an arbitrary tree (e.g. a test fixture)
 
-cd "$(dirname "$0")/.."
+repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+
+if [[ "${1:-}" == --dir=* ]]; then
+  tree="${1#--dir=}"
+else
+  tree="${repo_root}/build/${1:-opencode}"
+fi
+
+[[ -d "$tree" ]] || { echo "gen-manifest: $tree does not exist — run the assemble+bundle steps first" >&2; exit 1; }
 
 sha() {
   if command -v sha256sum >/dev/null 2>&1; then
@@ -14,25 +25,15 @@ sha() {
   fi
 }
 
-files=(
-  opencode.jsonc
-  package.json
-)
-
-while IFS= read -r f; do
-  files+=("$f")
-done < <(find agents -maxdepth 1 -type f -name '*.md' | sort)
-
-while IFS= read -r f; do
-  files+=("$f")
-done < <(find plugins -maxdepth 1 -type f -name '*.ts' ! -name '*.test.ts' | sort)
-
 tmp="$(mktemp)"
 trap 'rm -f "$tmp"' EXIT
 
-for f in "${files[@]}"; do
-  sha "$f"
-done | sort -k2 > "$tmp"
+# Hash every file in the tree except the manifest itself and the install marker,
+# recording paths relative to the tree root.
+( cd "$tree" && find . -type f \
+    ! -name manifest.txt ! -name .harness-manifest \
+    | sed 's|^\./||' | sort \
+    | while IFS= read -r f; do sha "$f"; done ) > "$tmp"
 
-mv "$tmp" manifest.txt
-echo "Wrote manifest.txt ($(wc -l < manifest.txt | tr -d ' ') files)" >&2
+mv "$tmp" "${tree}/manifest.txt"
+echo "Wrote ${tree}/manifest.txt ($(wc -l < "${tree}/manifest.txt" | tr -d ' ') files)" >&2

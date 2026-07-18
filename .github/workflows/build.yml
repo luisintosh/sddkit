@@ -1,0 +1,54 @@
+name: Build & publish release artifacts
+
+# Publishes the generated per-harness install trees (build/opencode/,
+# build/cursor/ — gitignored, never committed) as tarball assets on the
+# GitHub Release for a pushed tag. install.sh downloads
+# <harness>.tar.gz from that release for network (VERSION-based) installs.
+# BRANCH-based installs have no artifact here — see install.sh's own note.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+
+      - name: Build both harness install trees
+        run: bun run build
+
+      - name: Hygiene checks (must pass before publishing)
+        run: node scripts/check.mjs
+
+      - name: Run unit + e2e tests
+        run: |
+          bun test core/ adapters/ build/
+          bash test/e2e-install.sh
+
+      - name: Package per-harness tarballs
+        run: |
+          set -euo pipefail
+          for harness in opencode cursor; do
+            tar -czf "${harness}.tar.gz" -C "build/${harness}" .
+          done
+
+      - name: Publish (create-or-update) the release for this tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" opencode.tar.gz cursor.tar.gz --clobber
+          else
+            gh release create "$tag" opencode.tar.gz cursor.tar.gz --title "$tag" --generate-notes
+          fi

@@ -1,20 +1,34 @@
 #!/usr/bin/env node
 // Toolkit hygiene checks, run in CI (Tier 0) on every push:
-//   1. opencode.jsonc parses and has the expected shape.
-//   2. Every agents/*.md frontmatter matches the harness's agent schema.
+//   1. adapters/opencode/opencode.jsonc parses and has the expected shape.
+//   2. Every agents/*.md frontmatter matches the OpenCode agent schema.
 //   3. README's model table doesn't drift from agent frontmatter.
-//   4. manifest.txt is up to date with the files it should cover.
-import { readFile, readdir } from "node:fs/promises";
+//   4. If a build tree exists, its manifest.txt is internally consistent.
+import { readFile, readdir, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
+import { harnessNames } from "../build/harnesses.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const errors = [];
 
 function fail(msg) {
   errors.push(msg);
+}
+
+// Bidirectional existence check shared by every adapter's agents.yml: every
+// role must have an adapter entry, and every adapter entry must map to a
+// real role. Per-field schema validation (model format, mode, etc.) differs
+// per harness and stays in each caller's own loop.
+function checkRosterCorrespondence(agentsMap, label, roles) {
+  for (const id of Object.keys(roles)) {
+    if (!(id in agentsMap)) fail(`${label}: missing entry for "${id}"`);
+  }
+  for (const id of Object.keys(agentsMap)) {
+    if (!(id in roles)) fail(`${label}: lists "${id}", which has no core/roles.yml entry`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -85,78 +99,112 @@ function parseJsonc(raw) {
 // 1. opencode.jsonc
 // ---------------------------------------------------------------------------
 
-const opencodeJsoncPath = path.join(root, "opencode.jsonc");
+const opencodeJsoncPath = path.join(root, "adapters", "opencode", "opencode.jsonc");
 let config;
 try {
   config = parseJsonc(await readFile(opencodeJsoncPath, "utf8"));
 } catch (err) {
-  fail(`opencode.jsonc: failed to parse — ${err.message}`);
+  fail(`adapters/opencode/opencode.jsonc: failed to parse — ${err.message}`);
 }
 
+const OJ = "adapters/opencode/opencode.jsonc";
 if (config) {
-  if (config.default_agent !== "sdd") fail(`opencode.jsonc: default_agent should be "sdd", got ${JSON.stringify(config.default_agent)}`);
-  if (!config.permission || typeof config.permission !== "object") fail("opencode.jsonc: missing permission block");
-  if (!config.command?.["setup-docs"]) fail("opencode.jsonc: missing command.setup-docs");
+  if (config.default_agent !== "sdd") fail(`${OJ}: default_agent should be "sdd", got ${JSON.stringify(config.default_agent)}`);
+  if (!config.permission || typeof config.permission !== "object") fail(`${OJ}: missing permission block`);
+  if (!config.command?.["setup-docs"]) fail(`${OJ}: missing command.setup-docs`);
+  if (!config.mcp?.["sdd-checkpoint"]) fail(`${OJ}: missing mcp.sdd-checkpoint (the core checkpoint server)`);
 }
 
 // ---------------------------------------------------------------------------
-// 2. agents/*.md frontmatter schema
+// 2. core/roles.yml (harness-agnostic roster) + adapters/opencode/agents.yml
+//    (OpenCode-specific frontmatter fields), and core/agents/*.md bodies
 // ---------------------------------------------------------------------------
 
 const MODE_VALUES = new Set(["primary", "subagent"]);
-const agentsDir = path.join(root, "agents");
-const agentFiles = (await readdir(agentsDir)).filter((f) => f.endsWith(".md")).sort();
-const agentFrontmatter = new Map(); // name -> frontmatter object
 
-for (const file of agentFiles) {
-  const name = file.replace(/\.md$/, "");
-  const raw = await readFile(path.join(agentsDir, file), "utf8");
-  const match = raw.match(/^---\n([\s\S]*?)\n---\n/);
-  if (!match) {
-    fail(`agents/${file}: missing frontmatter block`);
-    continue;
-  }
+const rolesPath = path.join(root, "core", "roles.yml");
+let roles = {};
+try {
+  roles = parseYaml(await readFile(rolesPath, "utf8")) ?? {};
+} catch (err) {
+  fail(`core/roles.yml: failed to parse — ${err.message}`);
+}
 
-  let fm;
-  try {
-    fm = parseYaml(match[1]);
-  } catch (err) {
-    fail(`agents/${file}: frontmatter is not valid YAML — ${err.message}`);
-    continue;
-  }
+const bodiesDir = path.join(root, "core", "agents");
+const bodyFiles = (await readdir(bodiesDir)).filter((f) => f.endsWith(".md")).sort();
+for (const file of bodyFiles) {
+  const id = file.replace(/\.md$/, "");
+  if (!(id in roles)) fail(`core/agents/${file}: no matching entry in core/roles.yml`);
+}
+for (const id of Object.keys(roles)) {
+  if (!bodyFiles.includes(`${id}.md`)) fail(`core/roles.yml: "${id}" has no core/agents/${id}.md body`);
+}
 
-  agentFrontmatter.set(name, fm);
-
-  if (typeof fm.description !== "string" || fm.description.trim() === "") {
-    fail(`agents/${file}: description must be a non-empty string`);
-  }
-  if (!MODE_VALUES.has(fm.mode)) {
-    fail(`agents/${file}: mode must be "primary" or "subagent", got ${JSON.stringify(fm.mode)}`);
-  }
-  if (typeof fm.model !== "string" || !fm.model.startsWith("opencode-go/")) {
-    fail(`agents/${file}: model must start with "opencode-go/", got ${JSON.stringify(fm.model)}`);
-  }
-  if (fm.temperature !== undefined) {
-    if (typeof fm.temperature !== "number" || fm.temperature < 0 || fm.temperature > 1) {
-      fail(`agents/${file}: temperature must be a number in [0, 1], got ${JSON.stringify(fm.temperature)}`);
-    }
-  }
-  if (fm.steps !== undefined) {
-    if (!Number.isInteger(fm.steps) || fm.steps <= 0) {
-      fail(`agents/${file}: steps must be a positive integer, got ${JSON.stringify(fm.steps)}`);
-    }
-  }
-  if (fm.hidden === true && fm.mode !== "subagent") {
-    fail(`agents/${file}: hidden agents must be mode: subagent`);
+for (const [id, role] of Object.entries(roles)) {
+  if (typeof role.description !== "string" || role.description.trim() === "") {
+    fail(`core/roles.yml: "${id}".description must be a non-empty string`);
   }
 }
 
-if (agentFrontmatter.get("sdd")?.mode !== "primary") {
-  fail('agents/sdd.md: the conductor must be mode: primary');
+const opencodeAgentsPath = path.join(root, "adapters", "opencode", "agents.yml");
+let opencodeAgents = {};
+try {
+  opencodeAgents = parseYaml(await readFile(opencodeAgentsPath, "utf8")) ?? {};
+} catch (err) {
+  fail(`adapters/opencode/agents.yml: failed to parse — ${err.message}`);
+}
+
+checkRosterCorrespondence(opencodeAgents, "adapters/opencode/agents.yml", roles);
+
+for (const [id, oc] of Object.entries(opencodeAgents)) {
+  if (!MODE_VALUES.has(oc.mode)) {
+    fail(`adapters/opencode/agents.yml: "${id}".mode must be "primary" or "subagent", got ${JSON.stringify(oc.mode)}`);
+  }
+  if (oc.hidden === true && oc.mode !== "subagent") {
+    fail(`adapters/opencode/agents.yml: "${id}" is hidden but not mode: subagent`);
+  }
+  if (typeof oc.model !== "string" || !oc.model.startsWith("opencode-go/")) {
+    fail(`adapters/opencode/agents.yml: "${id}".model must start with "opencode-go/", got ${JSON.stringify(oc.model)}`);
+  }
+  if (oc.temperature !== undefined) {
+    if (typeof oc.temperature !== "number" || oc.temperature < 0 || oc.temperature > 1) {
+      fail(`adapters/opencode/agents.yml: "${id}".temperature must be a number in [0, 1], got ${JSON.stringify(oc.temperature)}`);
+    }
+  }
+  if (oc.steps !== undefined) {
+    if (!Number.isInteger(oc.steps) || oc.steps <= 0) {
+      fail(`adapters/opencode/agents.yml: "${id}".steps must be a positive integer, got ${JSON.stringify(oc.steps)}`);
+    }
+  }
+}
+if (opencodeAgents.sdd?.mode !== "primary") {
+  fail('adapters/opencode/agents.yml: "sdd" (the conductor) must be mode: primary');
+}
+
+const cursorAgentsPath = path.join(root, "adapters", "cursor", "agents.yml");
+let cursorAgents = {};
+try {
+  cursorAgents = parseYaml(await readFile(cursorAgentsPath, "utf8")) ?? {};
+} catch (err) {
+  fail(`adapters/cursor/agents.yml: failed to parse — ${err.message}`);
+}
+
+checkRosterCorrespondence(cursorAgents, "adapters/cursor/agents.yml", roles);
+
+for (const [id, cu] of Object.entries(cursorAgents)) {
+  if (typeof cu.model !== "string" || cu.model.trim() === "") {
+    fail(`adapters/cursor/agents.yml: "${id}".model must be a non-empty string, got ${JSON.stringify(cu.model)}`);
+  }
+  if (cu.readonly !== undefined && typeof cu.readonly !== "boolean") {
+    fail(`adapters/cursor/agents.yml: "${id}".readonly must be a boolean if present, got ${JSON.stringify(cu.readonly)}`);
+  }
+  // No mode/hidden checks here: Cursor has no confirmed equivalent (see
+  // core/roles.yml's header comment) — every .cursor/agents/*.md file is
+  // implicitly a subagent.
 }
 
 // ---------------------------------------------------------------------------
-// 3. README model table vs frontmatter
+// 3. README model table vs adapters/opencode/agents.yml
 // ---------------------------------------------------------------------------
 
 const readmePath = path.join(root, "README.md");
@@ -172,25 +220,31 @@ for (const m of readme.matchAll(rowRe)) {
 if (readmeModels.size === 0) {
   fail("README.md: no model table rows found (expected `| `<agent>` | `<model>` | ...` rows)");
 } else {
-  for (const [name, fm] of agentFrontmatter) {
-    const readmeModel = readmeModels.get(name);
+  for (const [id, oc] of Object.entries(opencodeAgents)) {
+    const readmeModel = readmeModels.get(id);
     if (!readmeModel) {
-      fail(`README.md: model table is missing a row for "${name}"`);
+      fail(`README.md: model table is missing a row for "${id}"`);
       continue;
     }
-    if (readmeModel !== fm.model) {
-      fail(`README.md: model table says ${name} -> ${readmeModel}, but agents/${name}.md says ${fm.model}`);
+    if (readmeModel !== oc.model) {
+      fail(`README.md: model table says ${id} -> ${readmeModel}, but adapters/opencode/agents.yml says ${oc.model}`);
     }
   }
-  for (const name of readmeModels.keys()) {
-    if (!agentFrontmatter.has(name)) {
-      fail(`README.md: model table lists "${name}", which has no agents/${name}.md`);
+  for (const id of readmeModels.keys()) {
+    if (!(id in opencodeAgents)) {
+      fail(`README.md: model table lists "${id}", which has no adapters/opencode/agents.yml entry`);
     }
   }
 }
 
 // ---------------------------------------------------------------------------
-// 4. manifest.txt freshness
+// 4. built tree manifest integrity (when a build exists)
+//
+// The installable trees are generated (build/<harness>/, gitignored) and their
+// manifest.txt is regenerated from the tree on every build, so there is no
+// committed manifest to drift. When a build is present we verify the manifest
+// is internally consistent: every tree file is listed with a matching hash and
+// vice-versa. On a fresh checkout with no build, this check is skipped.
 // ---------------------------------------------------------------------------
 
 async function sha256(filePath) {
@@ -198,57 +252,60 @@ async function sha256(filePath) {
   return createHash("sha256").update(buf).digest("hex");
 }
 
-async function expectedManifestEntries() {
-  const entries = [];
-  entries.push("opencode.jsonc");
-  entries.push("package.json");
-  for (const f of agentFiles) entries.push(path.join("agents", f));
-
-  const pluginsDir = path.join(root, "plugins");
-  const pluginFiles = (await readdir(pluginsDir)).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts")).sort();
-  for (const f of pluginFiles) entries.push(path.join("plugins", f));
-
-  entries.sort();
-  const withHashes = [];
-  for (const rel of entries) {
-    withHashes.push([await sha256(path.join(root, rel)), rel]);
+async function walkFiles(dir, base = dir) {
+  const out = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const abs = path.join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...(await walkFiles(abs, base)));
+    else out.push(path.relative(base, abs).split(path.sep).join("/"));
   }
-  return withHashes;
+  return out;
 }
 
-const manifestPath = path.join(root, "manifest.txt");
-let manifestRaw;
-try {
-  manifestRaw = await readFile(manifestPath, "utf8");
-} catch {
-  fail("manifest.txt: missing — run scripts/gen-manifest.sh");
-}
+let builtHarnesses = 0;
+for (const harness of harnessNames()) {
+  const treeDir = path.join(root, "build", harness);
+  let exists = false;
+  try {
+    exists = (await stat(treeDir)).isDirectory();
+  } catch {
+    exists = false;
+  }
+  if (!exists) continue;
+  builtHarnesses++;
 
-if (manifestRaw !== undefined) {
-  const actualLines = manifestRaw
-    .trim()
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => {
-      const m = line.match(/^([a-f0-9]{64})\s+\*?(.+)$/);
-      if (!m) return null;
-      return [m[1], m[2]];
-    });
+  const label = `build/${harness}`;
+  let manifestRaw;
+  try {
+    manifestRaw = await readFile(path.join(treeDir, "manifest.txt"), "utf8");
+  } catch {
+    fail(`${label}/manifest.txt: missing — run the build (bun run build:${harness})`);
+    continue;
+  }
 
-  if (actualLines.some((l) => l === null)) {
-    fail("manifest.txt: contains a malformed line (expected `<sha256>  <path>`)");
-  } else {
-    const expected = await expectedManifestEntries();
-    const expectedSet = new Map(expected.map(([hash, rel]) => [rel, hash]));
-    const actualSet = new Map(actualLines.map(([hash, rel]) => [rel, hash]));
-
-    for (const [rel, hash] of expectedSet) {
-      if (!actualSet.has(rel)) fail(`manifest.txt: missing entry for ${rel} — run scripts/gen-manifest.sh`);
-      else if (actualSet.get(rel) !== hash) fail(`manifest.txt: stale hash for ${rel} — run scripts/gen-manifest.sh`);
+  const listed = new Map();
+  let malformed = false;
+  for (const line of manifestRaw.trim().split("\n").filter(Boolean)) {
+    const m = line.match(/^([a-f0-9]{64})\s+\*?(.+)$/);
+    if (!m) {
+      malformed = true;
+      break;
     }
-    for (const rel of actualSet.keys()) {
-      if (!expectedSet.has(rel)) fail(`manifest.txt: lists ${rel}, which no longer exists or shouldn't be installed`);
-    }
+    listed.set(m[2], m[1]);
+  }
+  if (malformed) {
+    fail(`${label}/manifest.txt: contains a malformed line (expected \`<sha256>  <path>\`)`);
+    continue;
+  }
+
+  const onDisk = (await walkFiles(treeDir)).filter((rel) => rel !== "manifest.txt" && rel !== ".harness-manifest");
+  for (const rel of onDisk) {
+    if (!listed.has(rel)) fail(`${label}/manifest.txt: missing entry for ${rel} — rebuild`);
+    else if (listed.get(rel) !== (await sha256(path.join(treeDir, rel)))) fail(`${label}/manifest.txt: stale hash for ${rel} — rebuild`);
+  }
+  const onDiskSet = new Set(onDisk);
+  for (const rel of listed.keys()) {
+    if (!onDiskSet.has(rel)) fail(`${label}/manifest.txt: lists ${rel}, which is not in the tree — rebuild`);
   }
 }
 
@@ -260,4 +317,5 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`check.mjs: ok (${agentFiles.length} agents, ${readmeModels.size} README rows, manifest.txt fresh)`);
+const manifestNote = builtHarnesses ? `${builtHarnesses} built tree(s) verified` : "no build tree (skipped manifest check)";
+console.log(`check.mjs: ok (${bodyFiles.length} agents, ${readmeModels.size} README rows, ${manifestNote})`);

@@ -11,3 +11,8 @@ usage.log
 
 # Node (only relevant if the harness itself grows JS tooling)
 node_modules/
+
+# Generated per-harness install trees — built by build/*.mjs, published as
+# release artifacts, never committed to main.
+build/opencode/
+build/cursor/

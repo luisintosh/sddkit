@@ -1,33 +1,46 @@
 # Contributing
 
-## Changing an installable file
+## Source vs. generated
 
-`manifest.txt` is generated, not hand-edited. It's a `sha256  path` list of
-every file `install.sh` downloads and installs: `opencode.jsonc`,
-`package.json`, `agents/*.md`, and `plugins/*.ts` (excluding `*.test.ts`).
-
-Whenever you touch one of those files, regenerate it:
+`core/` and `adapters/` are the only hand-edited source. Each harness's
+installable tree is **generated** into `build/<harness>/` (gitignored) — the
+static files copied by `build/assemble.mjs`, the plugin + checkpoint MCP server
+bundled by `build/bundle.mjs`, and `build/<harness>/manifest.txt` regenerated
+from the tree. Build it with:
 
 ```bash
-bash scripts/gen-manifest.sh
+bun run build                # -> build/opencode/ AND build/cursor/
+bun run build:opencode       # -> build/opencode/ only
+bun run build:cursor         # -> build/cursor/ only
 ```
 
-If you forget, `node scripts/check.mjs` catches it — it recomputes every
-hash and fails with `stale hash for <path> — run scripts/gen-manifest.sh`
-(or `missing entry for <path>`, or `lists <path>, which no longer exists`).
-That check also validates:
+The manifest is a `sha256  path` list of every file in the built tree and is
+always fresh by construction (regenerated from the tree on each build), so there
+is no committed manifest to keep in sync.
 
-- `opencode.jsonc` parses and has the expected shape (`default_agent: sdd`,
-  a `permission` block, the `setup-docs` command)
-- every `agents/*.md` frontmatter matches the harness's agent schema
-  (`description`, `mode: primary|subagent`, `model` prefixed
-  `opencode-go/`, `temperature` in `[0,1]` if present, `steps` a positive
-  integer if present, `hidden: true` agents must be `mode: subagent`)
-- README's model table matches each agent's frontmatter exactly (kills doc
-  drift structurally — update both together)
+`node scripts/check.mjs` validates:
 
-It's wired into CI (`.github/workflows/ci.yml`) on every push, so a stale
-manifest or a drifted README table fails loud rather than merging silently.
+- `adapters/opencode/opencode.jsonc` parses and has the expected shape
+  (`default_agent: sdd`, a `permission` block, the `setup-docs` command, the
+  `sdd-checkpoint` MCP server)
+- `core/roles.yml` and `core/agents/*.md` are in 1:1 correspondence (every
+  role has a body, every body has a role), and each role has a valid
+  `description` (the only field roles.yml carries — see its header comment
+  for why `mode`/`hidden` aren't harness-shared)
+- every `core/roles.yml` entry has a matching `adapters/opencode/agents.yml`
+  entry with a valid `mode` (`primary`/`subagent`, `sdd` must be `primary`),
+  `model` (prefixed `opencode-go/`), `temperature` in `[0,1]` if present, and
+  `steps` a positive integer if present
+- every `core/roles.yml` entry has a matching `adapters/cursor/agents.yml`
+  entry with a non-empty `model` and a boolean `readonly` if present
+- README's OpenCode model table matches `adapters/opencode/agents.yml`
+  exactly (kills doc drift structurally — update both together)
+- when a `build/<harness>/` tree exists, its `manifest.txt` is internally
+  consistent with the files on disk
+
+It's wired into CI (`.github/workflows/ci.yml`) on every push (which builds
+first), so a drifted README table or a stale built tree fails loud rather than
+merging silently.
 
 ## Before committing
 
@@ -36,8 +49,8 @@ Run what CI runs:
 ```bash
 find . -name '*.sh' -not -path './node_modules/*' -not -path './test/fixture-repo/node_modules/*' -print0 | xargs -0 -n1 bash -n
 find . -name '*.sh' -not -path './node_modules/*' -not -path './test/fixture-repo/node_modules/*' -print0 | xargs -0 shellcheck
-bun install && node scripts/check.mjs
-bun test plugins/
+bun install && bun run build && node scripts/check.mjs
+bun test core/ adapters/ build/
 bash test/e2e-install.sh
 ```
 
@@ -45,7 +58,7 @@ bash test/e2e-install.sh
 deliberately not part of CI — run it manually when you want to exercise the
 full pipeline end to end.
 
-If you're editing `plugins/sdd-guard.ts`, verify it still loads under
+If you're editing `adapters/opencode/plugin/sdd-guard.ts`, verify it still loads under
 opencode's actual plugin loader, not just that it typechecks: opencode
 first looks for a V1-shaped default export (`{ id, server() }`) and only
 falls back to scanning every named export in the file — including things
@@ -55,10 +68,15 @@ shape intact; don't revert to a bare function default export.
 
 ## Releasing (git tags)
 
-`install.sh` resolves the **latest git tag** by default (via the GitHub
-tags API), falling back to `master` only if tag resolution fails. That
-means a commit to `master` alone does **not** reach `curl | bash` installs
-— you need to cut a tag.
+Network installs only work from a **tagged release** — `.github/workflows/build.yml` triggers on
+`v*` tag pushes, builds both harness trees, runs the full test gate, packages
+`opencode.tar.gz`/`cursor.tar.gz`, and attaches them to the GitHub Release for that tag (creating the
+release if it doesn't exist yet). `install.sh` resolves the **latest git tag** by default (via the
+GitHub tags API) and downloads that tag's `<harness>.tar.gz`. There is no branch-install network path
+— the installable tree is generated and gitignored, so there's nothing for `raw.githubusercontent.com`
+to serve for an arbitrary branch; use `LOCAL_SOURCE=build/<harness>` for branch/local testing instead.
+A commit to `master` alone does **not** reach `curl | bash` installs — you need to cut a tag (and wait
+for `build.yml` to finish publishing it).
 
 ```bash
 git tag -a vX.Y.Z -m "one-line summary of what shipped"
@@ -76,7 +94,7 @@ git push origin vX.Y.Z
   `LOCAL_SOURCE`/`VERSION` pinning means installs can target any tag
   precisely, so there's no cost to shipping small.
 
-Bugfix example: `v0.2.0` shipped with `plugins/sdd-guard.ts` failing to
+Bugfix example: `v0.2.0` shipped with the plugin failing to
 load under opencode's real plugin loader (wrong default-export shape). The
 fix landed as a normal commit to `master`, then `v0.2.1` was tagged at that
 commit — `v0.2.0` itself was left untouched and still points at the broken

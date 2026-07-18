@@ -87,12 +87,12 @@ else
 fi
 
 if [[ -f "$state_file" ]]; then
-  # Validate against the plugin's own Zod schema rather than re-implementing it.
+  # Validate against the core engine's own Zod schema rather than re-implementing it.
   set +e
   bun run -e "
     import { readFileSync } from 'node:fs';
     import { parse } from 'yaml';
-    import { validateState } from '${REPO_ROOT}/plugins/sdd-guard.ts';
+    import { validateState } from '${REPO_ROOT}/core/state-engine/index.ts';
     const doc = parse(readFileSync('${state_file}', 'utf8'));
     const result = validateState(doc);
     if (!result.success) { console.error(result.error); process.exit(1); }

@@ -1,0 +1,121 @@
+# Per-agent OpenCode frontmatter fields not covered by core/roles.yml — mode,
+# hidden, model, temperature, steps, permission. (mode/hidden are OpenCode-only
+# concepts: Cursor's .cursor/agents/*.md are all implicitly subagents.)
+architect:
+  mode: subagent
+  model: opencode-go/glm-5.2
+  temperature: 0.3
+  steps: 30
+  permission:
+    edit:
+      "*": deny
+      docs/feats/**: allow
+      docs/feats/**/state.yaml: deny
+    bash: allow
+implementer-pro:
+  mode: subagent
+  hidden: true
+  model: opencode-go/deepseek-v4-pro
+  temperature: 0.2
+  steps: 40
+  permission:
+    edit:
+      "*": allow
+      "**/*.test.*": deny
+      "**/*.spec.*": deny
+      "**/*_test.*": deny
+      "**/test_*.*": deny
+      "**/__tests__/**": deny
+      "**/tests/**": deny
+      "**/test/**": deny
+      "**/spec/**": deny
+      e2e/**: deny
+      docs/feats/**/state.yaml: deny
+      "**/journal.ndjson": deny
+      .opencode/**: deny
+implementer:
+  mode: subagent
+  model: opencode-go/deepseek-v4-flash
+  temperature: 0.2
+  steps: 40
+  permission:
+    edit:
+      "*": allow
+      "**/*.test.*": deny
+      "**/*.spec.*": deny
+      "**/*_test.*": deny
+      "**/test_*.*": deny
+      "**/__tests__/**": deny
+      "**/tests/**": deny
+      "**/test/**": deny
+      "**/spec/**": deny
+      e2e/**: deny
+      docs/feats/**/state.yaml: deny
+      "**/journal.ndjson": deny
+      .opencode/**: deny
+qa:
+  mode: subagent
+  model: opencode-go/glm-5.2
+  temperature: 0.1
+  steps: 60
+  permission:
+    edit:
+      "*": deny
+      /tmp/**: allow
+    bash: allow
+reviewer:
+  mode: subagent
+  model: opencode-go/kimi-k2.7-code
+  temperature: 0.1
+  steps: 15
+  permission:
+    edit: deny
+    write: deny
+    bash:
+      "*": deny
+      git diff*: allow
+      git show*: allow
+      git log*: allow
+      git status*: allow
+sdd:
+  mode: primary
+  model: opencode-go/kimi-k2.7-code
+  temperature: 0.2
+  steps: 100
+  permission:
+    edit:
+      docs/feats/**/state.yaml: deny
+      "**/journal.ndjson": deny
+      .opencode/**: deny
+    bash:
+      git merge*: allow
+spec:
+  mode: subagent
+  model: opencode-go/glm-5.2
+  temperature: 0.3
+  steps: 20
+  permission:
+    edit:
+      "*": deny
+      docs/feats/**: allow
+      docs/feats/**/state.yaml: deny
+    bash: deny
+tester:
+  mode: subagent
+  model: opencode-go/kimi-k2.7-code
+  temperature: 0.2
+  steps: 40
+  permission:
+    edit:
+      "*": deny
+      "**/*.test.*": allow
+      "**/*.spec.*": allow
+      "**/*_test.*": allow
+      "**/test_*.*": allow
+      "**/__tests__/**": allow
+      "**/tests/**": allow
+      "**/test/**": allow
+      "**/spec/**": allow
+      e2e/**: allow
+      "**/*.feature": allow
+      docs/feats/**: deny
