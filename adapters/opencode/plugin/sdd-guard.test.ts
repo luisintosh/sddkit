@@ -58,11 +58,6 @@ describe("tool.execute.before guardrails", () => {
     await expect(runEdit(hooks, path.join(root, "docs/feats/other/plan.md"))).rejects.toThrow(/different feature/)
   })
 
-  test("blocks pushing directly to main", async () => {
-    const hooks = await makeHooks(root)
-    await expect(runBash(hooks, "git push origin HEAD:main")).rejects.toThrow(/pushing directly to main/)
-  })
-
   test("allows an ordinary source edit", async () => {
     const hooks = await makeHooks(root)
     await expect(runEdit(hooks, path.join(root, "src/index.ts"))).resolves.toBeUndefined()

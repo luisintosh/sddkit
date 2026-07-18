@@ -58,17 +58,20 @@ export async function assembleAgents(repoRoot, harness, outDir, { supportsCompac
   const bodiesDir = path.join(repoRoot, "core", "agents");
   const bodyFiles = (await readdir(bodiesDir)).filter((f) => f.endsWith(".md")).sort();
 
-  for (const file of bodyFiles) {
-    const id = file.replace(/\.md$/, "");
-    if (!(id in roles)) throw new Error(`core/agents/${file} has no matching entry in core/roles.yml`);
+  // Each agent's read+assemble+write is independent — run them concurrently.
+  await Promise.all(
+    bodyFiles.map(async (file) => {
+      const id = file.replace(/\.md$/, "");
+      if (!(id in roles)) throw new Error(`core/agents/${file} has no matching entry in core/roles.yml`);
 
-    const rawBody = await readFile(path.join(bodiesDir, file), "utf8");
-    const body = applyCompactGuard(rawBody, supportsCompact);
-    const frontmatter = buildFrontmatter(roles[id], adapterAgents[id]);
-    const assembled = `---\n${stringifyYaml(frontmatter).trimEnd()}\n---\n\n${body}`;
+      const rawBody = await readFile(path.join(bodiesDir, file), "utf8");
+      const body = applyCompactGuard(rawBody, supportsCompact);
+      const frontmatter = buildFrontmatter(roles[id], adapterAgents[id]);
+      const assembled = `---\n${stringifyYaml(frontmatter).trimEnd()}\n---\n\n${body}`;
 
-    await writeFile(path.join(agentsOutDir, file), assembled, "utf8");
-  }
+      await writeFile(path.join(agentsOutDir, file), assembled, "utf8");
+    }),
+  );
 
   return bodyFiles.length;
 }

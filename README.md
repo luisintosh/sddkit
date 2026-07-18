@@ -246,9 +246,9 @@ block that `@sdd` applies. `checkpoint` is served by the shared **core MCP serve
 - **journals** every checkpoint to `docs/feats/<feature>/journal.ndjson` — a full audit trail
 
 Both adapters enforce the same hard, path/command-based guardrails — direct edits to
-`state.yaml`/`journal.ndjson`, self-modification of the harness's own install dir, cross-feature
-writes, and pushing straight to `main`/`master` — via each harness's own hook mechanism, both calling
-the identical predicates from `core/state-engine/guards.ts`:
+`state.yaml`/`journal.ndjson`, self-modification of the harness's own install dir, and cross-feature
+writes — via each harness's own hook mechanism, both calling the identical predicates from
+`core/state-engine/guards.ts`:
 
 - **OpenCode**: the thin guard plugin (`adapters/opencode/plugin/sdd-guard.ts`, bundled to
   `.opencode/plugins/sdd-guard.js`) hooks `tool.execute.before` and throws to stop the write. It also
@@ -256,16 +256,16 @@ the identical predicates from `core/state-engine/guards.ts`:
   points in the pipeline (after the plan gate, after every slice commit, after `verify` goes green) to
   summarize its own session context; failures/timeouts are journaled and swallowed, never block the
   workflow. Agent frontmatter (`permission.edit`) denies the same paths declaratively as a second
-  layer, and `opencode.jsonc` denies `git push* main*`/`git push* master*` outright while keeping
+  layer, and `opencode.jsonc` denies force-pushes (`git push --force*`/`-f *`) while keeping
   `gh pr merge *` on `ask`.
 - **Cursor**: `.cursor/hooks.json` registers two bundled command-hooks
   (`adapters/cursor/hooks/*.ts`) — `preToolUse` (matcher: `Write`) for the file-path guards, and
-  `beforeShellExecution` for push-to-main plus the broader dangerous-command deny list
-  (`rm -rf`, `git reset --hard`, force-push, pipe-to-shell, ...) that OpenCode gets for free from its
-  declarative `permission.bash` config but Cursor has no equivalent for, so the hook is the sole
-  enforcer there. Deny responses are both a JSON body (`{"permission":"deny",...}`) and exit code `2`.
-  Cursor has no `compact`-equivalent tool (no programmatic session summarization) — the `{{#compact}}`
-  guard strips those `sdd.md` sentences from the assembled Cursor agent files entirely.
+  `beforeShellExecution` for the dangerous-command deny list (`rm -rf`, `git reset --hard`,
+  force-push, pipe-to-shell, ...) that OpenCode gets for free from its declarative `permission.bash`
+  config but Cursor has no equivalent for, so the hook is the sole enforcer there. Deny responses are
+  both a JSON body (`{"permission":"deny",...}`) and exit code `2`. Cursor has no `compact`-equivalent
+  tool (no programmatic session summarization) — the `{{#compact}}` guard strips those `sdd.md`
+  sentences from the assembled Cursor agent files entirely.
 
 The `checkpoint` MCP tool can't see which agent calls it (MCP has no caller identity on either
 harness), so the single-writer rule is prompt discipline — `@sdd` is the only agent told to call it,

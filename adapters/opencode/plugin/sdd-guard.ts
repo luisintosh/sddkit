@@ -5,7 +5,6 @@ import {
   isProtectedStateFile,
   isSelfWrite,
   isCrossFeatureWrite,
-  isPushToMainCommand,
   extractFilePath,
 } from "../../../core/state-engine"
 
@@ -59,13 +58,6 @@ export const SddGuardPlugin: Plugin = async ({ directory, worktree, client }) =>
           throw new Error(
             `sdd-guard: ${filePath} belongs to a different feature than the active one (${active}) — never touch another feature's docs/feats/<other>/.`,
           )
-        }
-      }
-
-      if (input.tool === "bash") {
-        const command = (output.args as { command?: unknown } | undefined)?.command
-        if (typeof command === "string" && isPushToMainCommand(command)) {
-          throw new Error("sdd-guard: pushing directly to main/master is blocked — open a pull request instead.")
         }
       }
     },

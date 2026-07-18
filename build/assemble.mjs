@@ -13,12 +13,15 @@ async function assemble(harness) {
   await rm(out, { recursive: true, force: true })
   await mkdir(out, { recursive: true })
 
-  for (const { from, to } of spec.copy) {
-    const src = path.join(repoRoot, from)
-    const dest = path.join(out, to)
-    await mkdir(path.dirname(dest), { recursive: true })
-    await cp(src, dest, { recursive: true })
-  }
+  // Each copy is an independent file/dir — run them concurrently.
+  await Promise.all(
+    spec.copy.map(async ({ from, to }) => {
+      const src = path.join(repoRoot, from)
+      const dest = path.join(out, to)
+      await mkdir(path.dirname(dest), { recursive: true })
+      await cp(src, dest, { recursive: true })
+    }),
+  )
 
   let agentCount = 0
   if (spec.agents) {

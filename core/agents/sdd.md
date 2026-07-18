@@ -60,7 +60,7 @@ Findings arrive as structured records `{id, file, line, severity, category, summ
 - Done signal: all slices committed, verify green, docs synced, qa clean — plus draft PR opened when `github: true`. Don't declare success otherwise.
 - Honor bounded loops (review 2, qa 2, escalation 1 rung). On exhaustion, checkpoint and pause for the human rather than thrashing.
 - Model/provider error → retry that delegation once, then pause with a blocker.
-- Never push into or merge `main`/`master`, except the explicit, human-approved local merge in step 13. Never touch another feature's `docs/feats/<other>/`.
+- Never merge into `main`/`master` except the explicit, human-approved local merge in step 13. Never touch another feature's `docs/feats/<other>/`.
 - Cite `file:line`; never paste >20 lines; summaries, not contents.
 
 ## Subagent contract (reply-block keys you apply via checkpoint)

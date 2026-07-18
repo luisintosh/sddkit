@@ -35,12 +35,10 @@ assert_eq() {
 }
 
 # Regenerate manifest.txt for an arbitrary install tree (used after mutating the
-# fixture). Mirrors scripts/gen-manifest.sh's format without its harness layout.
+# fixture), via gen-manifest.sh's own --dir= mode rather than reimplementing it.
 regen_manifest() {
   local tree="$1"
-  ( cd "$tree" && find . -type f ! -name manifest.txt ! -name .harness-manifest \
-      | sed 's|^\./||' | sort \
-      | while IFS= read -r f; do shasum -a 256 "$f"; done ) > "${tree}/manifest.txt"
+  bash "${REPO_ROOT}/scripts/gen-manifest.sh" "--dir=${tree}" >/dev/null
 }
 
 # Harness-specific "ships the bundled runtime, not raw TS sources, and

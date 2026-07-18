@@ -1,13 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Regenerate build/<harness>/manifest.txt: `sha256  path` for every file in the
+# Regenerate <tree>/manifest.txt: `sha256  path` for every file in an
 # assembled+bundled install tree. Run after build/assemble.mjs + build/bundle.mjs.
-# Usage: scripts/gen-manifest.sh <harness>   (default: opencode)
+# Usage:
+#   scripts/gen-manifest.sh <harness>    hashes build/<harness>/ (default: opencode)
+#   scripts/gen-manifest.sh --dir=<path> hashes an arbitrary tree (e.g. a test fixture)
 
-harness="${1:-opencode}"
-cd "$(dirname "$0")/.."
-tree="build/${harness}"
+repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+
+if [[ "${1:-}" == --dir=* ]]; then
+  tree="${1#--dir=}"
+else
+  tree="${repo_root}/build/${1:-opencode}"
+fi
 
 [[ -d "$tree" ]] || { echo "gen-manifest: $tree does not exist — run the assemble+bundle steps first" >&2; exit 1; }
 

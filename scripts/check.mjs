@@ -9,12 +9,26 @@ import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
+import { harnessNames } from "../build/harnesses.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const errors = [];
 
 function fail(msg) {
   errors.push(msg);
+}
+
+// Bidirectional existence check shared by every adapter's agents.yml: every
+// role must have an adapter entry, and every adapter entry must map to a
+// real role. Per-field schema validation (model format, mode, etc.) differs
+// per harness and stays in each caller's own loop.
+function checkRosterCorrespondence(agentsMap, label, roles) {
+  for (const id of Object.keys(roles)) {
+    if (!(id in agentsMap)) fail(`${label}: missing entry for "${id}"`);
+  }
+  for (const id of Object.keys(agentsMap)) {
+    if (!(id in roles)) fail(`${label}: lists "${id}", which has no core/roles.yml entry`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -140,12 +154,9 @@ try {
   fail(`adapters/opencode/agents.yml: failed to parse — ${err.message}`);
 }
 
-for (const id of Object.keys(roles)) {
-  const oc = opencodeAgents[id];
-  if (!oc) {
-    fail(`adapters/opencode/agents.yml: missing entry for "${id}"`);
-    continue;
-  }
+checkRosterCorrespondence(opencodeAgents, "adapters/opencode/agents.yml", roles);
+
+for (const [id, oc] of Object.entries(opencodeAgents)) {
   if (!MODE_VALUES.has(oc.mode)) {
     fail(`adapters/opencode/agents.yml: "${id}".mode must be "primary" or "subagent", got ${JSON.stringify(oc.mode)}`);
   }
@@ -169,9 +180,6 @@ for (const id of Object.keys(roles)) {
 if (opencodeAgents.sdd?.mode !== "primary") {
   fail('adapters/opencode/agents.yml: "sdd" (the conductor) must be mode: primary');
 }
-for (const id of Object.keys(opencodeAgents)) {
-  if (!(id in roles)) fail(`adapters/opencode/agents.yml: lists "${id}", which has no core/roles.yml entry`);
-}
 
 const cursorAgentsPath = path.join(root, "adapters", "cursor", "agents.yml");
 let cursorAgents = {};
@@ -181,12 +189,9 @@ try {
   fail(`adapters/cursor/agents.yml: failed to parse — ${err.message}`);
 }
 
-for (const id of Object.keys(roles)) {
-  const cu = cursorAgents[id];
-  if (!cu) {
-    fail(`adapters/cursor/agents.yml: missing entry for "${id}"`);
-    continue;
-  }
+checkRosterCorrespondence(cursorAgents, "adapters/cursor/agents.yml", roles);
+
+for (const [id, cu] of Object.entries(cursorAgents)) {
   if (typeof cu.model !== "string" || cu.model.trim() === "") {
     fail(`adapters/cursor/agents.yml: "${id}".model must be a non-empty string, got ${JSON.stringify(cu.model)}`);
   }
@@ -196,9 +201,6 @@ for (const id of Object.keys(roles)) {
   // No mode/hidden checks here: Cursor has no confirmed equivalent (see
   // core/roles.yml's header comment) — every .cursor/agents/*.md file is
   // implicitly a subagent.
-}
-for (const id of Object.keys(cursorAgents)) {
-  if (!(id in roles)) fail(`adapters/cursor/agents.yml: lists "${id}", which has no core/roles.yml entry`);
 }
 
 // ---------------------------------------------------------------------------
@@ -261,7 +263,7 @@ async function walkFiles(dir, base = dir) {
 }
 
 let builtHarnesses = 0;
-for (const harness of ["opencode", "cursor"]) {
+for (const harness of harnessNames()) {
   const treeDir = path.join(root, "build", harness);
   let exists = false;
   try {

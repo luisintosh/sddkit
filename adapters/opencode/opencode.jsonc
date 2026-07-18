@@ -45,8 +45,6 @@
       "git restore *": "ask",
       "git push --force*": "deny",
       "git push -f *": "deny",
-      "git push* main*": "deny",
-      "git push* master*": "deny",
       "gh pr merge *": "ask",
       "sudo *": "ask",
       "chmod -R *": "ask",

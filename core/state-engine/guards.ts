@@ -11,7 +11,6 @@ import * as path from "node:path"
 const STATE_YAML_RE = /^docs\/feats\/[^/]+\/state\.yaml$/
 const JOURNAL_RE = /^docs\/feats\/[^/]+\/journal\.ndjson$/
 const FEATURE_SCOPE_RE = /^docs\/feats\/([^/]+)\//
-const GIT_PUSH_RE = /\bgit\s+push\b/
 
 function normalizeRel(filePath: string, root: string): string {
   const abs = path.isAbsolute(filePath) ? filePath : path.join(root, filePath)
@@ -40,23 +39,6 @@ export function isCrossFeatureWrite(filePath: string, root: string, activeFeatur
   return match[1] !== activeFeature
 }
 
-// A ref token like "main", "HEAD:main", "refs/heads/main", or ":main" (branch
-// delete) all resolve to "main" as the candidate branch name.
-function refCandidates(token: string): string[] {
-  const afterColon = token.includes(":") ? token.split(":").pop()! : token
-  const segments = afterColon.split("/")
-  return [afterColon, segments[segments.length - 1]]
-}
-
-// Catches remotes/refspecs that a simple "git push* main*" glob might miss
-// (e.g. `git push origin HEAD:main`) while not flagging unrelated branches
-// like "main-backup".
-export function isPushToMainCommand(command: string): boolean {
-  if (!GIT_PUSH_RE.test(command)) return false
-  const tokens = command.split(/\s+/)
-  return tokens.some((tok) => refCandidates(tok).some((ref) => ref === "main" || ref === "master"))
-}
-
 export function extractFilePath(args: unknown): string | undefined {
   if (!args || typeof args !== "object") return undefined
   const a = args as Record<string, unknown>
@@ -68,8 +50,7 @@ export function extractFilePath(args: unknown): string | undefined {
 // patterns (`*` = any characters), matched against the full command string.
 // OpenCode enforces these declaratively via that config; Cursor has no
 // declarative bash-permission mechanism, so its hook calls this directly as
-// the sole enforcer. git push-to-main is deliberately excluded — that's
-// isPushToMainCommand's job, which parses ref tokens instead of glob-matching.
+// the sole enforcer.
 const DANGEROUS_BASH_GLOBS = [
   "rm -rf *",
   "rm -fr *",

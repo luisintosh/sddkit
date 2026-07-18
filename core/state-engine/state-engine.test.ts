@@ -15,7 +15,6 @@ import {
   isProtectedStateFile,
   isSelfWrite,
   isCrossFeatureWrite,
-  isPushToMainCommand,
   isDangerousBashCommand,
   statePath,
   journalPath,
@@ -372,14 +371,6 @@ describe("guard predicates", () => {
 
   test("isCrossFeatureWrite is inert when there is no active feature", () => {
     expect(isCrossFeatureWrite(path.join(root, "docs/feats/other-feature/plan.md"), root, null)).toBe(false)
-  })
-
-  test("isPushToMainCommand catches direct pushes to main/master", () => {
-    expect(isPushToMainCommand("git push origin main")).toBe(true)
-    expect(isPushToMainCommand("git push origin master")).toBe(true)
-    expect(isPushToMainCommand("git push origin HEAD:main")).toBe(true)
-    expect(isPushToMainCommand("git push -u origin feature/foo")).toBe(false)
-    expect(isPushToMainCommand("git push origin main-backup")).toBe(false)
   })
 
   test("isDangerousBashCommand catches OpenCode's declarative deny-tier patterns", () => {
