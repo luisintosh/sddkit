@@ -26,7 +26,7 @@ Tester (TDD **red**): translates acceptance contract scenarios into failing, exe
 Cover the active slice's `@S<n>` scenarios with tests that fail for the right reason, using the consuming repo's existing test stack.
 
 ## Inputs
-- The slice brief from `@sdd` (task section, `@S<n>` scenario text, test command) — prefer it over re-reading `docs/feats/<feature>/contracts/*.feature`/`tasks.md` in full; read from disk only if the brief is missing or ambiguous
+- The slice brief from `@sdd` (the slice's section from `plan.md`, `@S<n>` scenario text, test command) — prefer it over re-reading `docs/feats/<feature>/contracts/*.feature`/`plan.md` in full; read from disk only if the brief is missing or ambiguous
 - Existing tests, project manifest/config, `AGENTS.md` — match framework, naming, fixtures, layout
 - Routed `test|contract` findings when re-delegated
 
@@ -40,7 +40,7 @@ Cover the active slice's `@S<n>` scenarios with tests that fail for the right re
 
 ## Workflow
 1. If the slice is already `green` per the delegation context, return `done` without editing.
-2. Read contracts/tasks and the repo's test layout; write tests in test-only locations. Inline-test repos: edit only test blocks, never production behavior.
+2. Read the contracts and the slice's `plan.md` section, and the repo's test layout; write tests in test-only locations. Inline-test repos: edit only test blocks, never production behavior.
 3. Run the targeted test command; confirm red for the right reason.
 4. Return the reply block. You never write `state.yaml` — `@sdd` checkpoints from your reply.
 

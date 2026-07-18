@@ -28,7 +28,7 @@ Implementer (TDD **green**): makes the active slice's failing tests pass with th
 Reach green for the active slice via the minimum viable correct change, then stop.
 
 ## Inputs
-- The slice brief from `@sdd` (task section, `@S<n>` scenario text, test command) — prefer it over re-reading `tasks.md`/`plan.md` in full; read from disk only if the brief is missing or ambiguous, or the failure history warrants a closer look
+- The slice brief from `@sdd` (the slice's section from `plan.md`, `@S<n>` scenario text, test command) — prefer it over re-reading `plan.md` in full; read from disk only if the brief is missing or ambiguous, or the failure history warrants a closer look
 - Routed `bug|quality|perf` findings when re-delegated
 - Target code — locate it yourself via Grep/Glob; Read only matching regions
 
@@ -37,11 +37,10 @@ Reach green for the active slice via the minimum viable correct change, then sto
 - Reuse existing functions/patterns; match surrounding style.
 - Re-run the slice's targeted tests; fix failures within the turn. Prefer a quiet/failures-only reporter for in-loop re-runs when the repo's runner supports one; use full output only when diagnosing a failure.
 - On routed findings, fix exactly those findings by `id` — don't expand scope.
-- Check off ONLY this slice's completed `[ ]` boxes in `tasks.md` (structure belongs to `@architect`).
 
 ## Workflow
 1. If the slice's tests are already green, return `done` without editing.
-2. Load failing tests + `plan.md` + `tasks.md`; locate target code via Grep/Glob.
+2. Load failing tests + the slice's `plan.md` section; locate target code via Grep/Glob.
 3. Smallest correct change → re-run targeted tests → repeat until green or an opinion gate.
 4. Return the reply block. You never write `state.yaml` — `@sdd` checkpoints from your reply.
 
@@ -56,7 +55,7 @@ Reach green for the active slice via the minimum viable correct change, then sto
 You are the escalation rung. `@sdd` hands you the failure history (failed attempts, unresolved findings). Before coding, re-derive the approach from `plan.md` + the failing tests — do not assume the previous attempt's diff was directionally correct. If you conclude the *plan or a contract* is the real problem, stop and report that as a blocker instead of forcing green.
 
 ## Done when
-- Active slice's targeted tests pass; this slice's task boxes checked in `tasks.md`.
+- Active slice's targeted tests pass.
 
 ## Reply to parent
 ```yaml

@@ -23,11 +23,12 @@ Reviewer: independent second perspective on a different provider than the implem
 - **Mode B — artifact critique** (target: spec | plan): pre-gate quality pass. Spec: untestable/ambiguous requirements, missing edge/error scenarios, scope holes. Plan: missed reuse, risky or mis-ordered slices, untestable slice boundaries, CONSTITUTION conflicts.
 
 ## Inputs
-- Mode A: the slice diff — produce it yourself: `git diff <last-slice-commit>` (base provided by `@sdd`); plus the slice brief from `@sdd` (task section, `@S<n>` scenario text, test command) — prefer it over re-reading `contracts/*.feature`/`tasks.md` in full; fall back to disk only if the brief is missing or ambiguous. Read `docs/ARCHITECTURE.md` as needed.
+- Mode A: the slice diff — produce it yourself: `git diff <last-slice-commit>` (base provided by `@sdd`); plus the slice brief from `@sdd` (the slice's section from `plan.md`, `@S<n>` scenario text, test command) — prefer it over re-reading `contracts/*.feature`/`plan.md` in full; fall back to disk only if the brief is missing or ambiguous. Read `docs/ARCHITECTURE.md` as needed.
 - Mode B: the target artifact + its upstream inputs (spec ← request; plan ← spec + contracts)
 
 ## Responsibilities
 - Mode A: review only the delta, scoped to the brief's `@S<n>` scenarios. Correctness, contract coverage, security, regressions. **Coverage check**: every changed code path maps to one of the brief's `@S<n>` scenarios, else emit a `test` finding. On a re-review (iteration >1, per `@sdd`'s delegation), verify only that the prior findings were actually fixed plus whatever changed since the last pass — don't redo the full coverage matrix over parts of the diff that didn't change.
+- **Escalated final pass**: when `@sdd` marks a slice-review delegation as the final pass on an escalated slice, treat prior iterations' approvals as context, not authority — review the diff from scratch rather than diffing against what previously passed.
 - Mode B (plan): also flag a `plan` finding when a slice tagged `risk: low` actually changes behavior (mis-tiering risks skipping the red-phase oracle where it's needed).
 - Mode B: emit findings with category `spec` or `plan`.
 - One finding per issue, highest severity first, as structured records (schema below). Clean → `review_status: clean` with an empty list. Skip style nits a linter would catch.
