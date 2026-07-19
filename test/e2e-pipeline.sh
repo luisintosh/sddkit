@@ -51,7 +51,8 @@ cp -R "$FIXTURE" "$TARGET"
 (cd "$TARGET" && git init -q && git config user.email test@example.com && git config user.name test \
   && git add -A && git commit -q -m "fixture: initial state")
 
-LOCAL_SOURCE="$REPO_ROOT" TARGET_DIR="$TARGET" bash "${REPO_ROOT}/install.sh" >&2
+LOCAL_SOURCE="$REPO_ROOT" TARGET_DIR="$TARGET" INSTALL_TARGET=opencode \
+  bash "${REPO_ROOT}/install.sh" >&2
 
 # Pin every agent to the cheapest routed model so this costs pennies.
 for f in "${TARGET}"/.opencode/agents/*.md; do
@@ -87,12 +88,12 @@ else
 fi
 
 if [[ -f "$state_file" ]]; then
-  # Validate against the plugin's own Zod schema rather than re-implementing it.
+  # Validate against the shared Zod schema.
   set +e
   bun run -e "
     import { readFileSync } from 'node:fs';
     import { parse } from 'yaml';
-    import { validateState } from '${REPO_ROOT}/plugins/sdd-guard.ts';
+    import { validateState } from '${REPO_ROOT}/src/state/schema.ts';
     const doc = parse(readFileSync('${state_file}', 'utf8'));
     const result = validateState(doc);
     if (!result.success) { console.error(result.error); process.exit(1); }
@@ -102,7 +103,7 @@ if [[ -f "$state_file" ]]; then
   set -e
 
   if [[ $validate_rc -eq 0 ]]; then
-    ok "state.yaml validates against the plugin's Zod schema"
+    ok "state.yaml validates against the sdd-state Zod schema"
   else
     bad "state.yaml failed schema validation: $(cat "${WORK}/state-check.err")"
   fi
@@ -127,18 +128,16 @@ else
   bad "journal.ndjson missing or empty at ${journal_file}"
 fi
 
-# The plugin's tool.execute.before guard should have refused any direct edit
-# of state.yaml/journal.ndjson — best-effort signal from the run log.
-if grep -qi "sdd-guard:.*checkpoint tool" "${WORK}/run.log"; then
-  ok "at least one direct state.yaml/journal.ndjson write attempt was blocked and routed through checkpoint"
-else
-  echo "note - no blocked direct-write message found in run.log (fine if the agent never attempted one)" >&2
-fi
-
 if grep -qE '\bgh\b|git push' "${WORK}/run.log"; then
   bad "run.log mentions gh/git push — should not happen before the spec gate, let alone in github:false mode"
 else
   ok "no gh/push command was attempted"
+fi
+
+if grep -q 'sdd-state' "${WORK}/run.log" || [[ -f "$journal_file" ]]; then
+  ok "conductor used sdd-state / journal path (or journal exists)"
+else
+  echo "note - no sdd-state mention in run.log (check journal / state manually)" >&2
 fi
 
 echo ""
@@ -146,6 +145,5 @@ echo "${pass} passed, ${fail} failed"
 echo ""
 echo "Note: this run used deepseek-v4-flash for every agent to keep cost minimal."
 echo "Occasionally re-run with the override loop above removed to exercise real"
-echo "production routing (glm-5.2/kimi-k2.7-code/deepseek-v4-flash/-pro/minimax-m3)"
-echo "sized to fit comfortably inside one \$12/5h opencode-go window."
+echo "production routing from src/catalog.yaml."
 [[ $fail -eq 0 ]]

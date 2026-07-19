@@ -4,6 +4,8 @@ on:
   push:
     branches: [master]
   pull_request:
+  release:
+    types: [published]
 
 jobs:
   shell-lint:
@@ -31,10 +33,12 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
-      - name: Hygiene checks (frontmatter, opencode.jsonc, README drift, manifest freshness)
-        run: node scripts/check.mjs
+      - name: Build (transpile + CLI + manifest)
+        run: bun run build
+      - name: Hygiene checks
+        run: bun run check
 
-  plugin-tests:
+  state-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -42,10 +46,41 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
-      - run: bun test plugins/
+      - run: bun test src/state/
 
   e2e-install:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
       - run: bash test/e2e-install.sh
+
+  release-assets:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install
+      - name: Build payload + mac binaries
+        run: |
+          bun run build
+          bun tools/build-cli.ts --compile
+          tar -czf harness-dist.tar.gz dist manifest.txt
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh release upload "$TAG" \
+            harness-dist.tar.gz \
+            dist/bin/sdd-state-darwin-arm64 \
+            dist/bin/sdd-state-darwin-x64 \
+            --clobber

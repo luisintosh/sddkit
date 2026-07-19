@@ -1,83 +1,62 @@
 # Contributing
 
-## Changing an installable file
+## Source of truth
 
-`manifest.txt` is generated, not hand-edited. It's a `sha256  path` list of
-every file `install.sh` downloads and installs: `opencode.jsonc`,
-`package.json`, `agents/*.md`, and `plugins/*.ts` (excluding `*.test.ts`).
+| Edit | Then run |
+|------|----------|
+| `src/prompts/**`, `src/catalog.yaml` | `bun run build` |
+| `src/state/**` | `bun run build` + `bun test` |
 
-Whenever you touch one of those files, regenerate it:
+`dist/` and `manifest.txt` are **generated and gitignored**. CI builds them; releases attach
+`harness-dist.tar.gz`. Do not commit them.
 
-```bash
-bash scripts/gen-manifest.sh
-```
+## Hygiene (`bun run check`)
 
-If you forget, `node scripts/check.mjs` catches it — it recomputes every
-hash and fails with `stale hash for <path> — run scripts/gen-manifest.sh`
-(or `missing entry for <path>`, or `lists <path>, which no longer exists`).
-That check also validates:
+Requires a prior `bun run build`. Validates:
 
-- `opencode.jsonc` parses and has the expected shape (`default_agent: sdd`,
-  a `permission` block, the `setup-docs` command)
-- every `agents/*.md` frontmatter matches the harness's agent schema
-  (`description`, `mode: primary|subagent`, `model` prefixed
-  `opencode-go/`, `temperature` in `[0,1]` if present, `steps` a positive
-  integer if present, `hidden: true` agents must be `mode: subagent`)
-- README's model table matches each agent's frontmatter exactly (kills doc
-  drift structurally — update both together)
-
-It's wired into CI (`.github/workflows/ci.yml`) on every push, so a stale
-manifest or a drifted README table fails loud rather than merging silently.
+- `src/catalog.yaml` shape (no `implementer-pro`, OpenCode models prefixed `opencode-go/`)
+- Emitted dist frontmatter matches catalog models
+- README dual-model table matches catalog
+- `manifest.txt` hashes match `dist/`
 
 ## Before committing
 
-Run what CI runs:
-
 ```bash
+bun run build
+bun run check
 find . -name '*.sh' -not -path './node_modules/*' -not -path './test/fixture-repo/node_modules/*' -print0 | xargs -0 -n1 bash -n
 find . -name '*.sh' -not -path './node_modules/*' -not -path './test/fixture-repo/node_modules/*' -print0 | xargs -0 shellcheck
-bun install && node scripts/check.mjs
-bun test plugins/
+bun test
 bash test/e2e-install.sh
 ```
 
-`test/e2e-pipeline.sh` (Tier 2) needs a real, billed `opencode run` and is
-deliberately not part of CI — run it manually when you want to exercise the
-full pipeline end to end.
+`test/e2e-pipeline.sh` (Tier 2) needs a billed `opencode run` and is not in CI.
 
-If you're editing `plugins/sdd-guard.ts`, verify it still loads under
-opencode's actual plugin loader, not just that it typechecks: opencode
-first looks for a V1-shaped default export (`{ id, server() }`) and only
-falls back to scanning every named export in the file — including things
-like `StateSchema` that aren't plugin functions — if that's absent, which
-throws. Keep the file's `export default { id: "sdd-guard", server: ... }`
-shape intact; don't revert to a bare function default export.
+## Tooling (Bun TypeScript)
 
-## Releasing (git tags)
+| Script | Purpose |
+|--------|---------|
+| `bun tools/transpile.ts` | `src/` → `dist/opencode` + `dist/cursor` |
+| `bun tools/build-cli.ts` | portable `dist/bin/sdd-state` (+ `--compile` for mac binaries) |
+| `bun tools/gen-manifest.ts` | `manifest.txt` from `dist/` |
+| `bun tools/check.ts` | hygiene |
 
-`install.sh` resolves the **latest git tag** by default (via the GitHub
-tags API), falling back to `master` only if tag resolution fails. That
-means a commit to `master` alone does **not** reach `curl | bash` installs
-— you need to cut a tag.
+`bun run build` runs transpile + build-cli + gen-manifest.
+
+## Releasing
 
 ```bash
-git tag -a vX.Y.Z -m "one-line summary of what shipped"
+git tag -a vX.Y.Z -m "one-line summary"
 git push origin vX.Y.Z
 ```
 
-- Annotated tags (`-a`), not lightweight — the message shows up in `git tag
-  -l -n1`.
-- Tag after the commit(s) are pushed to `master`, not before.
-- Once a tag is pushed, don't move it. If a fix lands after `vX.Y.0`
-  shipped with a bug, cut `vX.Y.1` at the fix commit instead of
-  re-tagging — moving a published tag silently changes what earlier
-  `curl | bash` runs would have installed.
-- Prefer a patch bump per fix over batching unrelated fixes into one tag;
-  `LOCAL_SOURCE`/`VERSION` pinning means installs can target any tag
-  precisely, so there's no cost to shipping small.
+Publishing a GitHub Release runs CI’s `release-assets` job, which uploads:
 
-Bugfix example: `v0.2.0` shipped with `plugins/sdd-guard.ts` failing to
-load under opencode's real plugin loader (wrong default-export shape). The
-fix landed as a normal commit to `master`, then `v0.2.1` was tagged at that
-commit — `v0.2.0` itself was left untouched and still points at the broken
-commit, which is why a fresh default install now needs to resolve `v0.2.1`.
+- `harness-dist.tar.gz` (`dist/` + `manifest.txt`) — preferred by `install.sh` for tags
+- `sdd-state-darwin-arm64` / `sdd-state-darwin-x64`
+
+If the release asset is missing, the installer falls back to downloading the source tarball and
+running `bun run build` (requires bun).
+
+- Annotated tags; don’t move published tags — cut a new patch instead.
+- Default interactive install resolves the latest tag, then falls back to `master`.

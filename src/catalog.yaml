@@ -1,0 +1,165 @@
+# Per-agent metadata for OpenCode and Cursor emitters. Bodies live in prompts/agents/.
+
+agents:
+  sdd:
+    description: >-
+      Drives the end-to-end spec-driven development (SDD) feature pipeline —
+      sequences stages, manages human-in-the-loop gates, routes review findings,
+      keeps docs in sync. Treats a normal feature request as a request to run the full workflow.
+    opencode:
+      mode: primary
+      model: opencode-go/kimi-k2.7-code
+      temperature: 0.2
+      steps: 100
+      permission:
+        edit:
+          "docs/feats/**/state.yaml": deny
+          "**/journal.ndjson": deny
+          ".opencode/**": deny
+        bash:
+          "git merge*": allow
+    cursor:
+      model: inherit
+      skill: true
+
+  spec:
+    description: >-
+      Writes feature specifications (the what & why) and spec-derived acceptance
+      contracts. SDD specify/contracts stages.
+    opencode:
+      mode: subagent
+      model: opencode-go/glm-5.2
+      temperature: 0.3
+      steps: 20
+      permission:
+        edit:
+          "*": deny
+          "docs/feats/**": allow
+          "docs/feats/**/state.yaml": deny
+        bash: deny
+    cursor:
+      model: grok-4.5
+
+  architect:
+    description: >-
+      Plans implementation strategy and writes feature plans (SDD plan stage).
+      Owns codebase exploration. Read-mostly; designs before code.
+    opencode:
+      mode: subagent
+      model: opencode-go/glm-5.2
+      temperature: 0.3
+      steps: 30
+      permission:
+        edit:
+          "*": deny
+          "docs/feats/**": allow
+          "docs/feats/**/state.yaml": deny
+        bash: allow
+    cursor:
+      model: grok-4.5
+
+  tester:
+    description: >-
+      TDD red phase. Writes failing tests from acceptance contracts. Edits
+      test-only locations — never implementation, never the contracts.
+    opencode:
+      mode: subagent
+      model: opencode-go/kimi-k2.7-code
+      temperature: 0.2
+      steps: 40
+      permission:
+        edit:
+          "*": deny
+          "**/*.test.*": allow
+          "**/*.spec.*": allow
+          "**/*_test.*": allow
+          "**/test_*.*": allow
+          "**/__tests__/**": allow
+          "**/tests/**": allow
+          "**/test/**": allow
+          "**/spec/**": allow
+          "e2e/**": allow
+          "**/*.feature": allow
+          "docs/feats/**": deny
+    cursor:
+      model: kimi-k2.7-code
+
+  implementer:
+    description: >-
+      TDD green phase. Writes the minimal implementation to make failing tests
+      pass. Never edits test files. On escalation, re-derive from plan+tests.
+    opencode:
+      mode: subagent
+      model: opencode-go/deepseek-v4-flash
+      temperature: 0.2
+      steps: 40
+      permission:
+        edit:
+          "*": allow
+          "**/*.test.*": deny
+          "**/*.spec.*": deny
+          "**/*_test.*": deny
+          "**/test_*.*": deny
+          "**/__tests__/**": deny
+          "**/tests/**": deny
+          "**/test/**": deny
+          "**/spec/**": deny
+          "e2e/**": deny
+          "docs/feats/**/state.yaml": deny
+          "**/journal.ndjson": deny
+          ".opencode/**": deny
+    cursor:
+      model: composer-2.5
+
+  reviewer:
+    description: >-
+      Independent, READ-ONLY reviewer. Two modes — slice-diff review and artifact
+      critique (spec/plan). Emits structured findings; never edits.
+    opencode:
+      mode: subagent
+      model: opencode-go/kimi-k2.7-code
+      temperature: 0.1
+      steps: 15
+      permission:
+        edit: deny
+        write: deny
+        bash:
+          "*": deny
+          "git diff*": allow
+          "git show*": allow
+          "git log*": allow
+          "git status*": allow
+    cursor:
+      model: kimi-k2.7-code
+      readonly: true
+
+  qa:
+    description: >-
+      Validates the implementation against spec + acceptance contracts.
+      Playwright for UI; non-UI validation menu otherwise. GitHub mode — evidence
+      report as PR comment; local mode — report on disk + in chat.
+    opencode:
+      mode: subagent
+      model: opencode-go/glm-5.2
+      temperature: 0.1
+      steps: 60
+      permission:
+        edit:
+          "*": deny
+          "/tmp/**": allow
+        bash: allow
+    cursor:
+      model: composer-2.5
+
+commands:
+  setup-docs:
+    description: Scaffold project docs required for the AI working context.
+  setup-context:
+    description: Bootstrap the CodeSight codebase context map used by spec/architect/implementer.
+
+opencode_config:
+  model: opencode-go/glm-5.2
+  small_model: opencode-go/deepseek-v4-flash
+  default_agent: sdd
+  instructions:
+    - AGENTS.md

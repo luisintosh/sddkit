@@ -2,12 +2,16 @@
   "name": "opencode-harness-toolkit",
   "private": true,
   "type": "module",
-  "description": "Plugin dependencies for the SDD harness — installed into the consuming repo's .opencode/ so opencode auto-installs them for plugins/sdd-guard.ts.",
+  "description": "Spec-driven development harness for OpenCode and Cursor — prompts, transpile, sdd-state CLI.",
   "scripts": {
-    "test": "bun test plugins/"
+    "test": "bun test src/state/",
+    "transpile": "bun tools/transpile.ts",
+    "build:cli": "bun tools/build-cli.ts",
+    "gen-manifest": "bun tools/gen-manifest.ts",
+    "build": "bun tools/transpile.ts && bun tools/build-cli.ts && bun tools/gen-manifest.ts",
+    "check": "bun tools/check.ts"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "^1.17.18",
     "yaml": "^2.9.0",
     "zod": "^4.1.8"
   }
