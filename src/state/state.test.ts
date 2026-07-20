@@ -10,7 +10,7 @@ import { runInit, runPatch } from "./checkpoint.ts"
 let root: string
 
 beforeEach(async () => {
-  root = await fs.mkdtemp(path.join(os.tmpdir(), "sdd-state-test-"))
+  root = await fs.mkdtemp(path.join(os.tmpdir(), "sddkit-state-test-"))
 })
 
 afterEach(async () => {
@@ -128,24 +128,24 @@ describe("validateState", () => {
 
 describe("scaffoldState", () => {
   test("produces a document that validates and defaults stage to initialized", () => {
-    const state = scaffoldState("account-export", "sdd")
+    const state = scaffoldState("account-export", "sddkit")
     expect(state.stage).toBe("initialized")
     expect(state.feature).toBe("account-export")
-    expect(state.last_agent).toBe("sdd")
+    expect(state.last_agent).toBe("sddkit")
     expect(validateState(state).success).toBe(true)
   })
 })
 
 describe("atomic write + read round-trip", () => {
   test("writeStateAtomic then readState returns an equivalent document", async () => {
-    const state = scaffoldState("account-export", "sdd")
+    const state = scaffoldState("account-export", "sddkit")
     await writeStateAtomic(root, "account-export", state)
     const readBack = await readState(root, "account-export")
     expect(readBack).toEqual(state)
   })
 
   test("writeStateAtomic leaves no tmp file behind", async () => {
-    const state = scaffoldState("account-export", "sdd")
+    const state = scaffoldState("account-export", "sddkit")
     await writeStateAtomic(root, "account-export", state)
     const dir = path.dirname(statePath(root, "account-export"))
     const files = await fs.readdir(dir)
@@ -159,8 +159,8 @@ describe("atomic write + read round-trip", () => {
 
 describe("appendJournal", () => {
   test("appends newline-delimited JSON entries", async () => {
-    await appendJournal(root, "account-export", { ts: "t1", agent: "sdd", action: "init" })
-    await appendJournal(root, "account-export", { ts: "t2", agent: "sdd", patch: { stage: "specify" } })
+    await appendJournal(root, "account-export", { ts: "t1", agent: "sddkit", action: "init" })
+    await appendJournal(root, "account-export", { ts: "t2", agent: "sddkit", patch: { stage: "specify" } })
     const raw = await fs.readFile(journalPath(root, "account-export"), "utf8")
     const lines = raw
       .trim()
@@ -193,7 +193,7 @@ describe("runInit / runPatch", () => {
     const after = await readState(root, "account-export")
     expect(after?.stage).toBe("specify")
     expect(after?.completed).toEqual(["specify"])
-    expect(after?.last_agent).toBe("sdd")
+    expect(after?.last_agent).toBe("sddkit")
     expect(after?.updated).not.toBe(before?.updated)
   })
 

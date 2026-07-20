@@ -73,14 +73,14 @@ jobs:
         run: |
           bun run build
           bun tools/build-cli.ts --compile
-          tar -czf harness-dist.tar.gz dist manifest.txt
+          tar -czf sddkit-dist.tar.gz dist manifest.txt
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.event.release.tag_name }}
         run: |
           gh release upload "$TAG" \
-            harness-dist.tar.gz \
-            dist/bin/sdd-state-darwin-arm64 \
-            dist/bin/sdd-state-darwin-x64 \
+            sddkit-dist.tar.gz \
+            dist/bin/sddkit-state-darwin-arm64 \
+            dist/bin/sddkit-state-darwin-x64 \
             --clobber
