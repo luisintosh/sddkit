@@ -61,13 +61,12 @@ async function readPrompt(rel: string): Promise<string> {
 }
 
 function yamlFrontmatter(obj: Record<string, unknown>): string {
-  // Quote keys so permission globs like **/*.test.* stay valid YAML.
-  const yaml = stringifyYaml(obj, {
-    lineWidth: 0,
-    defaultKeyType: "QUOTE_DOUBLE",
-    defaultStringType: "QUOTE_DOUBLE",
-  }).trimEnd()
+  const yaml = stringifyYaml(obj, { lineWidth: 0 }).trimEnd()
   return `---\n${yaml}\n---\n\n`
+}
+
+function cursorModel(model: string): string {
+  return model.endsWith("[]") ? model : `${model}[]`
 }
 
 function cursorRestrictions(name: string, oc: AgentCatalog["opencode"]): string {
@@ -206,7 +205,8 @@ async function emitCursor(catalog: Catalog) {
     const fm: Record<string, unknown> = {
       name,
       description: agent.description,
-      model: agent.cursor.model,
+      model: cursorModel(agent.cursor.model),
+      is_background: true,
     }
     if (agent.cursor.readonly) fm.readonly = true
     await writeFile(path.join(outRoot, "agents", `${name}.md`), yamlFrontmatter(fm) + fullBody)
