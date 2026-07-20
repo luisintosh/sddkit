@@ -1,8 +1,8 @@
 {
-  "name": "opencode-harness-toolkit",
+  "name": "sddkit",
   "private": true,
   "type": "module",
-  "description": "Spec-driven development harness for OpenCode and Cursor — prompts, transpile, sdd-state CLI.",
+  "description": "Spec-driven development harness for OpenCode and Cursor — prompts, transpile, sddkit-state CLI.",
   "scripts": {
     "test": "bun test src/state/",
     "transpile": "bun tools/transpile.ts",

@@ -10,7 +10,7 @@ set -euo pipefail
 # Flags: --dry-run, --doctor
 
 REPO_OWNER="${REPO_OWNER:-luisintosh}"
-REPO_NAME="${REPO_NAME:-opencode-harness-toolkit}"
+REPO_NAME="${REPO_NAME:-sddkit}"
 TARGET_DIR="${TARGET_DIR:-$PWD}"
 VERSION="${VERSION:-}"
 BRANCH="${BRANCH:-}"
@@ -147,16 +147,16 @@ doctor() {
     log "  [warn] AGENTS.md missing — run /setup-docs first"
   fi
 
-  if [[ -x "${TARGET_DIR}/bin/sdd-state" ]] || [[ -f "${TARGET_DIR}/bin/sdd-state" ]]; then
-    log "  [ok]   bin/sdd-state present"
+  if [[ -x "${TARGET_DIR}/bin/sddkit-state" ]] || [[ -f "${TARGET_DIR}/bin/sddkit-state" ]]; then
+    log "  [ok]   bin/sddkit-state present"
   else
-    log "  [warn] bin/sdd-state missing — re-run the installer"
+    log "  [warn] bin/sddkit-state missing — re-run the installer"
   fi
 
   if command -v bun >/dev/null 2>&1; then
-    log "  [ok]   bun is on PATH (needed to run the portable sdd-state script)"
+    log "  [ok]   bun is on PATH (needed to run the portable sddkit-state script)"
   else
-    log "  [warn] bun not found — install from https://bun.sh to run bin/sdd-state"
+    log "  [warn] bun not found — install from https://bun.sh to run bin/sddkit-state"
   fi
 
   if command -v gh >/dev/null 2>&1; then
@@ -213,7 +213,7 @@ build_payload() {
   log "Building install payload in ${src}..."
   (cd "$src" && bun install --frozen-lockfile 2>/dev/null || bun install) || die "bun install failed in ${src}"
   (cd "$src" && bun run build) || die "bun run build failed in ${src}"
-  [[ -f "${src}/manifest.txt" && -f "${src}/dist/bin/sdd-state" ]] || die "build did not produce dist/ + manifest.txt"
+  [[ -f "${src}/manifest.txt" && -f "${src}/dist/bin/sddkit-state" ]] || die "build did not produce dist/ + manifest.txt"
 }
 
 # Ensure LOCAL_SOURCE has a fresh dist/; for remote, download release tarball or build from source.
@@ -252,21 +252,21 @@ prepare_payload_dir() {
   PAYLOAD_SCRATCH="$scratch"
 
   if [[ -n "$tag" ]]; then
-    local asset_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${tag}/harness-dist.tar.gz"
+    local asset_url="https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download/${tag}/sddkit-dist.tar.gz"
     log "Trying release asset ${asset_url}..."
-    if download "$asset_url" "${scratch}/harness-dist.tar.gz" 2>/dev/null; then
+    if download "$asset_url" "${scratch}/sddkit-dist.tar.gz" 2>/dev/null; then
       mkdir -p "${scratch}/payload"
-      tar -xzf "${scratch}/harness-dist.tar.gz" -C "${scratch}/payload" || die "failed to extract harness-dist.tar.gz"
+      tar -xzf "${scratch}/sddkit-dist.tar.gz" -C "${scratch}/payload" || die "failed to extract sddkit-dist.tar.gz"
       # tarball may contain dist/ + manifest.txt at root or nested
       if [[ -f "${scratch}/payload/manifest.txt" && -d "${scratch}/payload/dist" ]]; then
         PAYLOAD_DIR="${scratch}/payload"
       else
         local found
         found="$(find "${scratch}/payload" -name manifest.txt -print -quit)"
-        [[ -n "$found" ]] || die "harness-dist.tar.gz missing manifest.txt"
+        [[ -n "$found" ]] || die "sddkit-dist.tar.gz missing manifest.txt"
         PAYLOAD_DIR="$(dirname "$found")"
       fi
-      [[ -d "${PAYLOAD_DIR}/dist" ]] || die "harness-dist.tar.gz missing dist/"
+      [[ -d "${PAYLOAD_DIR}/dist" ]] || die "sddkit-dist.tar.gz missing dist/"
       log "Using prebuilt release payload"
       return 0
     fi
@@ -389,25 +389,30 @@ install_tree() {
 
 install_bin() {
   local stage_dir="$1" new_manifest="$2"
-  local src="${stage_dir}/bin/sdd-state"
-  local dest="${TARGET_DIR}/bin/sdd-state"
+  local src="${stage_dir}/bin/sddkit-state"
+  local dest="${TARGET_DIR}/bin/sddkit-state"
   local want_hash
-  want_hash="$(manifest_hash "$new_manifest" "bin/sdd-state")" || die "manifest missing bin/sdd-state"
+  want_hash="$(manifest_hash "$new_manifest" "bin/sddkit-state")" || die "manifest missing bin/sddkit-state"
 
   if [[ -f "$dest" ]] && [[ "$(sha256_of "$dest")" == "$want_hash" ]]; then
-    log "  bin/sdd-state unchanged"
-    return 0
+    log "  bin/sddkit-state unchanged"
+  else
+    if [[ -f "$dest" ]]; then
+      log "  ~ update   bin/sddkit-state"
+    else
+      log "  + install  bin/sddkit-state"
+    fi
+    if ! $DRY_RUN; then
+      mkdir -p "${TARGET_DIR}/bin"
+      cp "$src" "$dest"
+      chmod +x "$dest"
+    fi
   fi
 
-  if [[ -f "$dest" ]]; then
-    log "  ~ update   bin/sdd-state"
-  else
-    log "  + install  bin/sdd-state"
-  fi
-  if ! $DRY_RUN; then
-    mkdir -p "${TARGET_DIR}/bin"
-    cp "$src" "$dest"
-    chmod +x "$dest"
+  # Drop legacy binary name from earlier releases.
+  if [[ -e "${TARGET_DIR}/bin/sdd-state" ]]; then
+    $DRY_RUN || rm -f "${TARGET_DIR}/bin/sdd-state"
+    log "  - prune    bin/sdd-state (renamed to sddkit-state)"
   fi
 }
 
@@ -483,7 +488,7 @@ main() {
   fi
 
   log ""
-  log "Done. Add ./bin to PATH (or invoke ./bin/sdd-state) so the conductor can checkpoint state."
+  log "Done. Add ./bin to PATH (or invoke ./bin/sddkit-state) so the conductor can checkpoint state."
   log ""
   suggest_next_steps
   doctor

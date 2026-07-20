@@ -13,20 +13,20 @@ const entry = path.join(root, "src", "state", "cli.ts")
 
 await fs.mkdir(outDir, { recursive: true })
 
-// Portable JS runnable via `bun dist/bin/sdd-state.js` (and shebang wrapper).
-const tmpJs = path.join(outDir, "sdd-state.js")
+// Portable JS runnable via `bun dist/bin/sddkit-state.js` (and shebang wrapper).
+const tmpJs = path.join(outDir, "sddkit-state.js")
 await $`bun build ${entry} --outfile ${tmpJs} --target=bun`
 const js = await fs.readFile(tmpJs, "utf8")
 const withShebang = js.startsWith("#!") ? js : `#!/usr/bin/env bun\n${js}`
-await fs.writeFile(path.join(outDir, "sdd-state"), withShebang, { mode: 0o755 })
-await fs.chmod(path.join(outDir, "sdd-state"), 0o755)
+await fs.writeFile(path.join(outDir, "sddkit-state"), withShebang, { mode: 0o755 })
+await fs.chmod(path.join(outDir, "sddkit-state"), 0o755)
 await fs.rm(tmpJs, { force: true })
 
 const compile = process.argv.includes("--compile")
 if (compile) {
-  await $`bun build ${entry} --compile --outfile ${path.join(outDir, "sdd-state-darwin-arm64")} --target=bun-darwin-arm64`
-  await $`bun build ${entry} --compile --outfile ${path.join(outDir, "sdd-state-darwin-x64")} --target=bun-darwin-x64`
-  console.log("build-cli: wrote portable sdd-state + darwin arm64/x64 binaries")
+  await $`bun build ${entry} --compile --outfile ${path.join(outDir, "sddkit-state-darwin-arm64")} --target=bun-darwin-arm64`
+  await $`bun build ${entry} --compile --outfile ${path.join(outDir, "sddkit-state-darwin-x64")} --target=bun-darwin-x64`
+  console.log("build-cli: wrote portable sddkit-state + darwin arm64/x64 binaries")
 } else {
-  console.log("build-cli: wrote portable dist/bin/sdd-state (pass --compile for mac binaries)")
+  console.log("build-cli: wrote portable dist/bin/sddkit-state (pass --compile for mac binaries)")
 }

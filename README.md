@@ -1,9 +1,9 @@
-# opencode-harness-toolkit
+# sddkit
 
 A thin harness for **spec-driven development (SDD)** on [OpenCode](https://opencode.ai) and
 [Cursor](https://cursor.com): an approved spec, tagged acceptance contracts (`@S<n>`), TDD with the
 consuming repo's test stack, a multi-agent pipeline with a one-rung escalation loop, and a
-file-based **`state.yaml` checkpoint** written only through `./bin/sdd-state`.
+file-based **`state.yaml` checkpoint** written only through `./bin/sddkit-state`.
 
 Prompts live once under `src/prompts/`; `bun run build` transpiles them into OpenCode and Cursor
 formats under `dist/` (gitignored; packaged on release).
@@ -16,10 +16,10 @@ src/
   prompts/agents/        canonical agent bodies (no app frontmatter)
   prompts/commands/      setup-docs / setup-context
   prompts/fragments/     shared includes
-  state/                 sdd-state CLI (schema, merge, io)
+  state/                 sddkit-state CLI (schema, merge, io)
 tools/
   transpile.ts           → dist/opencode + dist/cursor
-  build-cli.ts           → dist/bin/sdd-state (+ optional mac binaries)
+  build-cli.ts           → dist/bin/sddkit-state (+ optional mac binaries)
   gen-manifest.ts        → manifest.txt
   check.ts               hygiene
 dist/                    generated install payload (gitignored)
@@ -33,22 +33,22 @@ AGENTS.md
 docs/ARCHITECTURE.md
 docs/CONSTITUTION.md
 docs/feats/<feature>/
-  state.yaml             checkpoint — sole writer: ./bin/sdd-state (via conductor)
+  state.yaml             checkpoint — sole writer: ./bin/sddkit-state (via conductor)
   journal.ndjson         append-only audit trail
   spec.md
   contracts/*.feature
   plan.md
-bin/sdd-state            installed by install.sh
+bin/sddkit-state            installed by install.sh
 .opencode/               OpenCode agents + opencode.jsonc
 .cursor/agents/          Cursor subagents
-.cursor/skills/          sdd + setup-* skills
+.cursor/skills/          sddkit + setup-* skills
 ```
 
 ## Models
 
 | agent | OpenCode | Cursor | notes |
 |---|---|---|---|
-| `sdd` | `opencode-go/kimi-k2.7-code` | `inherit` | conductor (Cursor: `/sdd` skill) |
+| `sddkit` | `opencode-go/kimi-k2.7-code` | `inherit` | conductor (Cursor: `/sddkit` skill) |
 | `spec` | `opencode-go/glm-5.2` | `grok-4.5` | what & why + contracts |
 | `architect` | `opencode-go/glm-5.2` | `grok-4.5` | plan + slices |
 | `tester` | `opencode-go/kimi-k2.7-code` | `kimi-k2.7-code` | TDD red |
@@ -63,7 +63,7 @@ Checked in CI against `src/catalog.yaml` and emitted frontmatter.
 From the root of the consuming repository:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/luisintosh/opencode-harness-toolkit/refs/heads/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/luisintosh/sddkit/refs/heads/master/install.sh | bash
 ```
 
 On a TTY the installer asks for **target** (`all` / `opencode` / `cursor`), **version** (latest /
@@ -74,8 +74,8 @@ under `.opencode/.backup-*/` or `.cursor/.backup-*/` before replace, removed ups
 
 Flags: `--dry-run`, `--doctor`.
 
-After install, ensure `bun` is on `PATH` (portable `bin/sdd-state` is a Bun script) and prefer
-invoking `./bin/sdd-state` from the repo root. The installer prints next steps: `/setup-docs`,
+After install, ensure `bun` is on `PATH` (portable `bin/sddkit-state` is a Bun script) and prefer
+invoking `./bin/sddkit-state` from the repo root. The installer prints next steps: `/setup-docs`,
 `/setup-context`, installing [`gh`](https://cli.github.com/) for GitHub mode, and an optional
 [rtk](https://github.com/rtk-ai/rtk) hint (never auto-installed).
 
@@ -99,12 +99,12 @@ Runs [`codesight`](https://github.com/Houseofmvps/codesight) to generate `.codes
 
 ### Start a Feature
 
-**OpenCode:** default agent is `sdd` — type a feature request.
+**OpenCode:** default agent is `sddkit` — type a feature request.
 
-**Cursor:** run the `/sdd` skill (or ask the Agent to follow the SDD skill), then describe the feature.
+**Cursor:** run the `/sddkit` skill (or ask the Agent to follow the SDD skill), then describe the feature.
 
-`sdd` asks once (branch, GitHub vs local, interactive vs autonomous), then scaffolds state with
-`./bin/sdd-state init` and runs the pipeline. Resume by asking to continue.
+`sddkit` asks once (branch, GitHub vs local, interactive vs autonomous), then scaffolds state with
+`./bin/sddkit-state init` and runs the pipeline. Resume by asking to continue.
 
 ## Pipeline
 
@@ -128,10 +128,10 @@ pause for a human.
 `docs/feats/<feature>/state.yaml` is written only via:
 
 ```bash
-./bin/sdd-state init <feature>
-./bin/sdd-state patch <feature> --yaml 'stage: specify'
-./bin/sdd-state show <feature>
-./bin/sdd-state validate <feature>
+./bin/sddkit-state init <feature>
+./bin/sddkit-state patch <feature> --yaml 'stage: specify'
+./bin/sddkit-state show <feature>
+./bin/sddkit-state validate <feature>
 ```
 
 The conductor applies subagent reply YAML through `patch`. OpenCode also denies direct edits to

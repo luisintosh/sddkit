@@ -45,13 +45,13 @@ LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all \
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all \
   bash "${REPO_ROOT}/install.sh" >/dev/null
 
-assert_file_exists "${TARGET}/.opencode/agents/sdd.md" "opencode sdd agent installed"
+assert_file_exists "${TARGET}/.opencode/agents/sddkit.md" "opencode sddkit agent installed"
 assert_file_exists "${TARGET}/.opencode/opencode.jsonc" "opencode.jsonc installed"
 assert_file_absent "${TARGET}/.opencode/plugins/sdd-guard.ts" "plugin not installed"
 assert_file_exists "${TARGET}/.cursor/agents/implementer.md" "cursor implementer installed"
-assert_file_exists "${TARGET}/.cursor/skills/sdd/SKILL.md" "cursor sdd skill installed"
+assert_file_exists "${TARGET}/.cursor/skills/sddkit/SKILL.md" "cursor sddkit skill installed"
 assert_file_exists "${TARGET}/.cursor/skills/setup-docs/SKILL.md" "cursor setup-docs skill installed"
-assert_file_exists "${TARGET}/bin/sdd-state" "sdd-state binary/script installed"
+assert_file_exists "${TARGET}/bin/sddkit-state" "sddkit-state binary/script installed"
 assert_file_exists "${TARGET}/.opencode/.harness-manifest" "opencode harness-manifest recorded"
 assert_file_exists "${TARGET}/.cursor/.harness-manifest" "cursor harness-manifest recorded"
 
@@ -69,20 +69,20 @@ else
 fi
 
 # 3. local modify + backup
-before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sdd.md" | awk '{print $1}')"
-echo "LOCAL EDIT" >> "${TARGET}/.opencode/agents/sdd.md"
+before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit.md" | awk '{print $1}')"
+echo "LOCAL EDIT" >> "${TARGET}/.opencode/agents/sddkit.md"
 
 modify_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all bash "${REPO_ROOT}/install.sh" 2>&1)"
-if grep -q "modified opencode/agents/sdd.md" <<<"$modify_output"; then
+if grep -q "modified opencode/agents/sddkit.md" <<<"$modify_output"; then
   ok "reports locally-modified opencode agent"
 else
   bad "should report locally-modified file: $modify_output"
 fi
 
-backup_copy="$(find "${TARGET}/.opencode" -path '*/.backup-*/agents/sdd.md' | head -1)"
-if [[ -n "$backup_copy" ]]; then ok "locally-modified file was backed up"; else bad "expected backup of agents/sdd.md"; fi
+backup_copy="$(find "${TARGET}/.opencode" -path '*/.backup-*/agents/sddkit.md' | head -1)"
+if [[ -n "$backup_copy" ]]; then ok "locally-modified file was backed up"; else bad "expected backup of agents/sddkit.md"; fi
 
-after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sdd.md" | awk '{print $1}')"
+after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit.md" | awk '{print $1}')"
 assert_eq "$after_hash" "$before_hash" "locally-modified file restored to upstream"
 
 # 4. prune upstream file
@@ -120,10 +120,10 @@ if [[ $rc -ne 0 ]]; then ok "checksum mismatch exits non-zero"; else bad "checks
 after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/spec.md" | awk '{print $1}')"
 assert_eq "$after_hash" "$before_hash" "no partial write after checksum mismatch"
 
-# 7. doctor mentions bun / sdd-state / codesight
+# 7. doctor mentions bun / sddkit-state / codesight
 doctor_output="$(TARGET_DIR="$TARGET" bash "${REPO_ROOT}/install.sh" --doctor 2>&1)"
 if grep -q 'npx' <<<"$doctor_output"; then ok "doctor reports npx/codesight"; else bad "doctor npx: $doctor_output"; fi
-if grep -q 'sdd-state' <<<"$doctor_output"; then ok "doctor reports sdd-state"; else bad "doctor sdd-state: $doctor_output"; fi
+if grep -q 'sddkit-state' <<<"$doctor_output"; then ok "doctor reports sddkit-state"; else bad "doctor sddkit-state: $doctor_output"; fi
 if grep -q 'rtk' <<<"$doctor_output"; then
   bad "doctor should not mention rtk install (suggestion is post-install only)"
 else
@@ -140,22 +140,22 @@ cp -R "${REPO_ROOT}/dist" "${UPSTREAM}/dist"
 cp "${REPO_ROOT}/manifest.txt" "$UPSTREAM/"
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor bash "${REPO_ROOT}/install.sh" >/dev/null
 assert_file_exists "${TARGET2}/.cursor/agents/tester.md" "cursor-only installs .cursor"
-assert_file_absent "${TARGET2}/.opencode/agents/sdd.md" "cursor-only skips .opencode"
-assert_file_exists "${TARGET2}/bin/sdd-state" "cursor-only still installs sdd-state"
+assert_file_absent "${TARGET2}/.opencode/agents/sddkit.md" "cursor-only skips .opencode"
+assert_file_exists "${TARGET2}/bin/sddkit-state" "cursor-only still installs sddkit-state"
 
-# 9. sdd-state CLI smoke
-chmod +x "${TARGET}/bin/sdd-state"
+# 9. sddkit-state CLI smoke
+chmod +x "${TARGET}/bin/sddkit-state"
 if command -v bun >/dev/null 2>&1; then
-  (cd "$TARGET" && ./bin/sdd-state init smoke-feat >/dev/null)
-  assert_file_exists "${TARGET}/docs/feats/smoke-feat/state.yaml" "sdd-state init writes state.yaml"
-  (cd "$TARGET" && ./bin/sdd-state patch smoke-feat --yaml 'stage: specify' >/dev/null)
+  (cd "$TARGET" && ./bin/sddkit-state init smoke-feat >/dev/null)
+  assert_file_exists "${TARGET}/docs/feats/smoke-feat/state.yaml" "sddkit-state init writes state.yaml"
+  (cd "$TARGET" && ./bin/sddkit-state patch smoke-feat --yaml 'stage: specify' >/dev/null)
   if grep -q 'stage: specify' "${TARGET}/docs/feats/smoke-feat/state.yaml"; then
-    ok "sdd-state patch updates stage"
+    ok "sddkit-state patch updates stage"
   else
-    bad "sdd-state patch did not update stage"
+    bad "sddkit-state patch did not update stage"
   fi
 else
-  bad "bun required for sdd-state smoke test"
+  bad "bun required for sddkit-state smoke test"
 fi
 
 # 10. post-install next-step hints

@@ -65,8 +65,8 @@ try {
 const agentNames = catalog ? Object.keys(catalog.agents || {}).sort() : []
 
 if (catalog) {
-  if (!catalog.agents?.sdd) fail("catalog: missing agents.sdd")
-  else if (catalog.agents.sdd.opencode?.mode !== "primary") fail("catalog: sdd.opencode.mode must be primary")
+  if (!catalog.agents?.sddkit) fail("catalog: missing agents.sddkit")
+  else if (catalog.agents.sddkit.opencode?.mode !== "primary") fail("catalog: sddkit.opencode.mode must be primary")
   if (catalog.agents?.["implementer-pro"]) fail("catalog: implementer-pro must be removed")
   for (const name of agentNames) {
     const a = catalog.agents![name]!
@@ -147,9 +147,9 @@ if (catalog) {
 }
 
 try {
-  await stat(path.join(root, "dist", "bin", "sdd-state"))
+  await stat(path.join(root, "dist", "bin", "sddkit-state"))
 } catch {
-  fail("dist/bin/sdd-state missing — run bun run build")
+  fail("dist/bin/sddkit-state missing — run bun run build")
 }
 
 const readme = await readFile(path.join(root, "README.md"), "utf8")
@@ -184,7 +184,7 @@ async function expectedManifestEntries() {
   const files = [
     ...(await walkFiles(path.join(root, "dist", "opencode"))),
     ...(await walkFiles(path.join(root, "dist", "cursor"))),
-    path.join(root, "dist", "bin", "sdd-state"),
+    path.join(root, "dist", "bin", "sddkit-state"),
   ]
   const entries: [string, string][] = []
   for (const abs of files.sort()) {

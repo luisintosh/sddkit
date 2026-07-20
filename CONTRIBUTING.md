@@ -8,7 +8,7 @@
 | `src/state/**` | `bun run build` + `bun test` |
 
 `dist/` and `manifest.txt` are **generated and gitignored**. CI builds them; releases attach
-`harness-dist.tar.gz`. Do not commit them.
+`sddkit-dist.tar.gz`. Do not commit them.
 
 ## Hygiene (`bun run check`)
 
@@ -37,7 +37,7 @@ bash test/e2e-install.sh
 | Script | Purpose |
 |--------|---------|
 | `bun tools/transpile.ts` | `src/` → `dist/opencode` + `dist/cursor` |
-| `bun tools/build-cli.ts` | portable `dist/bin/sdd-state` (+ `--compile` for mac binaries) |
+| `bun tools/build-cli.ts` | portable `dist/bin/sddkit-state` (+ `--compile` for mac binaries) |
 | `bun tools/gen-manifest.ts` | `manifest.txt` from `dist/` |
 | `bun tools/check.ts` | hygiene |
 
@@ -52,8 +52,8 @@ git push origin vX.Y.Z
 
 Publishing a GitHub Release runs CI’s `release-assets` job, which uploads:
 
-- `harness-dist.tar.gz` (`dist/` + `manifest.txt`) — preferred by `install.sh` for tags
-- `sdd-state-darwin-arm64` / `sdd-state-darwin-x64`
+- `sddkit-dist.tar.gz` (`dist/` + `manifest.txt`) — preferred by `install.sh` for tags
+- `sddkit-state-darwin-arm64` / `sddkit-state-darwin-x64`
 
 If the release asset is missing, the installer falls back to downloading the source tarball and
 running `bun run build` (requires bun).

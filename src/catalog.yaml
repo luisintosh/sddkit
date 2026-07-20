@@ -1,7 +1,7 @@
 # Per-agent metadata for OpenCode and Cursor emitters. Bodies live in prompts/agents/.
 
 agents:
-  sdd:
+  sddkit:
     description: >-
       Drives the end-to-end spec-driven development (SDD) feature pipeline —
       sequences stages, manages human-in-the-loop gates, routes review findings,
@@ -160,6 +160,6 @@ commands:
 opencode_config:
   model: opencode-go/glm-5.2
   small_model: opencode-go/deepseek-v4-flash
-  default_agent: sdd
+  default_agent: sddkit
   instructions:
     - AGENTS.md

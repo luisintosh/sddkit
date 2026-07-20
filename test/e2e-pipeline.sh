@@ -66,7 +66,7 @@ done
 # ---------------------------------------------------------------------------
 
 cd "$TARGET"
-opencode run "Add a slugify(title) util" --agent sdd > "${WORK}/run.log" 2>&1 || true
+opencode run "Add a slugify(title) util" --agent sddkit > "${WORK}/run.log" 2>&1 || true
 
 feature_dir="$(find docs/feats -mindepth 1 -maxdepth 1 -type d 2>/dev/null | head -1 || true)"
 if [[ -z "$feature_dir" ]]; then
@@ -103,7 +103,7 @@ if [[ -f "$state_file" ]]; then
   set -e
 
   if [[ $validate_rc -eq 0 ]]; then
-    ok "state.yaml validates against the sdd-state Zod schema"
+    ok "state.yaml validates against the sddkit-state Zod schema"
   else
     bad "state.yaml failed schema validation: $(cat "${WORK}/state-check.err")"
   fi
@@ -134,10 +134,10 @@ else
   ok "no gh/push command was attempted"
 fi
 
-if grep -q 'sdd-state' "${WORK}/run.log" || [[ -f "$journal_file" ]]; then
-  ok "conductor used sdd-state / journal path (or journal exists)"
+if grep -q 'sddkit-state' "${WORK}/run.log" || [[ -f "$journal_file" ]]; then
+  ok "conductor used sddkit-state / journal path (or journal exists)"
 else
-  echo "note - no sdd-state mention in run.log (check journal / state manually)" >&2
+  echo "note - no sddkit-state mention in run.log (check journal / state manually)" >&2
 fi
 
 echo ""
