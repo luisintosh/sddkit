@@ -9,5 +9,9 @@ usage.log
 .DS_Store
 *.swp
 
-# Node (only relevant if the harness itself grows JS tooling)
+# Node / Bun
 node_modules/
+
+# Generated install payload (built by `bun run build`; packaged on release)
+dist/
+manifest.txt
