@@ -25,16 +25,16 @@ Carry one feature from request to done — draft PR when GitHub mode is on, loca
 3. **spec critique** — delegate `reviewer` (artifact critique, target: spec — covers the spec and its contracts together). Route `blocker|major` findings back to `spec` once, then proceed.
 
 4. **⏸ spec gate** — present spec + contracts + open questions concisely; approve/edit/comment.
-   - `mode: interactive` — stop and wait. Approved: clear gate, continue.
-   - `mode: autonomous` — auto-approve once the critique is clean or its findings are addressed; journal the auto-approval; continue without stopping.
+   - `mode: interactive` — stop and wait. Approved: clear gate, commit spec+contracts (Conventional Commit), continue.
+   - `mode: autonomous` — auto-approve once the critique is clean or its findings are addressed; journal the auto-approval; commit spec+contracts (Conventional Commit); continue without stopping.
 
 5. **plan** — if `.codesight/` is set up (i.e. `npx codesight` resolves), best-effort refresh `.codesight/wiki/` (`npx codesight --wiki`) so `architect` reads a current map; never block on failure. Then delegate `architect` (it explores the codebase itself) to write `plan.md`, including its **Slices** section (see step 8). Append `plan`.
 
 6. **plan critique** — delegate `reviewer` (artifact critique, target: plan). Route `blocker|major` findings back to `architect` once, then proceed.
 
 7. **⏸ plan gate** — present the plan (including slice breakdown + risk tiers); approve.
-   - `mode: interactive` — stop and wait. Approved: continue.
-   - `mode: autonomous` — auto-approve once the critique is clean or its findings are addressed; journal the auto-approval; continue.
+   - `mode: interactive` — stop and wait. Approved: commit plan (Conventional Commit), continue.
+   - `mode: autonomous` — auto-approve once the critique is clean or its findings are addressed; journal the auto-approval; commit plan (Conventional Commit); continue.
 
 8. **implementation** — `stage: implementation`. For each slice in `plan.md`'s Slices section not yet in `completed_slices`, read its `risk: low | standard` tag (default `standard` if absent) and build a **slice brief** once (the slice's section from `plan.md`, its `@S<n>` scenario text from `contracts/*.feature`, and its targeted test command); pass this brief to every delegation for the slice.
    - Patch `current_slice`, `slice_phase` (`red` for `standard`, `green` for `low`), `review.iterations: 0`, `escalation: 0`.
@@ -45,18 +45,18 @@ Carry one feature from request to done — draft PR when GitHub mode is on, loca
      - `standard`: `reviewer` on the uncommitted slice diff, scoped to the brief's `@S<n>` scenarios. Only `blocker|major` findings trigger a fix round — route by category (`bug|quality|perf` → `implementer`; `test|contract` → `tester`), re-test, re-review. `minor`-only findings: patch them to the slice's `review.deferred_findings` and proceed to commit. On iteration >1, tell `reviewer` to verify only the prior findings' fixes plus the delta since the last pass, not a full re-review. Stop on `clean` (or minor-only) or after 2 iterations. Exhausted with `blocker|major` findings: if `escalation: 0` → set it and redo green+review once; else record blockers, pause.
      - `low`: a single `reviewer` pass (no loop). Any `blocker` finding upgrades the slice to `standard` in place — reset to `slice_phase: red` and run the full red→green→review flow as the safety valve.
    - When `escalation: 1`, the final `clean` verdict is a fresh `reviewer` pass over the diff from scratch — tell `reviewer` to treat prior iterations as context, not authority.
-   - **commit** — Conventional Commit; append to `completed_slices`; clear `current_slice`/`slice_phase`.
+   - **commit** — Conventional Commit of the slice’s files only; append to `completed_slices`; clear `current_slice`/`slice_phase`.
 
 9. **verify** — `stage: verify`. Run build/test/lint/typecheck commands from `AGENTS.md` (mark genuinely absent ones `n/a`); patch results under `verification`. On failure, route the smallest fix through the slice loop, then re-verify.
 
-10. **docs-sync** — `stage: docs_sync`. Update ONLY `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and the current `docs/feats/<slug>/`. Keep `AGENTS.md` short. If `.codesight/` is set up, best-effort regenerate `.codesight/wiki/` (`npx codesight --wiki`) so the committed map reflects this feature; include it in the docs-sync commit. Never block on failure.
+10. **docs-sync** — `stage: docs_sync`. Update ONLY `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and the current `docs/feats/<slug>/`. Keep `AGENTS.md` short. If `.codesight/` is set up, best-effort regenerate `.codesight/wiki/` (`npx codesight --wiki`); never block on failure. Commit those docs (and wiki if regenerated) with a Conventional Commit.
 
 11. **pr** — `stage: pr`.
     - `github: true`: require `git`, `gh`, and a remote (else blocker + stop). Push branch, `gh pr create --draft`, patch `pr.url`, `pr.mode: github`.
     - `github: false`: no push, no PR. Patch `pr.mode: local`; work stays on the local feature branch.
 
 12. **qa** — `stage: qa`. Delegate `qa`, passing `github` and the PR URL (github mode) or branch + base (local mode). `qa` selects at most 3 top-of-pyramid end-to-end journeys that together exercise as many `@S<n>` scenarios as possible, validates those with evidence, and records the rest as covered at verify. Apply its reply block.
-    - `findings` → the pipeline re-enters at **specify**: delegate `spec` with the finding to update `spec.md`/contracts with a scoped delta; then delegate `architect` to update `plan.md` (including the Slices section) to match; then run only the affected slice(s) through the full slice loop (step 8); then re-verify (step 9); then re-delegate `qa`, scoped to only the previously failed journeys. `mode: interactive`: present the spec delta at the spec gate before continuing. `mode: autonomous`: journal it and continue. Max 2 QA-driven cycles total.
+    - `findings` → the pipeline re-enters at **specify**: delegate `spec` with the finding to update `spec.md`/contracts with a scoped delta; then delegate `architect` to update `plan.md` (including the Slices section) to match; then run only the affected slice(s) through the full slice loop (step 8); then re-verify (step 9); then re-delegate `qa`, scoped to only the previously failed journeys. `mode: interactive`: present the spec delta at the spec gate before continuing. `mode: autonomous`: journal it and continue. Re-commit after approved spec/plan deltas (slices commit in step 8). Max 2 QA-driven cycles total.
     - `blocked` / retries exhausted → blockers, pause.
     - `clean` → github mode: `qa` already posted the report and marked the PR ready. Local mode: present `qa`'s full report in chat and patch `qa.report_path`. Append `pr` + `qa` to `completed`; `stage: complete`.
 
