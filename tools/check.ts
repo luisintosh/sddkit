@@ -135,9 +135,15 @@ if (catalog) {
           fail(`dist/cursor/agents/${name}.md: missing frontmatter`)
           continue
         }
-        const fm = parseYaml(m[1]!) as { model?: string }
-        if (fm.model !== agent.cursor!.model) {
-          fail(`dist drift: cursor ${name} model ${fm.model} != catalog ${agent.cursor!.model} — run bun run build`)
+        const fm = parseYaml(m[1]!) as { model?: string; is_background?: boolean }
+        const wantModel = agent.cursor!.model!.endsWith("[]")
+          ? agent.cursor!.model!
+          : `${agent.cursor!.model!}[]`
+        if (fm.model !== wantModel) {
+          fail(`dist drift: cursor ${name} model ${fm.model} != catalog ${wantModel} — run bun run build`)
+        }
+        if (fm.is_background !== true) {
+          fail(`dist drift: cursor ${name} is_background must be true — run bun run build`)
         }
       } catch {
         fail(`dist/cursor/agents/${name}.md missing — run bun run build`)
