@@ -151,6 +151,43 @@ agents:
     cursor:
       model: composer-2.5
 
+  sddkit-plan:
+    description: >-
+      Product Owner planner. Refines a raw idea into a clear, measurable goal by
+      exploring the codebase first and asking only the high-leverage questions
+      code can't answer (assumptions stated), explores candidate approaches,
+      then writes a feature roadmap with per-feature Definition of Done and
+      sequencing at docs/product/<slug>/roadmap.md. Offers to commit it and to
+      create GitHub issues (epic + per-feature). Standalone — does not run the
+      SDD pipeline.
+    opencode:
+      mode: primary
+      model: opencode-go/qwen3.7-max
+      temperature: 0.4
+      steps: 80
+      permission:
+        edit:
+          "*": deny
+          "docs/product/**": allow
+          "/tmp/**": allow
+        bash:
+          "*": ask
+          "git status*": allow
+          "git branch*": allow
+          "git remote*": allow
+          "git rev-parse*": allow
+          "git log*": allow
+          "git add docs/product*": allow
+          "git commit*": allow
+          "gh auth status*": allow
+          "gh repo view*": allow
+          "gh issue create*": allow
+          "gh issue view*": allow
+          "gh issue list*": allow
+    cursor:
+      model: inherit
+      skill: true
+
 commands:
   setup-docs:
     description: Scaffold project docs required for the AI working context.

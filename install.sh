@@ -196,6 +196,10 @@ suggest_next_steps() {
     log "  3. gh is on PATH — run 'gh auth login' if you aren't logged in"
   fi
   log ""
+  log "Optional: sddkit-plan — Product Owner planner (Cursor: /sddkit-plan skill;"
+  log "  OpenCode: Tab-switch to the sddkit-plan agent) turns a raw idea into a"
+  log "  feature roadmap at docs/product/<slug>/roadmap.md before you run sddkit."
+  log ""
   log "Optional: rtk (filters noisy bash output for agents)"
   log "  brew install rtk   # or see https://github.com/rtk-ai/rtk"
   log "  rtk init --opencode   # OpenCode"
