@@ -161,12 +161,12 @@ doctor() {
 
   if command -v gh >/dev/null 2>&1; then
     if gh auth status >/dev/null 2>&1; then
-      log "  [ok]   gh installed and authenticated (GitHub mode)"
+      log "  [ok]   gh installed and authenticated"
     else
       log "  [warn] gh installed but not logged in — run 'gh auth login'"
     fi
   else
-    log "  [warn] gh not found — install for GitHub mode: brew install gh && gh auth login"
+    log "  [warn] gh not found — required by the pipeline: brew install gh && gh auth login"
   fi
 
   if command -v npx >/dev/null 2>&1; then
@@ -189,11 +189,11 @@ suggest_next_steps() {
   log "  1. /setup-docs       — scaffold AGENTS.md + docs/ARCHITECTURE.md + CONSTITUTION"
   log "  2. /setup-context    — optional CodeSight wiki (needs Node >= 18 / npx)"
   if ! command -v gh >/dev/null 2>&1; then
-    log "  3. Install gh for GitHub mode:"
+    log "  3. Install gh (required by the pipeline):"
     log "       brew install gh && gh auth login"
     log "       # or: https://cli.github.com/"
   else
-    log "  3. gh is on PATH — run 'gh auth login' if you use GitHub mode and aren't logged in"
+    log "  3. gh is on PATH — run 'gh auth login' if you aren't logged in"
   fi
   log ""
   log "Optional: rtk (filters noisy bash output for agents)"

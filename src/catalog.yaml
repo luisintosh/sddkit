@@ -136,8 +136,8 @@ agents:
   qa:
     description: >-
       Validates the implementation against spec + acceptance contracts.
-      Playwright for UI; non-UI validation menu otherwise. GitHub mode — evidence
-      report as PR comment; local mode — report on disk + in chat.
+      Playwright for UI; non-UI validation menu otherwise. Posts the evidence
+      report as a PR comment.
     opencode:
       mode: subagent
       model: opencode-go/glm-5.2

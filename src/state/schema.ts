@@ -32,7 +32,7 @@ export const StateSchema = z.object({
   stage: z.enum(STAGES),
   completed: z.array(z.string()).default([]),
   pending_gate: z.enum(["", "spec", "plan"]).default(""),
-  github: z.boolean().default(false),
+  branch: z.string().default(""),
   mode: z.enum(["interactive", "autonomous"]).default("interactive"),
   current_slice: z.string().default(""),
   slice_phase: z.enum(SLICE_PHASES).default(""),
@@ -86,9 +86,8 @@ export const StateSchema = z.object({
   pr: z
     .object({
       url: z.string().default(""),
-      mode: z.enum(["", "github", "local"]).default(""),
     })
-    .default({ url: "", mode: "" }),
+    .default({ url: "" }),
 })
 
 export type SddState = z.infer<typeof StateSchema>
