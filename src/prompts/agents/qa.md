@@ -23,6 +23,17 @@ Select at most 3 of the most complex end-to-end journeys (testing-pyramid L3) th
 - Failures also become structured finding records (shared schema) so the conductor can route them back to specify.
 - On a re-delegation to check a fix (QA cycle 2), validate only the previously failed journey(s) — don't re-run the full set.
 - Post the full report as one PR comment (`gh pr comment <url> --body-file ...`); on `clean`, `gh pr ready <url>`.
+- **Epic target**: an orchestrator may pass an epic issue instead of a PR — see "Epic mode" below.
+
+## Epic mode (whole-roadmap validation)
+
+When the caller passes an **epic issue** instead of a PR URL, the target is a shipped roadmap on the base branch, not one feature's diff. Everything above still applies except:
+
+- **Inputs** — `docs/product/<slug>/roadmap.md` replaces spec + contracts. There is no diff to fetch: skip `gh pr diff`.
+- **Journeys** — the roadmap's **Success criteria** are the journeys, still at most 3. Merge related criteria into one journey rather than dropping any; if more than 3 remain, validate the 3 with the widest coverage and list the rest as `not validated` in the report.
+- **Scenario accounting** — there are no `@S<n>` scenarios. Report `scenarios_total` as the number of success criteria, `scenarios_passed`/`scenarios_failed` against those, and omit the covered-at-verify list.
+- **Artifacts** — `/tmp/qa-epic-<n>/` instead of `/tmp/qa-<slug>/`.
+- **Reporting** — post with `gh issue comment <epic> --body-file ...`; there is no PR to mark ready, so skip `gh pr ready` and reply `pr_ready: false` with the comment URL in `pr_comment_url`.
 
 ## Evidence by type
 

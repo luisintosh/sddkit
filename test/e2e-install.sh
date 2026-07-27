@@ -47,11 +47,13 @@ LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all \
 
 assert_file_exists "${TARGET}/.opencode/agents/sddkit.md" "opencode sddkit agent installed"
 assert_file_exists "${TARGET}/.opencode/agents/sddkit-plan.md" "opencode sddkit-plan agent installed"
+assert_file_exists "${TARGET}/.opencode/agents/sddkit-ship.md" "opencode sddkit-ship agent installed"
 assert_file_exists "${TARGET}/.opencode/opencode.jsonc" "opencode.jsonc installed"
 assert_file_absent "${TARGET}/.opencode/plugins/sdd-guard.ts" "plugin not installed"
 assert_file_exists "${TARGET}/.cursor/agents/implementer.md" "cursor implementer installed"
 assert_file_exists "${TARGET}/.cursor/skills/sddkit/SKILL.md" "cursor sddkit skill installed"
 assert_file_exists "${TARGET}/.cursor/skills/sddkit-plan/SKILL.md" "cursor sddkit-plan skill installed"
+assert_file_exists "${TARGET}/.cursor/skills/sddkit-ship/SKILL.md" "cursor sddkit-ship skill installed"
 assert_file_exists "${TARGET}/.cursor/skills/setup-docs/SKILL.md" "cursor setup-docs skill installed"
 assert_file_exists "${TARGET}/bin/sddkit-state" "sddkit-state binary/script installed"
 assert_file_exists "${TARGET}/.opencode/.harness-manifest" "opencode harness-manifest recorded"

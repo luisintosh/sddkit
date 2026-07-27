@@ -38,11 +38,13 @@ docs/feats/<feature>/
   spec.md
   contracts/*.feature
   plan.md
-docs/product/<slug>/roadmap.md   optional, written by sddkit-plan
+docs/product/<slug>/
+  roadmap.md             optional, written by sddkit-plan
+  ship.yaml              run cache, written by sddkit-ship (left untracked)
 bin/sddkit-state            installed by install.sh
 .opencode/               OpenCode agents + opencode.jsonc
 .cursor/agents/          Cursor subagents
-.cursor/skills/          sddkit, sddkit-plan + setup-* skills
+.cursor/skills/          sddkit, sddkit-plan, sddkit-ship + setup-* skills
 ```
 
 ## Models
@@ -57,6 +59,7 @@ bin/sddkit-state            installed by install.sh
 | `reviewer` | `opencode-go/kimi-k2.7-code` | `kimi-k2.7-code` | read-only review / critique |
 | `qa` | `opencode-go/glm-5.2` | `composer-2.5` | end-to-end validation |
 | `sddkit-plan` | `opencode-go/qwen3.7-max` | `inherit` | product owner → roadmap (Cursor: `/sddkit-plan` skill) |
+| `sddkit-ship` | `opencode-go/kimi-k2.7-code` | `inherit` | roadmap orchestrator (Cursor: `/sddkit-ship` skill) |
 
 Checked in CI against `src/catalog.yaml` and emitted frontmatter.
 
@@ -123,6 +126,35 @@ a Definition of Done and dependency-derived parallel/sequential waves — to
 one per feature, wired with `Blocked by #N`). Standalone — doesn't touch the SDD pipeline; each
 resulting feature is meant to be run through `sddkit` on its own.
 
+### Ship a Roadmap (optional)
+
+**OpenCode:** Tab-switch to the `sddkit-ship` agent and point it at a roadmap or its epic issue.
+
+**Cursor:** run the `/sddkit-ship` skill. Either way the **OpenCode CLI must be installed** — it is
+the runner for child feature runs (`opencode run --agent sddkit`).
+
+Executes the whole roadmap from its GitHub issues without further input, **one feature at a time in
+your checkout**. Per feature it switches to the base branch, pulls, cuts `feat/<slug>`, launches an
+autonomous `sddkit` run, waits, then — once QA is clean and CI is green — brings the PR up to date
+(`gh pr update-branch`, never a force-push), squash-merges it, closes the issue via `Closes #N`,
+ticks the epic checkbox, and returns to a freshly pulled base before starting the next one.
+
+Strictly sequential by design: a dependent feature only becomes eligible once its blockers' issues
+close, so it branches from a base that already contains them — a blocker isn't merely earlier, it's
+an ancestor, and dependencies can't conflict. Running in the main checkout (rather than worktrees)
+means untracked build state like `node_modules/` is reused across features instead of reinstalled
+per feature. The trade: **the checkout is unusable while it runs**, and it refuses to start on a
+dirty tree.
+
+It holds no state in conversation: every iteration re-derives progress from `gh issue`/`gh pr` plus
+`docs/feats/<slug>/state.yaml`, with `docs/product/<slug>/ship.yaml` as a rebuildable cache of the
+feature→branch mapping. Kill it any time and relaunch — it reconciles and continues. Features that
+exhaust their retries are **parked** (reason commented on the issue, branch left intact) so the rest
+keep shipping. It never discards uncommitted work to unblock itself; a tree too dirty to leave is
+handed back to you. Finishes only when every issue is closed, every PR merged, the base branch
+verifies green, and `qa` has validated the roadmap's success criteria on the epic — then it closes
+the epic.
+
 ## Pipeline
 
 ```
@@ -162,4 +194,6 @@ The conductor applies subagent reply YAML through `patch`. OpenCode also denies 
 ## Notes
 
 - No OpenCode plugin — state is the CLI only.
-- Workflow runs in the current checkout (no worktree isolation).
+- Everything runs in the current checkout (no worktree isolation) — including `sddkit-ship`, which
+  is therefore strictly one feature at a time.
+- `sddkit` never merges its own PR — merging is the human's, or `sddkit-ship`'s, call.

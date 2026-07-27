@@ -45,8 +45,16 @@ async function walkFiles(dir: string) {
 
 type AgentCatalog = {
   description?: string
-  opencode?: { mode?: string; model?: string }
+  opencode?: { mode?: string; model?: string; temperature?: number; steps?: number; permission?: unknown }
   cursor?: { model?: string; skill?: boolean }
+}
+
+/** Key-sorted JSON so comparisons don't depend on YAML key order. */
+function stable(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null"
+  if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`
+  const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : 1))
+  return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stable(v)}`).join(",")}}`
 }
 
 type Catalog = {
@@ -109,11 +117,24 @@ if (catalog) {
         fail(`dist/opencode/agents/${name}.md: missing frontmatter`)
         continue
       }
-      const fm = parseYaml(m[1]!) as { model?: string }
-      if (fm.model !== catalog.agents![name]!.opencode!.model) {
-        fail(
-          `dist drift: opencode ${name} model ${fm.model} != catalog ${catalog.agents![name]!.opencode!.model} — run bun run build`,
-        )
+      const fm = parseYaml(m[1]!) as {
+        model?: string
+        temperature?: number
+        steps?: number
+        permission?: unknown
+      }
+      const oc = catalog.agents![name]!.opencode!
+      if (fm.model !== oc.model) {
+        fail(`dist drift: opencode ${name} model ${fm.model} != catalog ${oc.model} — run bun run build`)
+      }
+      if (fm.temperature !== oc.temperature) {
+        fail(`dist drift: opencode ${name} temperature ${fm.temperature} != catalog ${oc.temperature} — run bun run build`)
+      }
+      if (fm.steps !== oc.steps) {
+        fail(`dist drift: opencode ${name} steps ${fm.steps} != catalog ${oc.steps} — run bun run build`)
+      }
+      if (stable(fm.permission) !== stable(oc.permission)) {
+        fail(`dist drift: opencode ${name} permission block != catalog — run bun run build`)
       }
     } catch {
       fail(`dist/opencode/agents/${name}.md missing — run bun run build`)

@@ -10,14 +10,15 @@ Carry one feature from request to done on its own branch, ending in a draft PR w
 - `./bin/sddkit-state patch <slug> --yaml '...'` merges, validates, journals. Call after every stage transition, gate, slice-phase change, artifact, or blocker.
 - Subagents return YAML reply blocks; apply them yourself with `sddkit-state patch` (they cannot write state).
 - Resume: on "resume/continue", read the feature with the newest `updated`; continue from `stage`/`pending_gate`; trust on-disk artifacts — never restart completed stages.
+- Durability: every commit you make (spec, plan, each slice, docs-sync) stages `docs/feats/<slug>/state.yaml` and `journal.ndjson` alongside that commit's own files. Without it, a resume from a fresh checkout recovers the artifacts but loses `completed_slices` and replays finished work.
 
 ## Workflow
 
-1. **initialize** — slugify the request. Preflight before anything else: confirm a git repo, `gh` on PATH, `gh auth status` succeeds, and the remote resolves (`git remote get-url origin`, `gh repo view --json nameWithOwner,defaultBranchRef`). Any failure → record the exact missing piece as a blocker and stop.
+1. **initialize** — slugify the request, or use the slug the invocation specifies. Preflight before anything else: confirm a git repo, `gh` on PATH, `gh auth status` succeeds, and the remote resolves (`git remote get-url origin`, `gh repo view --json nameWithOwner,defaultBranchRef`). Any failure → record the exact missing piece as a blocker and stop.
 
-   Create branch `feat/<slug>` from HEAD. If it already exists with a matching `docs/feats/<slug>/state.yaml`, this is a resume; otherwise append a numeric suffix (`feat/<slug>-2`).
+   Create branch `feat/<slug>` from HEAD. If it already exists with a matching `docs/feats/<slug>/state.yaml`, this is a resume; otherwise append a numeric suffix (`feat/<slug>-2`). If HEAD is already on `feat/<slug>` — an orchestrator cut the branch for you before launching — adopt it as-is: never create or suffix one.
 
-   Ask the human once: run autonomously (no human gates — pause only on unresolvable blockers), or with human review at the spec and plan gates? Include the resolved repo (`nameWithOwner`) and base branch in the same message.
+   Ask the human once: run autonomously (no human gates — pause only on unresolvable blockers), or with human review at the spec and plan gates? Include the resolved repo (`nameWithOwner`) and base branch in the same message. If the invocation already states the mode, skip the question and patch what it states.
 
    Interactive: wait for the answer. Unattended: `mode: interactive`. Then `sddkit-state init`, and patch the recorded `branch` and `mode`.
 
@@ -46,13 +47,13 @@ Carry one feature from request to done on its own branch, ending in a draft PR w
      - `standard`: `reviewer` on the uncommitted slice diff, scoped to the brief's `@S<n>` scenarios. Only `blocker|major` findings trigger a fix round — route by category (`bug|quality|perf` → `implementer`; `test|contract` → `tester`), re-test, re-review. `minor`-only findings: patch them to the slice's `review.deferred_findings` and proceed to commit. On iteration >1, tell `reviewer` to verify only the prior findings' fixes plus the delta since the last pass, not a full re-review. Stop on `clean` (or minor-only) or after 2 iterations. Exhausted with `blocker|major` findings: if `escalation: 0` → set it and redo green+review once; else record blockers, pause.
      - `low`: a single `reviewer` pass (no loop). Any `blocker` finding upgrades the slice to `standard` in place — reset to `slice_phase: red` and run the full red→green→review flow as the safety valve.
    - When `escalation: 1`, the final `clean` verdict is a fresh `reviewer` pass over the diff from scratch — tell `reviewer` to treat prior iterations as context, not authority.
-   - **commit** — Conventional Commit of the slice’s files only; append to `completed_slices`; clear `current_slice`/`slice_phase`.
+   - **commit** — Conventional Commit of the slice’s files, plus the state files per the durability rule; nothing else. Append to `completed_slices`; clear `current_slice`/`slice_phase`.
 
 9. **verify** — `stage: verify`. Run build/test/lint/typecheck commands from `AGENTS.md` (mark genuinely absent ones `n/a`); patch results under `verification`. On failure, route the smallest fix through the slice loop, then re-verify.
 
 10. **docs-sync** — `stage: docs_sync`. Update ONLY `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and the current `docs/feats/<slug>/`. Keep `AGENTS.md` short. If `.codesight/` is set up, best-effort regenerate `.codesight/wiki/` (`npx codesight --wiki`); never block on failure. Commit those docs (and wiki if regenerated) with a Conventional Commit.
 
-11. **pr** — `stage: pr`. `git push -u origin <branch>`, `gh pr create --draft` against the resolved base branch, patch `pr.url`. Failure → blocker, stop.
+11. **pr** — `stage: pr`. `git push -u origin <branch>`, `gh pr create --draft` against the resolved base branch, patch `pr.url`. If the invocation names a GitHub issue, include `Closes #<n>` in the PR body so the merge closes it. Failure → blocker, stop.
 
 12. **qa** — `stage: qa`. Delegate `qa`, passing the PR URL. `qa` selects at most 3 top-of-pyramid end-to-end journeys that together exercise as many `@S<n>` scenarios as possible, validates those with evidence, and records the rest as covered at verify. Apply its reply block.
     - `findings` → the pipeline re-enters at **specify**: delegate `spec` with the finding to update `spec.md`/contracts with a scoped delta; then delegate `architect` to update `plan.md` (including the Slices section) to match; then run only the affected slice(s) through the full slice loop (step 8); then re-verify (step 9); then re-delegate `qa`, scoped to only the previously failed journeys. `mode: interactive`: present the spec delta at the spec gate before continuing. `mode: autonomous`: journal it and continue. Re-commit after approved spec/plan deltas (slices commit in step 8). Max 2 QA-driven cycles total.
