@@ -205,50 +205,8 @@ agents:
           "*": deny
           "docs/product/**": allow
           "/tmp/**": allow
-        # The destructive denies below duplicate opencode.jsonc's global rails on
-        # purpose: it is unverified whether an agent-level bash map merges with the
-        # global one or replaces it, and these must hold either way.
-        bash:
-          "*": ask
-          "git status*": allow
-          "git branch*": allow
-          "git rev-parse*": allow
-          "git remote*": allow
-          "git log*": allow
-          "git fetch*": allow
-          "git pull*": allow
-          "git switch*": allow
-          "git rebase*": deny
-          "git reset*": deny
-          "git checkout*": deny
-          "git restore*": deny
-          "git clean*": deny
-          "git push --force*": deny
-          "git push -f *": deny
-          "git push* main*": deny
-          "git push* master*": deny
-          "gh auth status*": allow
-          "gh repo view*": allow
-          "gh issue list*": allow
-          "gh issue view*": allow
-          "gh issue comment*": allow
-          "gh issue close*": allow
-          "gh issue edit*": allow
-          "gh issue create*": deny
-          "gh pr list*": allow
-          "gh pr view*": allow
-          "gh pr checks*": allow
-          "gh pr update-branch*": allow
-          "gh pr merge*": allow
-          "opencode --version*": allow
-          "opencode run*": allow
-          "nohup opencode run*": allow
-          "mkdir -p /tmp/*": allow
-          "cat *": allow
-          "ls *": allow
-          "grep *": allow
-          "sleep *": allow
-          "kill *": ask
+        # No bash map: this agent inherits opencode.jsonc's global rails, which are
+        # ask-free by design. What it may and may not run lives in its prompt.
     cursor:
       model: inherit
       skill: true

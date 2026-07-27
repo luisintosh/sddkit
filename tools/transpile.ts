@@ -139,23 +139,27 @@ async function emitOpencode(catalog: Catalog) {
       },
       read: "allow",
       webfetch: "allow",
+      // No entry may be "ask": `opencode run` has no responder for a bash/edit
+      // permission request, so a detached child (sddkit-ship launches one per
+      // feature) would stall mid-turn with nobody to answer. Dangerous commands
+      // are hard denies — a denial is refused and the model adapts. Enforced by
+      // tools/check.ts. Merge authority is governed by prompts, not this map.
       bash: {
         "*": "allow",
         "rm -rf *": "deny",
         "rm -fr *": "deny",
-        "rm -r *": "ask",
-        "git clean *": "ask",
+        "rm -r *": "deny",
+        "git clean *": "deny",
         "git reset --hard*": "deny",
-        "git checkout -- *": "ask",
-        "git restore *": "ask",
+        "git checkout -- *": "deny",
+        "git restore *": "deny",
         "git push --force*": "deny",
         "git push -f *": "deny",
         "git push* main*": "deny",
         "git push* master*": "deny",
-        "gh pr merge *": "ask",
-        "sudo *": "ask",
-        "chmod -R *": "ask",
-        "chown -R *": "ask",
+        "sudo *": "deny",
+        "chmod -R *": "deny",
+        "chown -R *": "deny",
         "* | sh": "deny",
         "* | bash": "deny",
         "curl * | *": "deny",

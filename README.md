@@ -196,4 +196,5 @@ The conductor applies subagent reply YAML through `patch`. OpenCode also denies 
 - No OpenCode plugin — state is the CLI only.
 - Everything runs in the current checkout (no worktree isolation) — including `sddkit-ship`, which
   is therefore strictly one feature at a time.
-- `sddkit` never merges its own PR — merging is the human's, or `sddkit-ship`'s, call.
+- `sddkit` never merges its own PR — merging is the human's, or `sddkit-ship`'s, call. That rule lives in the prompts, not the permission config: `gh pr merge` is allowed at the config level, so branch protection is your hard backstop.
+- No permission is `ask`. `opencode run` has no responder for a bash/edit permission request, so an `ask` reachable by a detached child (one per feature under `sddkit-ship`) would stall it indefinitely. Dangerous commands are hard denies instead — refused, so the agent adapts. `bun run check` enforces this; only `sddkit-plan`, which is interactive-only, is exempt.

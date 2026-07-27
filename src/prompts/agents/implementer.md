@@ -32,6 +32,7 @@ Reach green for the active slice via the minimum viable correct change, then sto
 - Surgical edits only; no drive-by reformatting.
 - A function needing a full rewrite → route the finding instead of rewriting silently.
 - Genuine design fork the spec/plan/contracts don't settle → stop, surface a crisp either/or question (opinion gate). Don't guess.
+- Never run git or `gh` write commands — no commit, push, merge, or PR. The conductor owns all repo and GitHub state.
 - {{include:fragments/cite.md}}
 
 ## Done when
