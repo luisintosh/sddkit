@@ -38,10 +38,11 @@ docs/feats/<feature>/
   spec.md
   contracts/*.feature
   plan.md
+docs/product/<slug>/roadmap.md   optional, written by sddkit-plan
 bin/sddkit-state            installed by install.sh
 .opencode/               OpenCode agents + opencode.jsonc
 .cursor/agents/          Cursor subagents
-.cursor/skills/          sddkit + setup-* skills
+.cursor/skills/          sddkit, sddkit-plan + setup-* skills
 ```
 
 ## Models
@@ -55,6 +56,7 @@ bin/sddkit-state            installed by install.sh
 | `implementer` | `opencode-go/deepseek-v4-flash` | `composer-2.5` | TDD green (+ escalation re-run) |
 | `reviewer` | `opencode-go/kimi-k2.7-code` | `kimi-k2.7-code` | read-only review / critique |
 | `qa` | `opencode-go/glm-5.2` | `composer-2.5` | end-to-end validation |
+| `sddkit-plan` | `opencode-go/qwen3.7-max` | `inherit` | product owner → roadmap (Cursor: `/sddkit-plan` skill) |
 
 Checked in CI against `src/catalog.yaml` and emitted frontmatter.
 
@@ -106,6 +108,20 @@ Runs [`codesight`](https://github.com/Houseofmvps/codesight) to generate `.codes
 `sddkit` verifies `gh` + the target repo, creates `feat/<slug>`, and asks once (interactive vs
 autonomous), then scaffolds state with `./bin/sddkit-state init` and runs the pipeline. Resume by
 asking to continue.
+
+### Plan a Product (optional)
+
+**OpenCode:** Tab-switch to the `sddkit-plan` agent and describe the idea.
+
+**Cursor:** run the `/sddkit-plan` skill (it inherits your session model — use your most capable
+one for this).
+
+Explores the codebase to answer what it can before asking anything, refines the idea into a
+measurable goal, explores candidate approaches, then writes a feature roadmap — each feature with
+a Definition of Done and dependency-derived parallel/sequential waves — to
+`docs/product/<slug>/roadmap.md`. Offers to commit it and to create GitHub issues (one epic +
+one per feature, wired with `Blocked by #N`). Standalone — doesn't touch the SDD pipeline; each
+resulting feature is meant to be run through `sddkit` on its own.
 
 ## Pipeline
 
