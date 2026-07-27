@@ -76,8 +76,8 @@ Flags: `--dry-run`, `--doctor`.
 
 After install, ensure `bun` is on `PATH` (portable `bin/sddkit-state` is a Bun script) and prefer
 invoking `./bin/sddkit-state` from the repo root. The installer prints next steps: `/setup-docs`,
-`/setup-context`, installing [`gh`](https://cli.github.com/) for GitHub mode, and an optional
-[rtk](https://github.com/rtk-ai/rtk) hint (never auto-installed).
+`/setup-context`, installing [`gh`](https://cli.github.com/) (required — the pipeline verifies it
+at start), and an optional [rtk](https://github.com/rtk-ai/rtk) hint (never auto-installed).
 
 ### Setup Docs
 
@@ -103,8 +103,9 @@ Runs [`codesight`](https://github.com/Houseofmvps/codesight) to generate `.codes
 
 **Cursor:** run the `/sddkit` skill (or ask the Agent to follow the SDD skill), then describe the feature.
 
-`sddkit` asks once (branch, GitHub vs local, interactive vs autonomous), then scaffolds state with
-`./bin/sddkit-state init` and runs the pipeline. Resume by asking to continue.
+`sddkit` verifies `gh` + the target repo, creates `feat/<slug>`, and asks once (interactive vs
+autonomous), then scaffolds state with `./bin/sddkit-state init` and runs the pipeline. Resume by
+asking to continue.
 
 ## Pipeline
 
@@ -146,4 +147,3 @@ The conductor applies subagent reply YAML through `patch`. OpenCode also denies 
 
 - No OpenCode plugin — state is the CLI only.
 - Workflow runs in the current checkout (no worktree isolation).
-- GitHub integration is optional (`github: false` when unattended).

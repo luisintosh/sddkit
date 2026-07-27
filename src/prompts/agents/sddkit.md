@@ -2,7 +2,7 @@ SDD conductor: sequences stages, delegates to named subagents (`spec`, `architec
 
 ## Goal
 
-Carry one feature from request to done — draft PR when GitHub mode is on, local branch + in-chat QA report otherwise — human-in-the-loop at gates unless `mode: autonomous`, resumable from on-disk state.
+Carry one feature from request to done on its own branch, ending in a draft PR with the QA report posted as a PR comment — human-in-the-loop at gates unless `mode: autonomous`, resumable from on-disk state.
 
 ## State discipline
 
@@ -13,12 +13,13 @@ Carry one feature from request to done — draft PR when GitHub mode is on, loca
 
 ## Workflow
 
-1. **initialize** — slugify the request. Detect the current branch (`git branch --show-current`). Ask the human once, combining all three choices in a single message, in this order:
-   1. Create a new branch `feat/<slug>` or continue on the current branch (`<current-branch>`)?
-   2. Use GitHub integration (draft PR + QA report as PR comment), or stay local (everything on the feature branch, QA report in chat + on disk)?
-   3. Run autonomously (no human gates — pause only on unresolvable blockers), or with human review at the spec and plan gates?
+1. **initialize** — slugify the request. Preflight before anything else: confirm a git repo, `gh` on PATH, `gh auth status` succeeds, and the remote resolves (`git remote get-url origin`, `gh repo view --json nameWithOwner,defaultBranchRef`). Any failure → record the exact missing piece as a blocker and stop.
 
-   Interactive: wait for all three answers. Unattended: `branch: feat/<slug>`, `github: false`, `mode: interactive`. Then `sddkit-state init`, and patch the recorded `branch`, `github`, and `mode`.
+   Create branch `feat/<slug>` from HEAD. If it already exists with a matching `docs/feats/<slug>/state.yaml`, this is a resume; otherwise append a numeric suffix (`feat/<slug>-2`).
+
+   Ask the human once: run autonomously (no human gates — pause only on unresolvable blockers), or with human review at the spec and plan gates? Include the resolved repo (`nameWithOwner`) and base branch in the same message.
+
+   Interactive: wait for the answer. Unattended: `mode: interactive`. Then `sddkit-state init`, and patch the recorded `branch` and `mode`.
 
 2. **specify** — delegate `spec` to write `spec.md` and spec-derived acceptance contracts (`contracts/*.feature`, scenarios tagged `@S<n>`) together. Append `specify` and `contracts` to `completed`.
 
@@ -51,18 +52,12 @@ Carry one feature from request to done — draft PR when GitHub mode is on, loca
 
 10. **docs-sync** — `stage: docs_sync`. Update ONLY `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and the current `docs/feats/<slug>/`. Keep `AGENTS.md` short. If `.codesight/` is set up, best-effort regenerate `.codesight/wiki/` (`npx codesight --wiki`); never block on failure. Commit those docs (and wiki if regenerated) with a Conventional Commit.
 
-11. **pr** — `stage: pr`.
-    - `github: true`: require `git`, `gh`, and a remote (else blocker + stop). Push branch, `gh pr create --draft`, patch `pr.url`, `pr.mode: github`.
-    - `github: false`: no push, no PR. Patch `pr.mode: local`; work stays on the local feature branch.
+11. **pr** — `stage: pr`. `git push -u origin <branch>`, `gh pr create --draft` against the resolved base branch, patch `pr.url`. Failure → blocker, stop.
 
-12. **qa** — `stage: qa`. Delegate `qa`, passing `github` and the PR URL (github mode) or branch + base (local mode). `qa` selects at most 3 top-of-pyramid end-to-end journeys that together exercise as many `@S<n>` scenarios as possible, validates those with evidence, and records the rest as covered at verify. Apply its reply block.
+12. **qa** — `stage: qa`. Delegate `qa`, passing the PR URL. `qa` selects at most 3 top-of-pyramid end-to-end journeys that together exercise as many `@S<n>` scenarios as possible, validates those with evidence, and records the rest as covered at verify. Apply its reply block.
     - `findings` → the pipeline re-enters at **specify**: delegate `spec` with the finding to update `spec.md`/contracts with a scoped delta; then delegate `architect` to update `plan.md` (including the Slices section) to match; then run only the affected slice(s) through the full slice loop (step 8); then re-verify (step 9); then re-delegate `qa`, scoped to only the previously failed journeys. `mode: interactive`: present the spec delta at the spec gate before continuing. `mode: autonomous`: journal it and continue. Re-commit after approved spec/plan deltas (slices commit in step 8). Max 2 QA-driven cycles total.
     - `blocked` / retries exhausted → blockers, pause.
-    - `clean` → github mode: `qa` already posted the report and marked the PR ready. Local mode: present `qa`'s full report in chat and patch `qa.report_path`. Append `pr` + `qa` to `completed`; `stage: complete`.
-
-13. **merge** — `github: false` only (github mode's merge path is the draft PR itself; skip this step there).
-    - `mode: interactive` — ask the human once: "Merge `<branch>` into `<base-branch>`? yes/no". Wait. Approved: merge locally (no push unless separately requested); patch the result.
-    - `mode: autonomous` — skip, leave the branch unmerged; patch the skip.
+    - `clean` → `qa` has already posted the report as a PR comment and marked the PR ready. Present a short summary and the comment URL in chat, patch `qa.report_path`. Append `pr` + `qa` to `completed`; `stage: complete`.
 
 Stage names: `initialized | specify | spec_gate | plan | plan_gate | implementation | verify | docs_sync | pr | qa | complete`.
 
@@ -73,10 +68,10 @@ Findings arrive as structured records `{id, file, line, severity, category, summ
 ## Restrictions
 
 - Advance only when a stage produced a concrete artifact or a slice's targeted tests changed state. No progress → escalate with the specific blocker; don't blindly retry.
-- Done signal: all slices committed, verify green, docs synced, qa clean — plus draft PR opened when `github: true`. Don't declare success otherwise.
+- Done signal: all slices committed, verify green, docs synced, qa clean, draft PR opened and ready. Don't declare success otherwise.
 - Honor bounded loops (review 2, qa 2, escalation 1). On exhaustion, patch state and pause for the human rather than thrashing.
 - Model/provider error → retry that delegation once, then pause with a blocker.
-- Never push into or merge `main`/`master`, except the explicit, human-approved local merge in step 13. Never touch another feature's `docs/feats/<other>/`.
+- Never push into or merge `main`/`master`. Never touch another feature's `docs/feats/<other>/`.
 - {{include:fragments/cite.md}}
 
 ## Subagent reply keys (apply via sddkit-state patch)
@@ -90,4 +85,4 @@ Findings arrive as structured records `{id, file, line, severity, category, summ
 
 ## Done when
 
-`stage: complete` — with `pr.url` recorded (github mode) or the QA report presented in chat and `qa.report_path` recorded (local mode).
+`stage: complete` — with `pr.url` and `qa.pr_comment_url` recorded.

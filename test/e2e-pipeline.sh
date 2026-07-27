@@ -51,6 +51,25 @@ cp -R "$FIXTURE" "$TARGET"
 (cd "$TARGET" && git init -q && git config user.email test@example.com && git config user.name test \
   && git add -A && git commit -q -m "fixture: initial state")
 
+# Fake origin so the initialize preflight's remote check resolves.
+git init --bare -q "${WORK}/origin.git"
+(cd "$TARGET" && git remote add origin "${WORK}/origin.git")
+
+# Stub `gh` on PATH: answers auth/repo checks read-only, refuses anything else
+# (push/PR-create should never happen before the spec gate).
+GH_STUB_DIR="${WORK}/bin"
+mkdir -p "$GH_STUB_DIR"
+cat > "${GH_STUB_DIR}/gh" <<'STUB'
+#!/usr/bin/env bash
+case "$1 $2" in
+  "auth status") exit 0 ;;
+  "repo view") echo '{"nameWithOwner":"test/fixture","defaultBranchRef":{"name":"master"}}' ;;
+  *) echo "gh stub: unexpected invocation: $*" >&2; exit 1 ;;
+esac
+STUB
+chmod +x "${GH_STUB_DIR}/gh"
+export PATH="${GH_STUB_DIR}:${PATH}"
+
 LOCAL_SOURCE="$REPO_ROOT" TARGET_DIR="$TARGET" INSTALL_TARGET=opencode \
   bash "${REPO_ROOT}/install.sh" >&2
 
@@ -97,7 +116,7 @@ if [[ -f "$state_file" ]]; then
     const doc = parse(readFileSync('${state_file}', 'utf8'));
     const result = validateState(doc);
     if (!result.success) { console.error(result.error); process.exit(1); }
-    console.log(JSON.stringify({ stage: doc.stage, pending_gate: doc.pending_gate, github: doc.github }));
+    console.log(JSON.stringify({ stage: doc.stage, pending_gate: doc.pending_gate, branch: doc.branch }));
   " > "${WORK}/state-check.json" 2> "${WORK}/state-check.err"
   validate_rc=$?
   set -e
@@ -109,10 +128,16 @@ if [[ -f "$state_file" ]]; then
   fi
 
   parsed="$(cat "${WORK}/state-check.json" 2>/dev/null || echo '{}')"
-  if grep -q '"github":false' <<<"$parsed"; then
-    ok "github defaulted to false in unattended mode"
+  if grep -q '"branch":"feat/' <<<"$parsed"; then
+    ok "state recorded a feat/ branch"
   else
-    bad "expected github:false by default when unattended, got: $parsed"
+    bad "expected branch starting feat/, got: $parsed"
+  fi
+
+  if (cd "$TARGET" && git branch --list 'feat/*' | grep -q .); then
+    ok "feat/ branch exists in the scratch repo"
+  else
+    bad "expected a feat/* branch to have been created"
   fi
 
   if grep -q '"pending_gate":"spec"' <<<"$parsed"; then
@@ -128,10 +153,10 @@ else
   bad "journal.ndjson missing or empty at ${journal_file}"
 fi
 
-if grep -qE '\bgh\b|git push' "${WORK}/run.log"; then
-  bad "run.log mentions gh/git push — should not happen before the spec gate, let alone in github:false mode"
+if grep -qE 'git push|gh pr create' "${WORK}/run.log"; then
+  bad "run.log mentions git push/gh pr create — should not happen before the spec gate"
 else
-  ok "no gh/push command was attempted"
+  ok "no push/PR-create command was attempted before the spec gate"
 fi
 
 if grep -q 'sddkit-state' "${WORK}/run.log" || [[ -f "$journal_file" ]]; then
