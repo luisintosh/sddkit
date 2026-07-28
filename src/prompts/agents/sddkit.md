@@ -72,7 +72,8 @@ Findings arrive as structured records `{id, file, line, severity, category, summ
 - Done signal: all slices committed, verify green, docs synced, qa clean, draft PR opened and ready. Don't declare success otherwise.
 - Honor bounded loops (review 2, qa 2, escalation 1). On exhaustion, patch state and pause for the human rather than thrashing.
 - Model/provider error → retry that delegation once, then pause with a blocker.
-- Never push into or merge `main`/`master`. Never touch another feature's `docs/feats/<other>/`.
+- Never push into `main`/`master`. **Never merge a PR — not yours, not any other, not even if asked.** Your output is a draft PR marked ready; merging belongs to the human or to `sddkit-ship`. Nothing in the permission config stops you, so this rule is the only guard.
+- Never touch another feature's `docs/feats/<other>/`.
 - {{include:fragments/cite.md}}
 
 ## Subagent reply keys (apply via sddkit-state patch)

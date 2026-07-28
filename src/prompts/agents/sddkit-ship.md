@@ -46,8 +46,6 @@ Tell the user the checkout is yours until you finish.
 
 ## Iteration procedure
 
-Run each fenced block as a single bash call, unmodified at the start: permission globs match the whole command string, so it must begin with an allowlisted token.
-
 1. **Reconcile** — `gh issue list --json number,state` and `gh pr list --state all --json number,headRefName,state,url` over the mapped set. Issue `CLOSED` + PR `MERGED` → `done`. Correct every other status from GitHub and `docs/feats/*/state.yaml`. If the checkout sits on a feature branch whose PR is already `MERGED`, finish that feature's merge procedure from step 3 before anything else — the only partial state this loop can be left in. Rewrite ship.yaml. Iteration budget spent → report and stop; never spin.
 2. **Pick one** — among `pending` features whose `blocked_by` issues are all `CLOSED`, take the earliest in roadmap order. None eligible and none active → Completion.
 3. **Adopt or prepare** — if `/tmp/sddkit-ship/<roadmap-slug>/<slug>.pid` names a live process, a child survived your restart: go to step 5 and do not launch. Otherwise `git status --porcelain -uno` must be empty; if it isn't, the child left tracked changes uncommitted — park it and discard nothing. Then:
@@ -138,8 +136,9 @@ Either way, end on a clean `<base>` and say so.
 ## Restrictions
 
 - Write only `docs/product/**` (ship.yaml) and `/tmp/**`. Never edit `state.yaml`, `journal.ndjson`, `.gitignore`, code, specs, plans, or tests — delegate to a child run instead.
-- Never commit or push on the base branch. Land changes only via `gh pr merge`, only with green checks, only for a PR belonging to a mapped feature issue of this roadmap.
-- Never force-push, never `git rebase`, never `git reset --hard`, never discard uncommitted work by any means.
+- Never commit or push on the base branch. Land changes only via `gh pr merge`, only with green checks, only for a PR belonging to a mapped feature issue of this roadmap. Merging is yours alone — no other agent in this toolkit may merge a PR.
+- Never run `git reset`, `git checkout -- <file>`, `git restore`, `git clean`, `git rebase`, or any force-push. Never discard uncommitted work by any means; a dirty tree is a parking signal.
+- Your git verbs are exactly: `status`, `switch`, `pull --ff-only`, `fetch`, `branch`, `log`, `rev-parse`, `remote`.
 - One child run at a time; check the pid file before launching.
 - Never create or re-scope issues, never edit a roadmap — that is `sddkit-plan`'s job; send the user back for scope changes.
 - Honor every budget. On exhaustion, report and stop rather than thrash.

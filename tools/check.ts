@@ -49,6 +49,31 @@ type AgentCatalog = {
   cursor?: { model?: string; skill?: boolean }
 }
 
+/**
+ * Agents whose permission maps may contain "ask". Only interactive-only agents
+ * qualify: `opencode run` has no responder for a bash/edit permission request,
+ * so an "ask" reachable by a detached child (sddkit-ship launches one per
+ * feature) stalls that run indefinitely. See tools/transpile.ts.
+ */
+const ASK_ALLOWED = new Set(["sddkit-plan"])
+
+/** Every permission value in a nested map, flattened to "path -> value" pairs. */
+function permissionValues(node: unknown, path: string[] = []): [string, string][] {
+  if (typeof node === "string") return [[path.join("."), node]]
+  if (!node || typeof node !== "object" || Array.isArray(node)) return []
+  return Object.entries(node as Record<string, unknown>).flatMap(([k, v]) =>
+    permissionValues(v, [...path, k]),
+  )
+}
+
+function failOnAsk(label: string, permission: unknown) {
+  for (const [where, value] of permissionValues(permission)) {
+    if (value === "ask") {
+      fail(`${label}: permission "${where}" is "ask" — a detached opencode run cannot answer it; use allow or deny`)
+    }
+  }
+}
+
 /** Key-sorted JSON so comparisons don't depend on YAML key order. */
 function stable(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null"
@@ -83,6 +108,7 @@ if (catalog) {
       fail(`catalog: agents.${name}.opencode.model must start with opencode-go/`)
     }
     if (!a.cursor?.model) fail(`catalog: agents.${name}.cursor.model required`)
+    if (!ASK_ALLOWED.has(name)) failOnAsk(`catalog: agents.${name}`, a.opencode?.permission)
     try {
       await stat(path.join(root, "src", "prompts", "agents", `${name}.md`))
     } catch {
@@ -101,11 +127,13 @@ if (catalog) {
 const distOc = path.join(root, "dist", "opencode")
 const distCu = path.join(root, "dist", "cursor")
 
+let ocConfig: { permission?: unknown } | undefined
 try {
-  await stat(path.join(distOc, "opencode.jsonc"))
+  ocConfig = JSON.parse(await readFile(path.join(distOc, "opencode.jsonc"), "utf8"))
 } catch {
-  fail("dist/opencode/opencode.jsonc missing — run bun run build")
+  fail("dist/opencode/opencode.jsonc missing or unparseable — run bun run build")
 }
+if (ocConfig) failOnAsk("dist/opencode/opencode.jsonc", ocConfig.permission)
 
 if (catalog) {
   for (const name of agentNames) {
