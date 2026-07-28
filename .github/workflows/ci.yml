@@ -58,6 +58,12 @@ jobs:
       - run: bun install
       - run: bash test/e2e-install.sh
 
+  e2e-ship:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash test/e2e-ship.sh
+
   release-assets:
     if: github.event_name == 'release'
     runs-on: ubuntu-latest

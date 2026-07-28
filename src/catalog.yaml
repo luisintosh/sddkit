@@ -16,8 +16,6 @@ agents:
           "docs/feats/**/state.yaml": deny
           "**/journal.ndjson": deny
           ".opencode/**": deny
-        bash:
-          "git merge*": allow
     cursor:
       model: inherit
       skill: true
@@ -184,6 +182,73 @@ agents:
           "gh issue create*": allow
           "gh issue view*": allow
           "gh issue list*": allow
+    cursor:
+      model: inherit
+      skill: true
+
+  sddkit-ship:
+    description: >-
+      Roadmap ship orchestrator. Executes every feature of an approved
+      sddkit-plan roadmap from its GitHub issues — one autonomous sddkit run
+      at a time, in dependency order, in the main checkout — auto-merging
+      green PRs, closing issues, and closing the epic once the base branch
+      verifies and QA validates the roadmap's success criteria. Re-derives
+      all state from GitHub each iteration: killable and resumable.
+      Requires the OpenCode CLI as its runner.
+    opencode:
+      mode: primary
+      model: opencode-go/kimi-k2.7-code
+      temperature: 0.1
+      steps: 200
+      permission:
+        edit:
+          "*": deny
+          "docs/product/**": allow
+          "/tmp/**": allow
+        # The destructive denies below duplicate opencode.jsonc's global rails on
+        # purpose: it is unverified whether an agent-level bash map merges with the
+        # global one or replaces it, and these must hold either way.
+        bash:
+          "*": ask
+          "git status*": allow
+          "git branch*": allow
+          "git rev-parse*": allow
+          "git remote*": allow
+          "git log*": allow
+          "git fetch*": allow
+          "git pull*": allow
+          "git switch*": allow
+          "git rebase*": deny
+          "git reset*": deny
+          "git checkout*": deny
+          "git restore*": deny
+          "git clean*": deny
+          "git push --force*": deny
+          "git push -f *": deny
+          "git push* main*": deny
+          "git push* master*": deny
+          "gh auth status*": allow
+          "gh repo view*": allow
+          "gh issue list*": allow
+          "gh issue view*": allow
+          "gh issue comment*": allow
+          "gh issue close*": allow
+          "gh issue edit*": allow
+          "gh issue create*": deny
+          "gh pr list*": allow
+          "gh pr view*": allow
+          "gh pr checks*": allow
+          "gh pr update-branch*": allow
+          "gh pr merge*": allow
+          "opencode --version*": allow
+          "opencode run*": allow
+          "nohup opencode run*": allow
+          "mkdir -p /tmp/*": allow
+          "cat *": allow
+          "ls *": allow
+          "grep *": allow
+          "sleep *": allow
+          "kill *": ask
     cursor:
       model: inherit
       skill: true
