@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 /** Write manifest.txt (sha256 + dist-relative path) from dist/. */
 import { createHash } from "node:crypto"
+import type { Dirent } from "node:fs"
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -12,7 +13,7 @@ const root = process.env.HARNESS_ROOT
 async function walkFiles(dir: string): Promise<string[]> {
   const out: string[] = []
   async function walk(d: string) {
-    let entries
+    let entries: Dirent[]
     try {
       entries = await fs.readdir(d, { withFileTypes: true })
     } catch {
@@ -55,5 +56,5 @@ for (const abs of files) {
 lines.sort((a, b) => a.split("  ")[1]!.localeCompare(b.split("  ")[1]!))
 
 const outPath = path.join(root, "manifest.txt")
-await fs.writeFile(outPath, lines.join("\n") + "\n", "utf8")
+await fs.writeFile(outPath, `${lines.join("\n")}\n`, "utf8")
 console.error(`Wrote manifest.txt (${lines.length} files)`)

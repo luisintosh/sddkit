@@ -3,9 +3,9 @@
 agents:
   sddkit:
     description: >-
-      Drives the end-to-end spec-driven development (SDD) feature pipeline —
-      sequences stages, manages human-in-the-loop gates, routes review findings,
-      keeps docs in sync. Treats a normal feature request as a request to run the full workflow.
+      Drives the end-to-end spec-driven development (SDD) feature pipeline — sequences stages, manages human-in-the-loop
+      gates, routes review findings, keeps docs in sync. Treats a normal feature request as a request to run the full
+      workflow.
     opencode:
       mode: primary
       model: opencode-go/qwen3.7-plus
@@ -22,8 +22,8 @@ agents:
 
   spec:
     description: >-
-      Writes feature specifications (the what & why) and spec-derived acceptance
-      contracts. SDD specify/contracts stages.
+      Writes feature specifications (the what & why) and spec-derived acceptance contracts. SDD specify/contracts
+      stages.
     opencode:
       mode: subagent
       model: openai/gpt-5.6-sol
@@ -40,8 +40,8 @@ agents:
 
   architect:
     description: >-
-      Plans implementation strategy and writes feature plans (SDD plan stage).
-      Owns codebase exploration. Read-mostly; designs before code.
+      Plans implementation strategy and writes feature plans (SDD plan stage). Owns codebase exploration. Read-mostly;
+      designs before code.
     opencode:
       mode: subagent
       model: openai/gpt-5.6-sol
@@ -58,8 +58,8 @@ agents:
 
   tester:
     description: >-
-      TDD red phase. Writes failing tests from acceptance contracts. Edits
-      test-only locations — never implementation, never the contracts.
+      TDD red phase. Writes failing tests from acceptance contracts. Edits test-only locations — never implementation,
+      never the contracts.
     opencode:
       mode: subagent
       model: opencode-go/kimi-k2.7-code
@@ -84,8 +84,8 @@ agents:
 
   implementer:
     description: >-
-      TDD green phase. Writes the minimal implementation to make failing tests
-      pass. Never edits test files. On escalation, re-derive from plan+tests.
+      TDD green phase. Writes the minimal implementation to make failing tests pass. Never edits test files. On
+      escalation, re-derive from plan+tests.
     opencode:
       mode: subagent
       model: openai/gpt-5.6-luna
@@ -111,8 +111,8 @@ agents:
 
   reviewer:
     description: >-
-      Independent, READ-ONLY reviewer. Two modes — slice-diff review and artifact
-      critique (spec/plan). Emits structured findings; never edits.
+      Independent, READ-ONLY reviewer. Two modes — slice-diff review and artifact critique (spec/plan). Emits structured
+      findings; never edits.
     opencode:
       mode: subagent
       model: opencode-go/kimi-k2.7-code
@@ -133,9 +133,8 @@ agents:
 
   qa:
     description: >-
-      Validates the implementation against spec + acceptance contracts.
-      Playwright for UI; non-UI validation menu otherwise. Posts the evidence
-      report as a PR comment.
+      Validates the implementation against spec + acceptance contracts. Playwright for UI; non-UI validation menu
+      otherwise. Posts the evidence report as a PR comment.
     opencode:
       mode: subagent
       model: opencode-go/deepseek-v4-pro
@@ -151,13 +150,10 @@ agents:
 
   sddkit-plan:
     description: >-
-      Product Owner planner. Refines a raw idea into a clear, measurable goal by
-      exploring the codebase first and asking only the high-leverage questions
-      code can't answer (assumptions stated), explores candidate approaches,
-      then writes a feature roadmap with per-feature Definition of Done and
-      sequencing at docs/product/<slug>/roadmap.md. Offers to commit it and to
-      create GitHub issues (epic + per-feature). Standalone — does not run the
-      SDD pipeline.
+      Product Owner planner. Refines a raw idea into a clear, measurable goal by exploring the codebase first and asking
+      only the high-leverage questions code can't answer (assumptions stated), explores candidate approaches, then
+      writes a feature roadmap with per-feature Definition of Done and sequencing at docs/product/<slug>/roadmap.md.
+      Offers to commit it and to create GitHub issues (epic + per-feature). Standalone — does not run the SDD pipeline.
     opencode:
       mode: primary
       model: openai/gpt-5.6-sol
