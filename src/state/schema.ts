@@ -37,6 +37,7 @@ export const StateSchema = z.object({
   current_slice: z.string().default(""),
   slice_phase: z.enum(SLICE_PHASES).default(""),
   escalation: z.union([z.literal(0), z.literal(1)]).default(0),
+  green_attempts: z.number().int().default(0),
   completed_slices: z.array(z.string()).default([]),
   last_agent: z.string().default(""),
   updated: z.string().min(1),
@@ -65,6 +66,7 @@ export const StateSchema = z.object({
   qa: z
     .object({
       status: z.string().default(""),
+      cycles: z.number().int().default(0),
       scenarios_total: z.number().int().default(0),
       scenarios_passed: z.number().int().default(0),
       scenarios_failed: z.number().int().default(0),
@@ -75,6 +77,7 @@ export const StateSchema = z.object({
     })
     .default({
       status: "",
+      cycles: 0,
       scenarios_total: 0,
       scenarios_passed: 0,
       scenarios_failed: 0,
@@ -88,6 +91,14 @@ export const StateSchema = z.object({
       url: z.string().default(""),
     })
     .default({ url: "" }),
+  roadmap: z
+    .object({
+      issue: z.number().int().default(0),
+      epic: z.number().int().default(0),
+      feature_id: z.string().default(""),
+      path: z.string().default(""),
+    })
+    .default({ issue: 0, epic: 0, feature_id: "", path: "" }),
 })
 
 export type SddState = z.infer<typeof StateSchema>

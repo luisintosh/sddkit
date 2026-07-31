@@ -186,31 +186,6 @@ agents:
       model: inherit
       skill: true
 
-  sddkit-ship:
-    description: >-
-      Roadmap ship orchestrator. Executes every feature of an approved
-      sddkit-plan roadmap from its GitHub issues — one autonomous sddkit run
-      at a time, in dependency order, in the main checkout — auto-merging
-      green PRs, closing issues, and closing the epic once the base branch
-      verifies and QA validates the roadmap's success criteria. Re-derives
-      all state from GitHub each iteration: killable and resumable.
-      Requires the OpenCode CLI as its runner.
-    opencode:
-      mode: primary
-      model: opencode-go/kimi-k2.7-code
-      temperature: 0.1
-      steps: 200
-      permission:
-        edit:
-          "*": deny
-          "docs/product/**": allow
-          "/tmp/**": allow
-        # No bash map: this agent inherits opencode.jsonc's global rails, which are
-        # ask-free by design. What it may and may not run lives in its prompt.
-    cursor:
-      model: inherit
-      skill: true
-
 commands:
   setup-docs:
     description: Scaffold project docs required for the AI working context.

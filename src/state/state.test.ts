@@ -55,9 +55,12 @@ describe("validateState", () => {
     if (result.success) {
       expect(result.data.completed).toEqual([])
       expect(result.data.escalation).toBe(0)
+      expect(result.data.green_attempts).toBe(0)
+      expect(result.data.qa.cycles).toBe(0)
       expect(result.data.pending_gate).toBe("")
       expect(result.data.mode).toBe("interactive")
       expect(result.data.artifacts).toEqual({ spec: "", contracts: [], plan: "" })
+      expect(result.data.roadmap).toEqual({ issue: 0, epic: 0, feature_id: "", path: "" })
     }
   })
 
@@ -199,6 +202,29 @@ describe("runInit / runPatch", () => {
 
   test("patch against a missing feature throws", async () => {
     await expect(runPatch(root, "ghost", { stage: "specify" })).rejects.toThrow(/does not exist/)
+  })
+
+  test("loop counters survive a round-trip so a resume reads them back", async () => {
+    await runInit(root, "account-export")
+    await runPatch(root, "account-export", { green_attempts: 2, escalation: 1 })
+    await runPatch(root, "account-export", { qa: { cycles: 1 } })
+    const after = await readState(root, "account-export")
+    expect(after?.green_attempts).toBe(2)
+    expect(after?.escalation).toBe(1)
+    expect(after?.qa.cycles).toBe(1)
+  })
+
+  test("a partial roadmap patch preserves sibling keys", async () => {
+    await runInit(root, "account-export")
+    await runPatch(root, "account-export", { roadmap: { issue: 7, epic: 3, feature_id: "F2" } })
+    await runPatch(root, "account-export", { roadmap: { path: "docs/product/billing/roadmap.md" } })
+    const after = await readState(root, "account-export")
+    expect(after?.roadmap).toEqual({
+      issue: 7,
+      epic: 3,
+      feature_id: "F2",
+      path: "docs/product/billing/roadmap.md",
+    })
   })
 
   test("patch that would produce an invalid document is rejected and not written", async () => {

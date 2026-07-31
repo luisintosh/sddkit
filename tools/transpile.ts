@@ -140,10 +140,10 @@ async function emitOpencode(catalog: Catalog) {
       read: "allow",
       webfetch: "allow",
       // No entry may be "ask": `opencode run` has no responder for a bash/edit
-      // permission request, so a detached child (sddkit-ship launches one per
-      // feature) would stall mid-turn with nobody to answer. Dangerous commands
-      // are hard denies — a denial is refused and the model adapts. Enforced by
-      // tools/check.ts. Merge authority is governed by prompts, not this map.
+      // permission request, so an unattended run would stall mid-turn with
+      // nobody to answer. Dangerous commands are hard denies instead — a denial
+      // is refused and the model adapts. Enforced by tools/check.ts. Merge
+      // authority is governed by prompts, not this map.
       bash: {
         "*": "allow",
         "rm -rf *": "deny",

@@ -40,11 +40,10 @@ docs/feats/<feature>/
   plan.md
 docs/product/<slug>/
   roadmap.md             optional, written by sddkit-plan
-  ship.yaml              run cache, written by sddkit-ship (left untracked)
 bin/sddkit-state            installed by install.sh
 .opencode/               OpenCode agents + opencode.jsonc
 .cursor/agents/          Cursor subagents
-.cursor/skills/          sddkit, sddkit-plan, sddkit-ship + setup-* skills
+.cursor/skills/          sddkit, sddkit-plan + setup-* skills
 ```
 
 ## Models
@@ -59,7 +58,6 @@ bin/sddkit-state            installed by install.sh
 | `reviewer` | `opencode-go/kimi-k2.7-code` | `kimi-k2.7-code` | read-only review / critique |
 | `qa` | `opencode-go/glm-5.2` | `composer-2.5` | end-to-end validation |
 | `sddkit-plan` | `opencode-go/qwen3.7-max` | `inherit` | product owner → roadmap (Cursor: `/sddkit-plan` skill) |
-| `sddkit-ship` | `opencode-go/kimi-k2.7-code` | `inherit` | roadmap orchestrator (Cursor: `/sddkit-ship` skill) |
 
 Checked in CI against `src/catalog.yaml` and emitted frontmatter.
 
@@ -112,6 +110,11 @@ Runs [`codesight`](https://github.com/Houseofmvps/codesight) to generate `.codes
 autonomous), then scaffolds state with `./bin/sddkit-state init` and runs the pipeline. Resume by
 asking to continue.
 
+Name a GitHub issue (`gh issue view` number or URL) and `sddkit` links to it: scope comes from its
+Definition of Done, the slug is derived from the issue title, and completion prints a **handoff** —
+a paste-ready invocation for the roadmap's next feature, plus anything this run learned that the
+next one needs.
+
 ### Plan a Product (optional)
 
 **OpenCode:** Tab-switch to the `sddkit-plan` agent and describe the idea.
@@ -124,43 +127,23 @@ measurable goal, explores candidate approaches, then writes a feature roadmap �
 a Definition of Done and dependency-derived parallel/sequential waves — to
 `docs/product/<slug>/roadmap.md`. Offers to commit it and to create GitHub issues (one epic +
 one per feature, wired with `Blocked by #N`). Standalone — doesn't touch the SDD pipeline; each
-resulting feature is meant to be run through `sddkit` on its own.
+resulting feature is meant to be run through `sddkit` on its own. Ends by printing a paste-ready
+invocation for the roadmap's first feature.
 
-### Ship a Roadmap (optional)
+### Run a Roadmap
 
-**OpenCode:** Tab-switch to the `sddkit-ship` agent and point it at a roadmap or its epic issue.
-
-**Cursor:** run the `/sddkit-ship` skill. Either way the **OpenCode CLI must be installed** — it is
-the runner for child feature runs (`opencode run --agent sddkit`).
-
-Executes the whole roadmap from its GitHub issues without further input, **one feature at a time in
-your checkout**. Per feature it switches to the base branch, pulls, cuts `feat/<slug>`, launches an
-autonomous `sddkit` run, waits, then — once QA is clean and CI is green — brings the PR up to date
-(`gh pr update-branch`, never a force-push), squash-merges it, closes the issue via `Closes #N`,
-ticks the epic checkbox, and returns to a freshly pulled base before starting the next one.
-
-Strictly sequential by design: a dependent feature only becomes eligible once its blockers' issues
-close, so it branches from a base that already contains them — a blocker isn't merely earlier, it's
-an ancestor, and dependencies can't conflict. Running in the main checkout (rather than worktrees)
-means untracked build state like `node_modules/` is reused across features instead of reinstalled
-per feature. The trade: **the checkout is unusable while it runs**, and it refuses to start on a
-dirty tree.
-
-It holds no state in conversation: every iteration re-derives progress from `gh issue`/`gh pr` plus
-`docs/feats/<slug>/state.yaml`, with `docs/product/<slug>/ship.yaml` as a rebuildable cache of the
-feature→branch mapping. Kill it any time and relaunch — it reconciles and continues. Features that
-exhaust their retries are **parked** (reason commented on the issue, branch left intact) so the rest
-keep shipping. It never discards uncommitted work to unblock itself; a tree too dirty to leave is
-handed back to you. Finishes only when every issue is closed, every PR merged, the base branch
-verifies green, and `qa` has validated the roadmap's success criteria on the epic — then it closes
-the epic.
+There's no separate orchestrator — one `sddkit` run per feature, chained by copy/paste. Run a
+feature by naming its GitHub issue; when it completes, `sddkit` prints the next feature's
+invocation (skipped if that feature's blockers haven't merged yet — merge the open PR first).
+Paste it into a fresh chat and continue. Each run starts with a clean context; the handoff carries
+forward only what the next run actually needs.
 
 ## Pipeline
 
 ```
 initialize → specify (spec + contracts) → spec critique → ⏸spec gate
   → plan (incl. Slices) → plan critique → ⏸plan gate
-  → implementation slices → verify → docs-sync → pr → qa → complete
+  → implementation slices → verify → docs-sync → pr → qa → complete → handoff
 ```
 
 ```
@@ -194,7 +177,6 @@ The conductor applies subagent reply YAML through `patch`. OpenCode also denies 
 ## Notes
 
 - No OpenCode plugin — state is the CLI only.
-- Everything runs in the current checkout (no worktree isolation) — including `sddkit-ship`, which
-  is therefore strictly one feature at a time.
-- `sddkit` never merges its own PR — merging is the human's, or `sddkit-ship`'s, call. That rule lives in the prompts, not the permission config: `gh pr merge` is allowed at the config level, so branch protection is your hard backstop.
-- No permission is `ask`. `opencode run` has no responder for a bash/edit permission request, so an `ask` reachable by a detached child (one per feature under `sddkit-ship`) would stall it indefinitely. Dangerous commands are hard denies instead — refused, so the agent adapts. `bun run check` enforces this; only `sddkit-plan`, which is interactive-only, is exempt.
+- Everything runs in the current checkout (no worktree isolation).
+- `sddkit` never merges its own PR — that's the human's call, every time. That rule lives in the prompts, not the permission config: `gh pr merge` is allowed at the config level, so branch protection is your hard backstop.
+- No permission is `ask`. An unattended `opencode run` has no responder for a bash/edit permission request, so a reachable `ask` would stall it indefinitely. Dangerous commands are hard denies instead — refused, so the agent adapts. `bun run check` enforces this; only `sddkit-plan`, which is interactive-only, is exempt.
