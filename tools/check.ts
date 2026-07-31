@@ -51,9 +51,8 @@ type AgentCatalog = {
 
 /**
  * Agents whose permission maps may contain "ask". Only interactive-only agents
- * qualify: `opencode run` has no responder for a bash/edit permission request,
- * so an "ask" reachable by a detached child (sddkit-ship launches one per
- * feature) stalls that run indefinitely. See tools/transpile.ts.
+ * qualify: an "ask" anywhere else can be reached by an unattended `opencode run`
+ * with no human to answer it, stalling that run indefinitely. See tools/transpile.ts.
  */
 const ASK_ALLOWED = new Set(["sddkit-plan"])
 
