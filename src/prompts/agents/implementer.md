@@ -25,9 +25,11 @@ Reach green for the active slice via the minimum viable correct change, then sto
 
 ## Workflow
 
-1. If the slice's tests are already green, return `done` without editing.
-2. Load failing tests + the slice's `plan.md` section. If `.codesight/wiki/index.md` exists, read it and the relevant
-   article first; locate target code via Grep/Glob.
+1. If the slice's tests are already green, edit nothing and return the reply block with `files_changed: []` +
+   `status: done`.
+2. Load the failing tests; work from the slice brief and go to `plan.md` on disk only for what it leaves missing or
+   ambiguous. If `.codesight/wiki/index.md` exists, read it and the relevant article first; locate target code via
+   Grep/Glob.
 3. Smallest correct change → re-run targeted tests → repeat until green or an opinion gate.
 4. Return the reply block. {{include:fragments/no-state.md}}
 
@@ -50,6 +52,7 @@ Active slice's targeted tests pass.
 
 ```yaml
 slice: <slice-id>
+status: green | done | opinion_gate # done = already green on arrival, nothing written
 files_changed: [...]
 tests_passing: <n>
 opinion_gate: <question | "">

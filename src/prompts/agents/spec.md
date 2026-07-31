@@ -47,7 +47,7 @@ Capture the feature's intent and acceptance behavior so architects and testers c
 
 ```yaml
 feature: <slug>
-artifacts: [spec.md, contracts/*.feature]
+artifacts: [spec.md, contracts/<name>.feature, ...] # the real filenames you wrote, never a glob
 scenarios: [S1, S2, ...]
 addressed_findings: [F1, ...] # when responding to a critique or QA delta
 open_questions: [...]

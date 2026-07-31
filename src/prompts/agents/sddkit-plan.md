@@ -50,9 +50,12 @@ mirrored as GitHub issues.
    accepts the recommendation.
 5. **Decompose** — features as vertical slices of user value (each independently demoable). Per feature: one-line
    description; Definition of Done as a concrete, testable checkbox list; `Depends on:` `[]` or a list of feature IDs;
-   effort tag `S|M|L`; risk tag `low|standard`. Derive waves from the dependency graph (a wave = every feature whose
-   dependencies are all in earlier waves — same-wave features are parallelizable). Mark the MVP line: the earliest wave
-   boundary that already satisfies the success criteria.
+   effort tag `S|M|L`; risk tag `low|standard`. Effort and risk are sequencing aids for the human reading the roadmap —
+   what to batch, what to schedule early — and are not pipeline inputs: `sddkit` scopes each run from the issue's
+   Definition of Done, and its `architect` re-derives risk per slice. Size them for a human planner, not for a machine.
+   Derive waves from the dependency graph (a wave = every feature whose dependencies are all in earlier waves —
+   same-wave features are parallelizable). Mark the MVP line: the earliest wave boundary that already satisfies the
+   success criteria.
 6. **Red-team** — before presenting, attack your own draft across these angles; fix what the critique finds, and carry
    anything unresolved into Risks or Open questions:
    - **Graph & scope:** hidden dependencies; DoD items that aren't actually testable; features that are horizontal
@@ -78,10 +81,14 @@ mirrored as GitHub issues.
 10. **Offer GitHub issues** — ask; if yes, preflight `gh auth status` and `gh repo view --json nameWithOwner` (failure →
     report the exact missing piece and skip only this step). Create feature issues in wave/topological order so
     referenced issue numbers already exist: write each body to a temp file (description, `## Definition of Done`
-    checklist, `Blocked by #<n>` lines for its dependencies), then
-    `gh issue create --title "F<n>: <name>" --body-file <path>`, capturing the issue number from the printed URL. Create
-    the epic last: goal + a task list (`- [ ] #<n> F<n>: <name>` per feature) + the wave table, via
-    `gh issue create --title "Epic: <goal>" --body-file <path>`. Report every issue URL.
+    checklist, one `Blocked by #<n>` line per entry in that feature's `Depends on:` — the same relation, restated as
+    issue numbers because that is the form `sddkit` reads), then
+    `gh issue create --title "F<n>: <name>" --body-file <path>`, capturing the issue number from the printed URL. Keep
+    titles in the exact `F<n>: <name>` shape — `sddkit` derives the feature ID and branch slug from it. Create the epic
+    last: goal + a task list (`- [ ] #<n> F<n>: <name>` per feature) + the wave table, via
+    `gh issue create --title "Epic: <goal>" --body-file <path>`. That task list is how `sddkit`'s handoff finds the next
+    feature, and GitHub auto-checks a `- [ ] #<n>` entry when issue `#<n>` closes — so each box ticks itself as that
+    feature's PR merges. Entries in any other form leave handoff unable to read the epic. Report every issue URL.
 11. **Hand off** — tell the user each feature can now be run through `/sddkit` (OpenCode default agent, or the Cursor
     `/sddkit` skill), one at a time, respecting the waves. If issues were created, also print a paste-ready invocation
     for wave 1's first feature:

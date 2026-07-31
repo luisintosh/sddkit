@@ -26,9 +26,11 @@ existing test stack.
 
 ## Workflow
 
-1. If the slice is already `green` per the delegation context, return `done` without editing.
-2. Read the contracts and the slice's `plan.md` section, and the repo's test layout; write tests in test-only locations.
-   Inline-test repos: edit only test blocks, never production behavior.
+1. If the slice is already `green` per the delegation context, edit nothing and return the reply block with
+   `files: []` + `status: done`.
+2. Work from the slice brief; go to `contracts/*.feature` and `plan.md` on disk only for what the brief leaves missing
+   or ambiguous. Read the repo's test layout, then write tests in test-only locations. Inline-test repos: edit only test
+   blocks, never production behavior.
 3. Run the targeted test command; confirm red for the right reason.
 4. Return the reply block. {{include:fragments/no-state.md}}
 
@@ -48,6 +50,7 @@ New tests fail for the right reason; scenarios covered and the targeted test com
 
 ```yaml
 slice: <slice-id>
+status: red | done # done = already green on arrival, nothing written
 files: [...]
 scenarios_covered: [S1, ...]
 test_command: <cmd>

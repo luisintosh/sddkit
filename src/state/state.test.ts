@@ -54,6 +54,7 @@ describe("validateState", () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data.completed).toEqual([])
+      expect(result.data.upgraded_slices).toEqual([])
       expect(result.data.escalation).toBe(0)
       expect(result.data.green_attempts).toBe(0)
       expect(result.data.qa.cycles).toBe(0)
@@ -212,6 +213,13 @@ describe("runInit / runPatch", () => {
     expect(after?.green_attempts).toBe(2)
     expect(after?.escalation).toBe(1)
     expect(after?.qa.cycles).toBe(1)
+  })
+
+  test("a risk upgrade survives a round-trip so a resume doesn't re-read plan.md's stale tag", async () => {
+    await runInit(root, "account-export")
+    await runPatch(root, "account-export", { upgraded_slices: ["S2"], slice_phase: "red" })
+    const after = await readState(root, "account-export")
+    expect(after?.upgraded_slices).toEqual(["S2"])
   })
 
   test("a partial roadmap patch preserves sibling keys", async () => {

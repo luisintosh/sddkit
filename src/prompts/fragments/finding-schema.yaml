@@ -1,0 +1,8 @@
+findings:
+  - id: F1
+    file: <path> # required — the file the finding lives in
+    line: <n> # required int — 0 only when nothing in the file anchors it
+    severity: blocker | major | minor
+    category: bug | quality | perf | test | contract | spec | plan # emit only your own categories
+    summary: <one line>
+    fix: <concrete suggestion>
