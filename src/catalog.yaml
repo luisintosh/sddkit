@@ -8,7 +8,7 @@ agents:
       keeps docs in sync. Treats a normal feature request as a request to run the full workflow.
     opencode:
       mode: primary
-      model: opencode-go/kimi-k2.7-code
+      model: opencode-go/qwen3.7-plus
       temperature: 0.2
       steps: 100
       permission:
@@ -26,7 +26,7 @@ agents:
       contracts. SDD specify/contracts stages.
     opencode:
       mode: subagent
-      model: opencode-go/glm-5.2
+      model: openai/gpt-5.6-sol
       temperature: 0.3
       steps: 20
       permission:
@@ -44,7 +44,7 @@ agents:
       Owns codebase exploration. Read-mostly; designs before code.
     opencode:
       mode: subagent
-      model: opencode-go/glm-5.2
+      model: openai/gpt-5.6-sol
       temperature: 0.3
       steps: 30
       permission:
@@ -88,7 +88,7 @@ agents:
       pass. Never edits test files. On escalation, re-derive from plan+tests.
     opencode:
       mode: subagent
-      model: opencode-go/deepseek-v4-flash
+      model: openai/gpt-5.6-luna
       temperature: 0.2
       steps: 40
       permission:
@@ -138,7 +138,7 @@ agents:
       report as a PR comment.
     opencode:
       mode: subagent
-      model: opencode-go/glm-5.2
+      model: opencode-go/deepseek-v4-pro
       temperature: 0.1
       steps: 60
       permission:
@@ -160,7 +160,7 @@ agents:
       SDD pipeline.
     opencode:
       mode: primary
-      model: opencode-go/qwen3.7-max
+      model: openai/gpt-5.6-sol
       temperature: 0.4
       steps: 80
       permission:
