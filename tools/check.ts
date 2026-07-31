@@ -103,8 +103,8 @@ if (catalog) {
   for (const name of agentNames) {
     const a = catalog.agents![name]!
     if (!a.description?.trim()) fail(`catalog: agents.${name}.description required`)
-    if (!a.opencode?.model?.startsWith("opencode-go/")) {
-      fail(`catalog: agents.${name}.opencode.model must start with opencode-go/`)
+    if (!a.opencode?.model?.startsWith("opencode-go/") && !a.opencode?.model?.startsWith("openai/")) {
+      fail(`catalog: agents.${name}.opencode.model must start with opencode-go/ or openai/`)
     }
     if (!a.cursor?.model) fail(`catalog: agents.${name}.cursor.model required`)
     if (!ASK_ALLOWED.has(name)) failOnAsk(`catalog: agents.${name}`, a.opencode?.permission)
