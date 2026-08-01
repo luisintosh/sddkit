@@ -1,4 +1,8 @@
 # Per-agent metadata for OpenCode and Cursor emitters. Bodies live in prompts/agents/.
+#
+# Permission maps: opencode applies the LAST matching pattern, so order is
+# load-bearing — broad rules first, narrow exceptions last. Reordering a block
+# silently changes what an agent may edit.
 
 agents:
   sddkit:
@@ -99,9 +103,9 @@ agents:
           "**/test/**": allow
           "**/spec/**": allow
           "e2e/**": allow
-          # Acceptance contracts are .feature files too — keep Gherkin allows
-          # scoped to test dirs so contracts stay unreachable.
-          "features/**": allow
+          "**/*.feature": allow
+          # Must stay last: acceptance contracts are .feature files, and only
+          # the trailing position keeps this deny ahead of the allow above.
           "docs/feats/**": deny
     cursor:
       model: kimi-k2.7-code
