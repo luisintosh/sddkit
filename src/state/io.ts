@@ -37,7 +37,7 @@ export async function writeStateAtomic(root: string, feature: string, state: Sdd
 export async function appendJournal(root: string, feature: string, entry: Record<string, unknown>): Promise<void> {
   const dir = featureDir(root, feature)
   await fs.mkdir(dir, { recursive: true })
-  await fs.appendFile(journalPath(root, feature), JSON.stringify(entry) + "\n", "utf8")
+  await fs.appendFile(journalPath(root, feature), `${JSON.stringify(entry)}\n`, "utf8")
 }
 
 export async function resolveActiveFeature(root: string): Promise<string | null> {

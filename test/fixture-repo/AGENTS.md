@@ -1,8 +1,7 @@
 # fixture-repo
 
-Tiny Node project used by `test/e2e-pipeline.sh` to exercise the SDD harness
-end-to-end against a real (small, cheap) `opencode run`. Not part of the
-published toolkit — a throwaway target repo for the harness to operate on.
+Tiny Node project used by `test/e2e-pipeline.sh` to exercise the SDD harness end-to-end against a real (small, cheap)
+`opencode run`. Not part of the published toolkit — a throwaway target repo for the harness to operate on.
 
 ## Commands
 

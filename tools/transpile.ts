@@ -57,7 +57,7 @@ async function resolveIncludes(body: string): Promise<string> {
 
 async function readPrompt(rel: string): Promise<string> {
   const raw = await fs.readFile(path.join(srcDir, "prompts", rel), "utf8")
-  return resolveIncludes(raw.trim() + "\n")
+  return resolveIncludes(`${raw.trim()}\n`)
 }
 
 function yamlFrontmatter(obj: Record<string, unknown>): string {
@@ -69,7 +69,7 @@ function cursorModel(model: string): string {
   return model.endsWith("[]") ? model : `${model}[]`
 }
 
-function cursorRestrictions(name: string, oc: AgentCatalog["opencode"]): string {
+function cursorRestrictions(oc: AgentCatalog["opencode"]): string {
   const perm = oc.permission
   if (!perm || typeof perm !== "object") return ""
   const edit = (perm as { edit?: unknown }).edit
@@ -169,7 +169,7 @@ async function emitOpencode(catalog: Catalog) {
   }
 
   // JSONC-ish: pretty JSON is fine for OpenCode
-  await writeFile(path.join(outRoot, "opencode.jsonc"), JSON.stringify(cfg, null, 2) + "\n")
+  await writeFile(path.join(outRoot, "opencode.jsonc"), `${JSON.stringify(cfg, null, 2)}\n`)
 
   for (const [name, agent] of Object.entries(catalog.agents)) {
     const body = await readPrompt(`agents/${name}.md`)
@@ -191,18 +191,15 @@ async function emitCursor(catalog: Catalog) {
 
   for (const [name, agent] of Object.entries(catalog.agents)) {
     const body = await readPrompt(`agents/${name}.md`)
-    const restrictions = cursorRestrictions(name, agent.opencode)
-    const fullBody = body.trimEnd() + restrictions + "\n"
+    const restrictions = cursorRestrictions(agent.opencode)
+    const fullBody = `${body.trimEnd() + restrictions}\n`
 
     if (agent.cursor.skill) {
       const skillFm = {
         name,
         description: agent.description,
       }
-      await writeFile(
-        path.join(outRoot, "skills", name, "SKILL.md"),
-        yamlFrontmatter(skillFm) + fullBody,
-      )
+      await writeFile(path.join(outRoot, "skills", name, "SKILL.md"), yamlFrontmatter(skillFm) + fullBody)
       continue
     }
 

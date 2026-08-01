@@ -2,13 +2,13 @@
 
 ## Source of truth
 
-| Edit | Then run |
-|------|----------|
-| `src/prompts/**`, `src/catalog.yaml` | `bun run build` |
-| `src/state/**` | `bun run build` + `bun test` |
+| Edit                                 | Then run                     |
+| ------------------------------------ | ---------------------------- |
+| `src/prompts/**`, `src/catalog.yaml` | `bun run build`              |
+| `src/state/**`                       | `bun run build` + `bun test` |
 
-`dist/` and `manifest.txt` are **generated and gitignored**. CI builds them; releases attach
-`sddkit-dist.tar.gz`. Do not commit them.
+`dist/` and `manifest.txt` are **generated and gitignored**. CI builds them; releases attach `sddkit-dist.tar.gz`. Do
+not commit them.
 
 ## Hygiene (`bun run check`)
 
@@ -34,12 +34,12 @@ bash test/e2e-install.sh
 
 ## Tooling (Bun TypeScript)
 
-| Script | Purpose |
-|--------|---------|
-| `bun tools/transpile.ts` | `src/` → `dist/opencode` + `dist/cursor` |
-| `bun tools/build-cli.ts` | portable `dist/bin/sddkit-state` (+ `--compile` for mac binaries) |
-| `bun tools/gen-manifest.ts` | `manifest.txt` from `dist/` |
-| `bun tools/check.ts` | hygiene |
+| Script                      | Purpose                                                           |
+| --------------------------- | ----------------------------------------------------------------- |
+| `bun tools/transpile.ts`    | `src/` → `dist/opencode` + `dist/cursor`                          |
+| `bun tools/build-cli.ts`    | portable `dist/bin/sddkit-state` (+ `--compile` for mac binaries) |
+| `bun tools/gen-manifest.ts` | `manifest.txt` from `dist/`                                       |
+| `bun tools/check.ts`        | hygiene                                                           |
 
 `bun run build` runs transpile + build-cli + gen-manifest.
 
@@ -55,8 +55,8 @@ Publishing a GitHub Release runs CI’s `release-assets` job, which uploads:
 - `sddkit-dist.tar.gz` (`dist/` + `manifest.txt`) — preferred by `install.sh` for tags
 - `sddkit-state-darwin-arm64` / `sddkit-state-darwin-x64`
 
-If the release asset is missing, the installer falls back to downloading the source tarball and
-running `bun run build` (requires bun).
+If the release asset is missing, the installer falls back to downloading the source tarball and running `bun run build`
+(requires bun).
 
 - Annotated tags; don’t move published tags — cut a new patch instead.
 - Default interactive install resolves the latest tag, then falls back to `master`.

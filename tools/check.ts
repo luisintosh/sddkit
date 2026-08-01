@@ -7,6 +7,7 @@
  *   4. manifest.txt matches dist/ hashes
  */
 import { createHash } from "node:crypto"
+import type { Dirent } from "node:fs"
 import { readFile, readdir, stat } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -27,7 +28,7 @@ async function sha256(filePath: string) {
 async function walkFiles(dir: string) {
   const out: string[] = []
   async function walk(d: string) {
-    let entries
+    let entries: Dirent[]
     try {
       entries = await readdir(d, { withFileTypes: true })
     } catch {
@@ -60,9 +61,7 @@ const ASK_ALLOWED = new Set(["sddkit-plan"])
 function permissionValues(node: unknown, path: string[] = []): [string, string][] {
   if (typeof node === "string") return [[path.join("."), node]]
   if (!node || typeof node !== "object" || Array.isArray(node)) return []
-  return Object.entries(node as Record<string, unknown>).flatMap(([k, v]) =>
-    permissionValues(v, [...path, k]),
-  )
+  return Object.entries(node as Record<string, unknown>).flatMap(([k, v]) => permissionValues(v, [...path, k]))
 }
 
 function failOnAsk(label: string, permission: unknown) {
@@ -155,7 +154,9 @@ if (catalog) {
         fail(`dist drift: opencode ${name} model ${fm.model} != catalog ${oc.model} — run bun run build`)
       }
       if (fm.temperature !== oc.temperature) {
-        fail(`dist drift: opencode ${name} temperature ${fm.temperature} != catalog ${oc.temperature} — run bun run build`)
+        fail(
+          `dist drift: opencode ${name} temperature ${fm.temperature} != catalog ${oc.temperature} — run bun run build`,
+        )
       }
       if (fm.steps !== oc.steps) {
         fail(`dist drift: opencode ${name} steps ${fm.steps} != catalog ${oc.steps} — run bun run build`)
@@ -184,9 +185,7 @@ if (catalog) {
           continue
         }
         const fm = parseYaml(m[1]!) as { model?: string; is_background?: boolean }
-        const wantModel = agent.cursor!.model!.endsWith("[]")
-          ? agent.cursor!.model!
-          : `${agent.cursor!.model!}[]`
+        const wantModel = agent.cursor!.model!.endsWith("[]") ? agent.cursor!.model! : `${agent.cursor!.model!}[]`
         if (fm.model !== wantModel) {
           fail(`dist drift: cursor ${name} model ${fm.model} != catalog ${wantModel} — run bun run build`)
         }
