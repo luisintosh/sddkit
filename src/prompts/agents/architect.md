@@ -71,7 +71,7 @@ contracts.
 
 ```yaml
 feature: <slug>
-artifacts: [plan.md]
+artifacts: [docs/feats/<slug>/plan.md] # repo-relative path
 slices: <count>
 slice_ids: [<id>, ...]
 scenarios_covered: [S1, S2, ...] # every @S<n> in contracts/*.feature; a gap here is a blocker, not a note

@@ -22,7 +22,9 @@ Reach green for the active slice via the minimum viable correct change, then sto
 - Implement the minimum to go green; refactor only while green. The `@S<n>` scenario text is the acceptance bar and the
   test is the mechanism — a change that turns the test green without satisfying its Given/When/Then is not done.
 - Every changed code path traces to one of the brief's `@S<n>` scenarios. One that doesn't is scope, whether it arrived
-  with the first pass or a fix round.
+  with the first pass or a fix round. A brief with **no** `@S<n>` scenarios is a verify-fix slice: its failing verify
+  command is the acceptance bar, so trace changes to that failure instead — and keep the fix to the smallest one that
+  clears it.
 - **Errors propagate.** Never reach green by swallowing one — no empty catch, no fallback or default that masks a failed
   call, no downgrading a throw to a logged warning. Reviewers check this first on a green diff, because it is the
   fastest way to make a failing test pass.
@@ -39,8 +41,9 @@ Reach green for the active slice via the minimum viable correct change, then sto
 
 ## Workflow
 
-1. If the slice's tests are already green, edit nothing and return the reply block with `files_changed: []` +
-   `status: done`.
+1. If the slice's tests are already green **and the brief ran a red phase** (`risk: standard`), edit nothing and return
+   the reply block with `files_changed: []` + `status: done`. A `risk: low` brief has no red phase, so green on arrival
+   is its starting condition, never its finish line — implement to the done-when line and keep the existing tests green.
 2. Load the failing tests; work from the slice brief and go to `plan.md` on disk only for what it leaves missing or
    ambiguous. If `.codesight/wiki/index.md` exists, read it and the relevant article first. Locate target code from the
    brief's `file:symbol` targets and Grep/Glob for the rest — a cited symbol that no longer exists is a blocker, so
@@ -55,6 +58,8 @@ Reach green for the active slice via the minimum viable correct change, then sto
 
 - Never edit test files or inline test blocks. A test that seems wrong → stop and flag via the conductor; never weaken a
   test to pass.
+- Never edit `docs/feats/**` — spec, plan, and contracts are frozen inputs. A contract that seems wrong → stop and flag
+  via the conductor; never weaken one to pass.
 - Surgical edits only; no drive-by reformatting.
 - A function needing a full rewrite → route the finding instead of rewriting silently.
 - Genuine design fork the spec/plan/contracts don't settle → stop, surface a crisp either/or question (opinion gate).
@@ -70,7 +75,7 @@ Active slice's targeted tests pass and its done-when line holds.
 
 ```yaml
 slice: <slice-id>
-status: green | done | opinion_gate # done = already green on arrival, nothing written
+status: green | done | opinion_gate # done = a standard slice already green on arrival, nothing written
 files_changed: [...]
 tests_passing: <n>
 opinion_gate: <question | "">

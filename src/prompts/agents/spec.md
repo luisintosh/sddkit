@@ -56,7 +56,9 @@ Capture the feature's intent and acceptance behavior so architects and testers c
 
 ```yaml
 feature: <slug>
-artifacts: [spec.md, contracts/<name>.feature, ...] # the real filenames you wrote, never a glob
+artifacts: # repo-relative paths you actually wrote, never a glob
+  - docs/feats/<slug>/spec.md
+  - docs/feats/<slug>/contracts/<name>.feature
 scenarios: [S1, S2, ...]
 addressed_findings: [F1, ...] # when responding to a critique or QA delta
 rebutted_findings: # findings you deliberately did not act on; omit when empty

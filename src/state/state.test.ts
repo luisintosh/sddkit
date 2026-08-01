@@ -65,6 +65,31 @@ describe("validateState", () => {
     }
   })
 
+  test("accepts an opinion gate parked mid-slice", () => {
+    const result = validateState({
+      feature: "account-export",
+      workflow: "sdd",
+      stage: "implementation",
+      pending_gate: "opinion",
+      current_slice: "S2-export-writer",
+      slice_phase: "green",
+      updated: new Date().toISOString(),
+    })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.pending_gate).toBe("opinion")
+  })
+
+  test("rejects an unknown pending_gate", () => {
+    const result = validateState({
+      feature: "x",
+      workflow: "sdd",
+      stage: "implementation",
+      pending_gate: "vibes",
+      updated: new Date().toISOString(),
+    })
+    expect(result.success).toBe(false)
+  })
+
   test("rejects an unknown stage", () => {
     const result = validateState({
       feature: "x",

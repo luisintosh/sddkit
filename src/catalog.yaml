@@ -99,7 +99,9 @@ agents:
           "**/test/**": allow
           "**/spec/**": allow
           "e2e/**": allow
-          "**/*.feature": allow
+          # Acceptance contracts are .feature files too — keep Gherkin allows
+          # scoped to test dirs so contracts stay unreachable.
+          "features/**": allow
           "docs/feats/**": deny
     cursor:
       model: kimi-k2.7-code
@@ -125,7 +127,9 @@ agents:
           "**/test/**": deny
           "**/spec/**": deny
           "e2e/**": deny
-          "docs/feats/**/state.yaml": deny
+          # Frozen inputs to a slice: spec, plan, contracts.
+          "docs/feats/**": deny
+          "**/*.feature": deny
           "**/journal.ndjson": deny
           ".opencode/**": deny
     cursor:
