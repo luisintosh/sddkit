@@ -9,10 +9,16 @@
     "build:cli": "bun tools/build-cli.ts",
     "gen-manifest": "bun tools/gen-manifest.ts",
     "build": "bun tools/transpile.ts && bun tools/build-cli.ts && bun tools/gen-manifest.ts",
-    "check": "bun tools/check.ts"
+    "check": "bun tools/check.ts",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write ."
   },
   "dependencies": {
     "yaml": "^2.9.0",
     "zod": "^4.1.8"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.6"
   }
 }
