@@ -14,8 +14,8 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
 - `./bin/sddkit-state init <slug>` scaffolds `docs/feats/<slug>/` + canonical state.
 - `./bin/sddkit-state patch <slug> --yaml '...'` merges, validates, journals. Call after every stage transition, gate,
   slice-phase change, artifact, or blocker.
-- **Patch `stage` at the top of every step.** Resume locates itself from `stage`/`pending_gate` (plus the two qualifiers
-  below); a step that runs without patching its stage is a step that replays on resume.
+- **Patch `stage` at the top of every step.** Resume locates itself from `stage`/`pending_gate` (plus the three
+  qualifiers below); a step that runs without patching its stage is a step that replays on resume.
 - **Lists replace, they do not append.** To add to `completed`, `completed_slices`, `upgraded_slices`, or
   `review.deferred_findings`, read the current value (`sddkit-state show <slug>`) and patch the **full new array**.
   Patching `completed: [plan]` erases everything already recorded.
@@ -24,9 +24,11 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
 - Subagents return YAML reply blocks and cannot write state. **Translate every reply into a patch — never pass one
   through verbatim** (mapping below).
 - Resume: on "resume/continue", read the feature with the newest `updated`; continue from `stage`/`pending_gate`; trust
-  on-disk artifacts — never restart completed stages. Two fields qualify that: `qa.cycles > 0` means a `stage: specify`
-  or `stage: plan` is a QA-driven delta, not a first pass — re-enter step 12's delta flow, not step 2; and
-  `upgraded_slices` overrides the `risk:` tag in `plan.md` for any slice it names.
+  on-disk artifacts — never restart completed stages. Three fields qualify that: `qa.cycles > 0` means a
+  `stage: specify` or `stage: plan` is a QA-driven delta, not a first pass — re-enter step 12's delta flow, not step 2;
+  `upgraded_slices` overrides the `risk:` tag in `plan.md` for any slice it names; and `pending_gate: opinion` means an
+  `implementer` opinion gate is still unanswered — the question is in `blockers`, so put it back to the human rather
+  than re-running green into the same fork.
 - Durability: every commit you make (spec, plan, each slice, docs-sync) stages `docs/feats/<slug>/state.yaml` and
   `journal.ndjson` alongside that commit's own files. Without it, a resume from a fresh checkout recovers the artifacts
   but loses `completed_slices` and replays finished work.
@@ -75,8 +77,10 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
    (`contracts/*.feature`, scenarios tagged `@S<n>`) together. Patch `artifacts.spec` + `artifacts.contracts` from its
    reply; add `specify` to `completed`.
 
-3. **spec critique** — delegate `docs-reviewer` with `target: spec` (covers the spec and its contracts together). Route
-   `blocker|major` findings back to `spec` once, then proceed.
+3. **spec critique** — delegate `docs-reviewer` with `target: spec` (covers the spec and its contracts together).
+   Include the **original request verbatim** in the delegation — the issue title + body for issue-linked runs, otherwise
+   the invocation's own words. It is the upstream input the critique judges the spec against, and nothing on disk
+   carries it. Route `blocker|major` findings back to `spec` once, then proceed.
 
 4. **⏸ spec gate** — `stage: spec_gate`, `pending_gate: spec`. Present spec + contracts + open questions concisely;
    approve/edit/comment.
@@ -114,8 +118,15 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
    - **red** (`standard` only) — `tester` with the slice brief; confirm new tests fail for the right reason. `low`-risk
      slices skip this phase entirely.
    - `slice_phase: green` → **green** — `implementer` with the slice brief. When `escalation: 1`, include the failure
-     history and tell it to re-derive from plan + tests (do not trust the prior diff). Opinion gate raised → pause for
-     the human (`mode: autonomous` pauses too — an opinion gate is a genuine design fork, not a routine approval).
+     history and tell it to re-derive from plan + tests (do not trust the prior diff). Opinion gate raised → patch
+     `pending_gate: opinion` and append the question verbatim to `blockers` as `opinion gate (<slice-id>): <question>`,
+     then pause for the human (`mode: autonomous` pauses too — an opinion gate is a genuine design fork, not a routine
+     approval). On the answer, clear `pending_gate` and drop that blocker, then re-delegate green with the decision in
+     the brief.
+   - An `implementer` reply of `status: done` with `files_changed: []` means the slice produced nothing — on a `low`
+     slice that reply is always wrong, since it has no red phase and green on arrival is its starting condition. Don't
+     commit it and don't add it to `completed_slices`; re-delegate green once stating that, then record a blocker if it
+     repeats.
    - `slice_phase: targeted_test` → run the slice's targeted test command. On failure, patch `green_attempts` +1 and
      re-delegate `implementer` with only the failing test names + first error lines (≤40 lines), never the full raw
      output. **`green_attempts` reaching 2 on the same slice → `escalation: 1`, re-run green with the escalation
@@ -135,6 +146,13 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
      - `low`: a single `code-reviewer` pass (no loop). Any `blocker` finding upgrades the slice to `standard` in place —
        add it to `upgraded_slices` (full array) so the upgrade outlives a resume, since `plan.md` still says
        `risk: low`; reset to `slice_phase: red` and run the full red→green→review flow as the safety valve.
+     - **`clean` over an empty diff is not a pass.** `code-reviewer` reports an empty diff in `notes`: the slice
+       produced nothing, so do not commit and do not add it to `completed_slices`; re-delegate green once with that
+       fact, then record a blocker and pause.
+     - **A `notes` entry naming a spec or plan gap is routing information.** Journal it and settle it before the next
+       fix round: `mode: interactive` pauses for the human; `mode: autonomous` runs a scoped `docs-reviewer` pass on
+       that target and, if it confirms the gap, a scoped `spec`/`architect` delta. Never keep running fix rounds against
+       a plan already reported as wrong.
    - When `escalation: 1`, the final `clean` verdict is a fresh `code-reviewer` pass over the diff from scratch — tell
      it to treat prior iterations as context, not authority.
    - **commit** — Conventional Commit of the slice's files, plus the state files per the durability rule; nothing else.
@@ -230,10 +248,14 @@ Reply keys are not state keys. Translate:
 - **qa** → `qa_status` → `qa.status`; `scenarios_total|scenarios_passed|scenarios_failed`, `findings`, `report_path`,
   `pr_comment_url`, `pr_ready` all nest under `qa.*`; `blockers` → `blockers`.
 
-Everything else a subagent returns is for your reasoning and the chat summary, with no state field: `feature`,
+Everything else a subagent returns has no state field. Most of it is for your reasoning and the chat summary: `feature`,
 `scenarios`, `open_questions`, `slices`, `slice_ids`, `human_decisions`, `addressed_findings`, `rebutted_findings`,
-`files`, `files_changed`, `scenarios_covered`, `test_command`, `tests_passing`, `opinion_gate`, `journeys`, `notes`,
-tester's and implementer's `status`, and docs-reviewer's `target`.
+`files`, `scenarios_covered`, `test_command`, `tests_passing`, `journeys`, tester's `status`, and docs-reviewer's
+`target`.
+
+The remaining three drive control flow in step 8 and must be acted on even though nothing records them: `opinion_gate`
+parks the run, `files_changed: []` on implementer's `status: done` marks a slice that produced nothing, and
+`code-reviewer`'s `notes` is its only channel for an empty diff or a spec/plan gap.
 
 One trap if you patch a reply verbatim: `qa`'s keys are top-level in the reply but nested under `qa` in state, so the
 patch reports success while silently discarding every value.

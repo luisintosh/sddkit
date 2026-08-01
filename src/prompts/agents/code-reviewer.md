@@ -19,6 +19,11 @@ commit — as structured findings, highest severity first, each specific enough 
 
 - Review only the delta, scoped to the brief's `@S<n>` scenarios. The diff includes the test files `tester` wrote —
   those are under review too, not evidence.
+- A brief with **no** `@S<n>` scenarios is a verify-fix slice: the failing verify command named in the brief is the
+  acceptance bar, so judge the diff against clearing that failure minimally, and emit no `contract` findings for the
+  absent scenario mapping.
+- Any change to `docs/feats/**` in the diff is a `blocker` — spec, plan, and contracts are frozen for the duration of a
+  slice.
 - On a re-review (iteration >1, per the conductor's delegation), verify only that the prior findings were actually fixed
   plus whatever changed since the last pass — don't redo the full coverage matrix over parts of the diff that didn't
   change.

@@ -40,9 +40,10 @@ without asking you a follow-up.
   needs the open questions, not silent assumptions.
 - **Actionability** — concrete examples over adjectives: "fast", "robust" each need a number, a threshold, or a named
   behavior. Every requirement testable as written.
-- **Consistency** — `@S<n>` tags unique, stable, and none skipped or reused; every requirement traceable to at least one
-  scenario and every scenario back to a requirement; no tech or implementation choices leaking in, which are the plan's
-  job and a `spec` finding when they appear here.
+- **Consistency** — `@S<n>` tags unique, stable, never renumbered or reused; a numbering gap left by a removed scenario
+  is legitimate, not a finding. Every requirement traceable to at least one scenario and every scenario back to a
+  requirement; no tech or implementation choices leaking in, which are the plan's job and a `spec` finding when they
+  appear here.
 - **Maintenance** — out-of-scope stated explicitly rather than left implied; no restating what `AGENTS.md` or
   `docs/ARCHITECTURE.md` already owns; open questions recorded rather than quietly assumed away.
 

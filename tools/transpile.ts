@@ -87,8 +87,11 @@ function cursorRestrictions(oc: AgentCatalog["opencode"]): string {
     if (map["*"] === "deny" && allows.length) {
       lines.push(`- Edit only: ${allows.join(", ")}.`)
     }
-    if (denies.length && map["*"] !== "deny") {
-      lines.push(`- Never edit: ${denies.join(", ")}.`)
+    // Cursor has no permission config, so deny carve-outs have to survive into
+    // the prose even when the allow list is already narrow.
+    const carveOuts = denies.filter((k) => k !== "*")
+    if (carveOuts.length) {
+      lines.push(`- Never edit: ${carveOuts.join(", ")}.`)
     }
   }
   if (!lines.length) return ""

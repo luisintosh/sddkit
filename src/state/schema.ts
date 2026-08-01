@@ -31,7 +31,7 @@ export const StateSchema = z.object({
   workflow: z.literal("sdd").default("sdd"),
   stage: z.enum(STAGES),
   completed: z.array(z.string()).default([]),
-  pending_gate: z.enum(["", "spec", "plan"]).default(""),
+  pending_gate: z.enum(["", "spec", "plan", "opinion"]).default(""),
   branch: z.string().default(""),
   mode: z.enum(["interactive", "autonomous"]).default("interactive"),
   current_slice: z.string().default(""),
