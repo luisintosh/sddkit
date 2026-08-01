@@ -205,7 +205,7 @@ suggest_next_steps() {
   log "Optional: rtk (filters noisy bash output for agents)"
   log "  brew install rtk   # or see https://github.com/rtk-ai/rtk"
   log "  rtk init --opencode   # OpenCode"
-  log "  # Quick start: exclude git diff/show from rewriting so the SDD reviewer"
+  log "  # Quick start: exclude git diff/show from rewriting so code-reviewer"
   log "  # sees full diffs — in ~/.config/rtk/config.toml:"
   log "  #   [hooks]"
   log "  #   exclude_commands = [\"git diff\", \"git show\"]"

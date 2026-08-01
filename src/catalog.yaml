@@ -56,6 +56,28 @@ agents:
     cursor:
       model: grok-4.5
 
+  docs-reviewer:
+    description: >-
+      Independent, READ-ONLY critique of the spec or the plan before its gate. Emits structured spec/plan findings;
+      never edits.
+    opencode:
+      mode: subagent
+      model: opencode-go/kimi-k3
+      temperature: 0.1
+      steps: 25
+      permission:
+        edit: deny
+        write: deny
+        bash:
+          "*": deny
+          "git diff*": allow
+          "git show*": allow
+          "git log*": allow
+          "git status*": allow
+    cursor:
+      model: kimi-k3
+      readonly: true
+
   tester:
     description: >-
       TDD red phase. Writes failing tests from acceptance contracts. Edits test-only locations — never implementation,
@@ -109,15 +131,15 @@ agents:
     cursor:
       model: composer-2.5
 
-  reviewer:
+  code-reviewer:
     description: >-
-      Independent, READ-ONLY reviewer. Two modes — slice-diff review and artifact critique (spec/plan). Emits structured
+      Independent, READ-ONLY review of the active slice's diff against its acceptance contracts. Emits structured
       findings; never edits.
     opencode:
       mode: subagent
       model: opencode-go/kimi-k2.7-code
       temperature: 0.1
-      steps: 15
+      steps: 25
       permission:
         edit: deny
         write: deny

@@ -48,16 +48,17 @@ bin/sddkit-state            installed by install.sh
 
 ## Models
 
-| agent         | OpenCode                      | Cursor           | notes                                                  |
-| ------------- | ----------------------------- | ---------------- | ------------------------------------------------------ |
-| `sddkit`      | `opencode-go/qwen3.7-plus`    | `inherit`        | conductor (Cursor: `/sddkit` skill)                    |
-| `spec`        | `openai/gpt-5.6-sol`          | `grok-4.5`       | what & why + contracts                                 |
-| `architect`   | `openai/gpt-5.6-sol`          | `grok-4.5`       | plan + slices                                          |
-| `tester`      | `opencode-go/kimi-k2.7-code`  | `kimi-k2.7-code` | TDD red                                                |
-| `implementer` | `openai/gpt-5.6-luna`         | `composer-2.5`   | TDD green (+ escalation re-run)                        |
-| `reviewer`    | `opencode-go/kimi-k2.7-code`  | `kimi-k2.7-code` | read-only review / critique                            |
-| `qa`          | `opencode-go/deepseek-v4-pro` | `composer-2.5`   | end-to-end validation                                  |
-| `sddkit-plan` | `openai/gpt-5.6-sol`          | `inherit`        | product owner → roadmap (Cursor: `/sddkit-plan` skill) |
+| agent           | OpenCode                      | Cursor           | notes                                                  |
+| --------------- | ----------------------------- | ---------------- | ------------------------------------------------------ |
+| `sddkit`        | `opencode-go/qwen3.7-plus`    | `inherit`        | conductor (Cursor: `/sddkit` skill)                    |
+| `spec`          | `openai/gpt-5.6-sol`          | `grok-4.5`       | what & why + contracts                                 |
+| `architect`     | `openai/gpt-5.6-sol`          | `grok-4.5`       | plan + slices                                          |
+| `docs-reviewer` | `opencode-go/kimi-k3`         | `kimi-k3`        | read-only spec/plan critique (pre-gate)                |
+| `tester`        | `opencode-go/kimi-k2.7-code`  | `kimi-k2.7-code` | TDD red                                                |
+| `implementer`   | `openai/gpt-5.6-luna`         | `composer-2.5`   | TDD green (+ escalation re-run)                        |
+| `code-reviewer` | `opencode-go/kimi-k2.7-code`  | `kimi-k2.7-code` | read-only slice-diff review                            |
+| `qa`            | `opencode-go/deepseek-v4-pro` | `composer-2.5`   | end-to-end validation                                  |
+| `sddkit-plan`   | `openai/gpt-5.6-sol`          | `inherit`        | product owner → roadmap (Cursor: `/sddkit-plan` skill) |
 
 Checked in CI against `src/catalog.yaml` and emitted frontmatter.
 
