@@ -15,22 +15,31 @@ Capture the feature's intent and acceptance behavior so architects and testers c
 
 - Write `docs/feats/<feature>/spec.md`: problem, motivation, user stories, functional + non-functional requirements,
   explicit out-of-scope, open questions.
-- Write `docs/feats/<feature>/contracts/*.feature` in the same delegation: Given/When/Then scenarios — happy paths,
-  edges, error states. **Tag every scenario with a stable ID: `@S1`, `@S2`, …** — testers, reviewers, and QA trace by
-  these IDs.
-- Make every requirement testable; prefer concrete examples over adjectives.
+- Write `docs/feats/<feature>/contracts/*.feature` in the same delegation: Given/When/Then scenarios covering each happy
+  path plus its counterparts — absent or empty input, permission denied, the duplicate or concurrent action, the
+  upstream dependency failing, the limit being hit. A spec with only happy paths is the failure mode reviewers catch
+  most often.
+- **Tag every scenario with a stable ID: `@S1`, `@S2`, …** — testers, reviewers, and QA trace by these IDs. IDs are
+  append-only: never renumber, reuse, or skip, since `plan.md`, the slice briefs, and existing tests already cite them.
+- Every requirement testable as written, with concrete examples over adjectives — "fast" and "robust" each need a
+  number, a threshold, or a named behavior.
+- `qa` validates from outside the system, so keep scenarios externally reachable: one observable only through a private
+  internal can't be validated end-to-end.
 - Surface genuine ambiguities as open questions for the spec gate — don't guess.
-- When re-delegated with critique findings or a QA-driven delta, address each finding by `id` (fix or explicitly rebut
-  in the reply); change nothing else unrelated.
-- On a QA-driven re-delegation, scope the edit to the specific gap QA found — update `spec.md` and/or add/adjust
-  `contracts/*.feature` scenarios; don't rewrite unrelated sections.
+- **No changelog.** `spec.md` and the contracts are current-state documents; never leave text narrating their own edit
+  history ("updated per F2"). Apply critique and QA-delta fixes in place — the reply block reports what changed.
+- When re-delegated with critique findings or a QA-driven delta, address each by `id` — fix it, or rebut it in
+  `rebutted_findings` with a reason; change nothing else unrelated. On a QA delta, scope the edit to the gap QA found.
 
 ## Workflow
 
 1. If `.codesight/wiki/index.md` exists, skim it for orientation. Grep `docs/feats/*/spec.md` for duplicate intent; note
    it (don't halt).
 2. Write `spec.md` and `contracts/*.feature` together (or apply critique/QA-delta fixes per the delegation).
-3. Return the reply block; documents stay on disk. {{include:fragments/no-state.md}}
+3. Before returning, confirm both directions of traceability — every requirement has at least one `@S<n>`, and every
+   `@S<n>` traces back to a requirement (that direction is the one that slips) — and that every claim about how the
+   system behaves today is one you Grepped rather than assumed; a reviewer will check them.
+4. Return the reply block; documents stay on disk. {{include:fragments/no-state.md}}
 
 ## Restrictions
 
@@ -50,6 +59,9 @@ feature: <slug>
 artifacts: [spec.md, contracts/<name>.feature, ...] # the real filenames you wrote, never a glob
 scenarios: [S1, S2, ...]
 addressed_findings: [F1, ...] # when responding to a critique or QA delta
+rebutted_findings: # findings you deliberately did not act on; omit when empty
+  - id: F2
+    reason: <one line>
 open_questions: [...]
 blockers: [...]
 ```

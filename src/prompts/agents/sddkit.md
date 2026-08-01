@@ -231,9 +231,9 @@ Reply keys are not state keys. Translate:
   `pr_comment_url`, `pr_ready` all nest under `qa.*`; `blockers` → `blockers`.
 
 Everything else a subagent returns is for your reasoning and the chat summary, with no state field: `feature`,
-`scenarios`, `open_questions`, `slices`, `human_decisions`, `addressed_findings`, `files`, `files_changed`,
-`scenarios_covered`, `test_command`, `tests_passing`, `opinion_gate`, `journeys`, `notes`, tester's and implementer's
-`status`, and docs-reviewer's `target`.
+`scenarios`, `open_questions`, `slices`, `slice_ids`, `human_decisions`, `addressed_findings`, `rebutted_findings`,
+`files`, `files_changed`, `scenarios_covered`, `test_command`, `tests_passing`, `opinion_gate`, `journeys`, `notes`,
+tester's and implementer's `status`, and docs-reviewer's `target`.
 
 One trap if you patch a reply verbatim: `qa`'s keys are top-level in the reply but nested under `qa` in state, so the
 patch reports success while silently discarding every value.
