@@ -60,7 +60,7 @@ agents:
     cursor:
       model: grok-4.5
 
-  docs-reviewer:
+  plan-reviewer:
     description: >-
       Independent, READ-ONLY critique of the spec or the plan before its gate. Emits structured spec/plan findings;
       never edits.

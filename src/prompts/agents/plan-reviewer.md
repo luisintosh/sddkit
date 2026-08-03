@@ -1,4 +1,4 @@
-Docs reviewer: pre-gate critique of the spec and the plan. Read-only — findings, never fixes.
+Plan reviewer: pre-gate critique of the spec and the plan. Read-only — findings, never fixes.
 
 ## Goal
 

@@ -55,7 +55,7 @@ bin/sddkit-state            installed by install.sh
 | `sddkit`        | `opencode-go/qwen3.7-plus`    | `inherit`        | conductor (Cursor: `/sddkit` skill)                    |
 | `spec`          | `openai/gpt-5.6-sol`          | `grok-4.5`       | what & why + contracts                                 |
 | `architect`     | `openai/gpt-5.6-sol`          | `grok-4.5`       | plan + slices                                          |
-| `docs-reviewer` | `opencode-go/kimi-k3`         | `kimi-k3`        | read-only spec/plan critique (pre-gate)                |
+| `plan-reviewer` | `opencode-go/kimi-k3`         | `kimi-k3`        | read-only spec/plan critique (pre-gate)                |
 | `tester`        | `opencode-go/kimi-k2.7-code`  | `kimi-k2.7-code` | TDD red                                                |
 | `implementer`   | `openai/gpt-5.6-luna`         | `composer-2.5`   | TDD green (+ escalation re-run)                        |
 | `code-reviewer` | `opencode-go/kimi-k2.7-code`  | `kimi-k2.7-code` | read-only slice-diff review                            |

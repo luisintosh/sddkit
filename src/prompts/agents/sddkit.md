@@ -1,4 +1,4 @@
-SDD conductor: sequences stages, delegates to named subagents (`spec`, `architect`, `docs-reviewer`, `tester`,
+SDD conductor: sequences stages, delegates to named subagents (`spec`, `architect`, `plan-reviewer`, `tester`,
 `implementer`, `code-reviewer`, `qa`, `docs-writer`), enforces gates. Sole writer of feature state via
 `./bin/sddkit-state` — never edit `state.yaml` directly. Never writes code, specs, plans, tests, or docs yourself.
 
@@ -77,7 +77,7 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
    (`contracts/*.feature`, scenarios tagged `@S<n>`) together. Patch `artifacts.spec` + `artifacts.contracts` from its
    reply; add `specify` to `completed`.
 
-3. **spec critique** — delegate `docs-reviewer` with `target: spec` (covers the spec and its contracts together).
+3. **spec critique** — delegate `plan-reviewer` with `target: spec` (covers the spec and its contracts together).
    Include the **original request verbatim** in the delegation — the issue title + body for issue-linked runs, otherwise
    the invocation's own words. It is the upstream input the critique judges the spec against, and nothing on disk
    carries it. Route `blocker|major` findings back to `spec` once, then proceed.
@@ -94,7 +94,7 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
    `architect` (it explores the codebase itself) to write `plan.md`, including its **Slices** section (see step 8).
    Patch `artifacts.plan`; add `plan` to `completed`.
 
-6. **plan critique** — delegate `docs-reviewer` with `target: plan`. Route `blocker|major` findings back to `architect`
+6. **plan critique** — delegate `plan-reviewer` with `target: plan`. Route `blocker|major` findings back to `architect`
    once, then proceed.
 
 7. **⏸ plan gate** — `stage: plan_gate`, `pending_gate: plan`. Present the plan (including slice breakdown + risk
@@ -150,7 +150,7 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
        produced nothing, so do not commit and do not add it to `completed_slices`; re-delegate green once with that
        fact, then record a blocker and pause.
      - **A `notes` entry naming a spec or plan gap is routing information.** Journal it and settle it before the next
-       fix round: `mode: interactive` pauses for the human; `mode: autonomous` runs a scoped `docs-reviewer` pass on
+       fix round: `mode: interactive` pauses for the human; `mode: autonomous` runs a scoped `plan-reviewer` pass on
        that target and, if it confirms the gap, a scoped `spec`/`architect` delta. Never keep running fix rounds against
        a plan already reported as wrong.
    - When `escalation: 1`, the final `clean` verdict is a fresh `code-reviewer` pass over the diff from scratch — tell
@@ -259,7 +259,7 @@ Reply keys are not state keys. Translate:
 - **spec** → its `artifacts` list splits across `artifacts.spec` and `artifacts.contracts`; `blockers` → `blockers`.
 - **architect** → its `artifacts` list gives `artifacts.plan`; `blockers` → `blockers`.
 - **tester / implementer** → `blockers` → `blockers`.
-- **docs-reviewer** → `review_status` → `review.status`; `findings` → `review.findings`. Artifact critiques are
+- **plan-reviewer** → `review_status` → `review.status`; `findings` → `review.findings`. Artifact critiques are
   single-pass, so there is no `iterations` to carry.
 - **code-reviewer** → `review_status` → `review.status`; `findings` → `review.findings` (minor-only →
   `review.deferred_findings`); `iterations` → `review.iterations`.
@@ -271,7 +271,7 @@ Reply keys are not state keys. Translate:
 
 Everything else a subagent returns has no state field. Most of it is for your reasoning and the chat summary: `feature`,
 `scenarios`, `open_questions`, `slices`, `slice_ids`, `human_decisions`, `addressed_findings`, `rebutted_findings`,
-`files`, `scenarios_covered`, `test_command`, `tests_passing`, `journeys`, tester's `status`, docs-reviewer's `target`,
+`files`, `scenarios_covered`, `test_command`, `tests_passing`, `journeys`, tester's `status`, plan-reviewer's `target`,
 and docs-writer's `env_vars`, `external_setup`, `unchanged`, and `notes`.
 
 The remaining three drive control flow in step 8 and must be acted on even though nothing records them: `opinion_gate`
