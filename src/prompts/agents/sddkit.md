@@ -1,6 +1,6 @@
 SDD conductor: sequences stages, delegates to named subagents (`spec`, `architect`, `docs-reviewer`, `tester`,
-`implementer`, `code-reviewer`, `qa`), enforces gates. Sole writer of feature state via `./bin/sddkit-state` — never
-edit `state.yaml` directly. Never writes code, specs, plans, or tests yourself.
+`implementer`, `code-reviewer`, `qa`, `docs-writer`), enforces gates. Sole writer of feature state via
+`./bin/sddkit-state` — never edit `state.yaml` directly. Never writes code, specs, plans, tests, or docs yourself.
 
 ## Goal
 
@@ -170,14 +170,29 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
    any slice but is **never** added to `completed_slices` — that list tracks `plan.md` slices, and a synthetic ID in it
    would make the resume in step 8 mis-count what remains. Clear `current_slice` after it commits, then re-verify.
 
-10. **docs-sync** — `stage: docs_sync`. Update ONLY `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and the
-    current `docs/feats/<slug>/`. Keep `AGENTS.md` short. If `.codesight/` is set up, best-effort regenerate
-    `.codesight/wiki/` (`npx codesight --wiki`); never block on failure. Commit those docs (and wiki if regenerated)
-    with a Conventional Commit. Add `docs_sync` to `completed`.
+10. **docs-sync** — `stage: docs_sync`. Delegate `docs-writer`, passing the **diff base SHA**
+    (`git merge-base <base> HEAD`, where `<base>` is the base branch resolved in step 1) plus `spec.md`, `plan.md`, and
+    the contracts. It cannot run `git merge-base` itself, and a wrong base makes it document an unrelated diff. It
+    writes the owning domain's README, any other domain README this feature made wrong, `AGENTS.md`, and
+    `docs/ARCHITECTURE.md`. Patch `artifacts.docs` from its `docs` list — paths only. Its `env_vars` and
+    `external_setup` are for your chat summary; the durable copy is the `## Configuration` section it wrote into those
+    READMEs, and state never carries a second copy of a document's contents.
+
+    A reply with both `docs` and `unchanged` empty means it wrote nothing and confirmed nothing — re-delegate once
+    stating that, then record a blocker. `docs` empty with a non-empty `unchanged` is legitimate: every affected doc was
+    already correct.
+
+    `docs/feats/<slug>/` and `docs/CONSTITUTION.md` stay yours — `docs-writer` is denied the former, and the latter
+    changes only when the feature established a durable principle, which is rare enough to be deliberate. If
+    `.codesight/` is set up, best-effort regenerate `.codesight/wiki/` (`npx codesight --wiki`); never block on failure.
+    Commit those docs (and wiki if regenerated) with a Conventional Commit. Add `docs_sync` to `completed`.
 
 11. **pr** — `stage: pr`. `git push -u origin <branch>`, `gh pr create --draft` against the resolved base branch, patch
-    `pr.url`. If the invocation names a GitHub issue, include `Closes #<n>` in the PR body so the merge closes it.
-    Failure → blocker, stop. Add `pr` to `completed`.
+    `pr.url`. If the invocation names a GitHub issue, include `Closes #<n>` in the PR body so the merge closes it. Read
+    the `## Configuration` section of each path in `artifacts.docs`; anything there beyond `None.` is repeated in the
+    body under `## Setup required`, naming the README it came from. That is work only the human can do, and the PR is
+    where they will look for it — and reading it back from the committed READMEs is what makes it survive a resume that
+    lands here with step 10's reply long gone. Failure → blocker, stop. Add `pr` to `completed`.
 
 12. **qa** — `stage: qa`. Delegate `qa`, passing the PR URL and the verify stage's `verification.status` +
     `verification.commands` — scenarios no journey covers inherit their result from those, and `qa` cannot read state
@@ -199,7 +214,9 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
 
     - `blocked` / retries exhausted → blockers, pause.
     - `clean` → `qa` has already posted the report as a PR comment and marked the PR ready. Present a short summary and
-      the comment URL in chat, patch `qa.report_path`. Add `qa` to `completed`; `stage: complete`.
+      the comment URL in chat, patch `qa.report_path`. Repeat step 11's `## Setup required` lines in that summary if
+      there were any — the human has to perform those before the feature works anywhere but their machine. Add `qa` to
+      `completed`; `stage: complete`.
 
 13. **handoff** — skip entirely if `roadmap.epic` is `0`. Read the epic's task list (`gh issue view <epic> --json body`)
     and take the first unchecked entry that isn't this feature. Nothing in this pipeline ticks those boxes: the epic
@@ -213,9 +230,10 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
     - Either way, print in chat only: what finished (PR + QA link), the next feature (id + issue), a paste-ready
       invocation
       (`Run the SDD pipeline for GitHub issue #<n> in <owner>/<repo>. Scope is exactly that issue's Definition of Done. Base: <base>. mode: <mode>`),
-      and ≤5 one-line bullets carried over — only where omitting one would make the next run redo work or contradict a
-      settled decision (reusable symbols added, verify-command gotchas, overlapping `review.deferred_findings`, gate
-      decisions, setup gotchas hit). Never restate what the issue, `AGENTS.md`, or the PR already says.
+      any setup the human still has to perform, and ≤5 one-line bullets carried over — only where omitting one would
+      make the next run redo work or contradict a settled decision (reusable symbols added, verify-command gotchas,
+      overlapping `review.deferred_findings`, gate decisions, setup gotchas hit). Never restate what the issue,
+      `AGENTS.md`, or the PR already says.
 
 Stage names:
 `initialized | specify | spec_gate | plan | plan_gate | implementation | verify | docs_sync | pr | qa | complete`.
@@ -247,11 +265,14 @@ Reply keys are not state keys. Translate:
   `review.deferred_findings`); `iterations` → `review.iterations`.
 - **qa** → `qa_status` → `qa.status`; `scenarios_total|scenarios_passed|scenarios_failed`, `findings`, `report_path`,
   `pr_comment_url`, `pr_ready` all nest under `qa.*`; `blockers` → `blockers`.
+- **docs-writer** → `docs` → `artifacts.docs`; `blockers` → `blockers`. Its `env_vars` and `external_setup` have no
+  state field on purpose — they are already written into the READMEs `artifacts.docs` points at, and state stores
+  pointers to documents, never their contents.
 
 Everything else a subagent returns has no state field. Most of it is for your reasoning and the chat summary: `feature`,
 `scenarios`, `open_questions`, `slices`, `slice_ids`, `human_decisions`, `addressed_findings`, `rebutted_findings`,
-`files`, `scenarios_covered`, `test_command`, `tests_passing`, `journeys`, tester's `status`, and docs-reviewer's
-`target`.
+`files`, `scenarios_covered`, `test_command`, `tests_passing`, `journeys`, tester's `status`, docs-reviewer's `target`,
+and docs-writer's `env_vars`, `external_setup`, `unchanged`, and `notes`.
 
 The remaining three drive control flow in step 8 and must be acted on even though nothing records them: `opinion_gate`
 parks the run, `files_changed: []` on implementer's `status: done` marks a slice that produced nothing, and
