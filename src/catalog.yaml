@@ -178,6 +178,36 @@ agents:
     cursor:
       model: composer-2.5
 
+  docs-writer:
+    description: >-
+      Writes the human-facing docs a finished feature leaves behind — the owning domain's README, plus AGENTS.md and
+      docs/ARCHITECTURE.md. Current state only, never a changelog. Reports the env vars and external service setup the
+      human still has to do.
+    opencode:
+      mode: subagent
+      model: opencode-go/kimi-k3
+      temperature: 0.1
+      steps: 30
+      permission:
+        edit:
+          "*": deny
+          "AGENTS.md": allow
+          "docs/**": allow
+          "**/README.md": allow
+          # Must stay last: the root README is the project's own and
+          # docs/feats/** is the conductor's, and only the trailing position
+          # keeps these denies ahead of the allows above.
+          "README.md": deny
+          "docs/feats/**": deny
+        bash:
+          "*": deny
+          "git diff*": allow
+          "git show*": allow
+          "git log*": allow
+          "git status*": allow
+    cursor:
+      model: kimi-k3
+
   sddkit-plan:
     description: >-
       Product Owner planner. Refines a raw idea into a clear, measurable goal by exploring the codebase first and asking

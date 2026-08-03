@@ -40,6 +40,8 @@ docs/feats/<feature>/
   plan.md
 docs/product/<slug>/
   roadmap.md             optional, written by sddkit-plan
+src/<domain>/README.md   domain doc, written by docs-writer at docs-sync
+docs/domains/<domain>.md same, for a domain too cross-cutting to own a directory
 bin/sddkit-state            installed by install.sh
 .opencode/               OpenCode agents + opencode.jsonc
 .cursor/agents/          Cursor subagents
@@ -58,6 +60,7 @@ bin/sddkit-state            installed by install.sh
 | `implementer`   | `openai/gpt-5.6-luna`         | `composer-2.5`   | TDD green (+ escalation re-run)                        |
 | `code-reviewer` | `opencode-go/kimi-k2.7-code`  | `kimi-k2.7-code` | read-only slice-diff review                            |
 | `qa`            | `opencode-go/deepseek-v4-pro` | `composer-2.5`   | end-to-end validation                                  |
+| `docs-writer`   | `opencode-go/kimi-k3`         | `kimi-k3`        | domain READMEs + AGENTS/ARCHITECTURE (docs-sync)       |
 | `sddkit-plan`   | `openai/gpt-5.6-sol`          | `inherit`        | product owner → roadmap (Cursor: `/sddkit-plan` skill) |
 
 Checked in CI against `src/catalog.yaml` and emitted frontmatter.
@@ -90,7 +93,8 @@ After install, ensure `bun` is on `PATH` (portable `bin/sddkit-state` is a Bun s
 ```
 
 Creates `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and `docs/feats/.gitkeep` if missing. `AGENTS.md`
-must include install/dev/build/test/lint/typecheck (and a single-test-file command).
+must include install/dev/build/test/lint/typecheck (and a single-test-file command). It does **not** backfill domain
+READMEs for existing code — `docs-writer` creates each one as a feature touches that domain.
 
 ### Setup Context (optional)
 
@@ -148,6 +152,12 @@ low:                    green(implementer) → targeted test → single review �
 
 **Escalation:** if green fails twice or review exhausts with `blocker`/`major`, set `escalation: 1` and re-run the same
 `implementer` with failure history (re-derive from plan+tests). One rung; then pause for a human.
+
+**Docs:** `docs-sync` delegates to `docs-writer`, which writes the touched domain's `README.md` — co-located with the
+code, or `docs/domains/<domain>.md` when the domain is cross-cutting — to a fixed skeleton (purpose, how it works,
+usage, configuration, gotchas), capped at 120 lines, current state only, never a changelog. Environment variables and
+external service setup are grepped out of the feature's own diff and repeated in the PR body under `## Setup required`,
+since that part is work only a human can do.
 
 ## State
 

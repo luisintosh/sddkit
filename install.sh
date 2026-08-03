@@ -206,7 +206,7 @@ suggest_next_steps() {
   log "  brew install rtk   # or see https://github.com/rtk-ai/rtk"
   log "  rtk init --opencode   # OpenCode"
   log "  # Quick start: exclude git diff/show from rewriting so code-reviewer"
-  log "  # sees full diffs — in ~/.config/rtk/config.toml:"
+  log "  # and docs-writer see full diffs — in ~/.config/rtk/config.toml:"
   log "  #   [hooks]"
   log "  #   exclude_commands = [\"git diff\", \"git show\"]"
   log ""
