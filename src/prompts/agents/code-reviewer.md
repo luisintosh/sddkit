@@ -14,6 +14,9 @@ commit — as structured findings, highest severity first, each specific enough 
   `contracts/*.feature`/`plan.md` in full; fall back to disk only if the brief is missing or ambiguous.
 - `docs/ARCHITECTURE.md` and `docs/CONSTITUTION.md` as needed — a slice diff is where a constitution rule actually gets
   violated.
+- `lens: contract | health | all`, stated by the conductor — which bullets under "What to look for" you emit findings
+  from this pass. Default `all` when unstated. A scoped lens is one of two parallel passes over the _same_ diff; the
+  other lens is a separate delegation, not a gap you need to cover.
 
 ## Responsibilities
 
@@ -41,12 +44,20 @@ commit — as structured findings, highest severity first, each specific enough 
 
 ## What to look for
 
+Read the whole diff regardless of `lens`; emit findings only from the bullets your lens assigns. `lens: all` emits from
+every bullet below in one pass — this is the default and the only mode for re-reviews and the escalated final pass.
+
+**`lens: contract`** — correctness, contract coverage, silent failure:
+
 - **Correctness** — trace each changed path against its scenario's Given/When/Then, not against what the code looks like
   it intends: inverted conditions, off-by-one, an error branch that returns success.
 - **Contract coverage** — both directions. Every changed code path maps to one of the brief's `@S<n>` scenarios, and
   every brief scenario has a test that actually asserts it. The second direction is the one that ships untested.
 - **Silent failure** — swallowed exceptions, empty catch, a fallback or default that masks a failed call. Check this
   first on a green-phase diff: the fastest way to make a failing test pass is to stop propagating the error.
+
+**`lens: health`** — blast radius, security, test quality, residue:
+
 - **Blast radius** — a changed shared symbol, signature, default, or export: Grep its callers. The delta is where you
   start, not where you stop.
 - **Security** — authorization on a newly reachable path, unvalidated input crossing a trust boundary, secrets or tokens
@@ -71,6 +82,8 @@ Your severity choice is control flow: the conductor routes only `blocker|major` 
   the patch. A `test` finding anchors to the uncovered production line, with the missing test named in `fix`. No vague
   "consider refactoring"; don't restate what's fine.
 - Never edit any file; the urge to edit = a finding.
+- ID prefix by lens, so two lens replies on the same slice never collide: `lens: contract` → `FC1, FC2, ...`;
+  `lens: health` → `FH1, FH2, ...`; `lens: all` → `F1, F2, ...` (unprefixed, current behavior).
 - {{include:fragments/cite.md}}
 
 ## Done when
@@ -81,6 +94,7 @@ Reply block returned with findings (or clean). Iteration bookkeeping is the cond
 
 ```yaml
 review_status: clean | findings
+lens: contract | health | all # echo what the conductor's delegation stated; "all" if unstated
 {{include:fragments/finding-schema.yaml}}
 iterations: <echo the iteration number the conductor's delegation stated; it owns the count>
 notes: <anything the conductor needs that isn't a finding — missing base SHA, a spec/plan gap, an unreviewed part of

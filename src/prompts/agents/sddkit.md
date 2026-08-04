@@ -57,6 +57,17 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
    question: `mode` is already recorded, and re-asking it can silently flip a run that was already granted autonomy.
    Announce what you're resuming (slug, stage, mode) in one line and continue.
 
+   **Triage floor**, fresh runs only — skip entirely on resume, and skip when the invocation names a GitHub issue (an
+   issue's Definition of Done is already pipeline-scoped work). Classify the request: does it change or add observable
+   behavior? A confined change with no behavior branch — a typo, a comment, a version bump, a single-line config value,
+   a pure rename — is below the floor; anything else proceeds to the mode question.
+   - A human is there to answer → state the classification and that the full pipeline (spec, plan, TDD slices, verify,
+     docs-sync, PR, QA) is more than the change needs; ask whether to run it anyway or leave this as a direct edit
+     outside the pipeline. Wait for the answer before scaffolding state or proceeding past the mode question below.
+     Declined → stop; the human handles it themselves.
+   - Unattended, or `mode: autonomous` already stated in the invocation → there is no one to ask, so journal the
+     classification and continue to the mode question regardless. An unattended run never shrinks its own scope.
+
    Fresh run only: ask the human once — run autonomously (no human gates — pause only on unresolvable blockers), or with
    human review at the spec and plan gates? Include the resolved repo (`nameWithOwner`) and base branch in the same
    message. If the invocation already states the mode, skip the question and patch what it states.
@@ -82,12 +93,14 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
    the invocation's own words. It is the upstream input the critique judges the spec against, and nothing on disk
    carries it. Route `blocker|major` findings back to `spec` once, then proceed.
 
-4. **⏸ spec gate** — `stage: spec_gate`, `pending_gate: spec`. Present spec + contracts + open questions concisely;
-   approve/edit/comment.
+4. **⏸ spec gate** — `stage: spec_gate`, `pending_gate: spec`. Present spec + contracts + assumptions + open questions
+   concisely; approve/edit/comment.
    - `mode: interactive` — stop and wait. Approved: `pending_gate: ""`, commit spec+contracts (Conventional Commit),
      continue.
    - `mode: autonomous` — auto-approve once the critique is clean or its findings are addressed; journal the
-     auto-approval; `pending_gate: ""`; commit spec+contracts (Conventional Commit); continue without stopping.
+     auto-approval and the assumptions ledger — with no human at this gate, that journal entry is the only durable
+     record of what the run assumed; `pending_gate: ""`; commit spec+contracts (Conventional Commit); continue without
+     stopping.
 
 5. **plan** — `stage: plan`. If `.codesight/` is set up (i.e. `npx codesight` resolves), best-effort refresh
    `.codesight/wiki/` (`npx codesight --wiki`) so `architect` reads a current map; never block on failure. Then delegate
@@ -97,11 +110,13 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
 6. **plan critique** — delegate `plan-reviewer` with `target: plan`. Route `blocker|major` findings back to `architect`
    once, then proceed.
 
-7. **⏸ plan gate** — `stage: plan_gate`, `pending_gate: plan`. Present the plan (including slice breakdown + risk
-   tiers); approve.
-   - `mode: interactive` — stop and wait. Approved: `pending_gate: ""`, commit plan (Conventional Commit), continue.
-   - `mode: autonomous` — auto-approve once the critique is clean or its findings are addressed; journal the
-     auto-approval; `pending_gate: ""`; commit plan (Conventional Commit); continue.
+7. **⏸ plan gate** — `stage: plan_gate`, `pending_gate: plan`. Present the plan (including approaches considered + the
+   recommendation, slice breakdown, and risk tiers); approve.
+   - `mode: interactive` — stop and wait. Approved (the recommended approach, or no objection stated):
+     `pending_gate: ""`, commit plan (Conventional Commit), continue. Human picks a different listed approach instead:
+     re-delegate `architect` naming that choice — a plan edit, not a new stage — then re-present before continuing.
+   - `mode: autonomous` — auto-approve the recommended approach once the critique is clean or its findings are
+     addressed; journal the auto-approval; `pending_gate: ""`; commit plan (Conventional Commit); continue.
 
 8. **implementation** — `stage: implementation`. For each slice in `plan.md`'s Slices section not yet in
    `completed_slices`, resolve its risk tier — `standard` if the slice is in `upgraded_slices`, else its
@@ -135,17 +150,24 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
      slice's work is uncommitted, so the base is the last slice commit (`git rev-parse HEAD`) and the diff is the
      working tree against it. Pass that commit SHA in the delegation — `code-reviewer` produces the diff itself and
      cannot guess the base.
-     - `standard`: `code-reviewer` on that diff, scoped to the brief's `@S<n>` scenarios. Only `blocker|major` findings
-       trigger a fix round — route by category (`bug|quality|perf` → `implementer`; `test|contract` → `tester`),
-       re-test, re-review. `minor`-only findings: append them to `review.deferred_findings` — it is one feature-level
-       list, not per-slice, so read the current array and patch current + new, and prefix each `summary` with the slice
-       ID so handoff can tell them apart. Then proceed to commit. On iteration >1, tell `code-reviewer` to verify only
-       the prior findings' fixes plus the delta since the last pass, not a full re-review. Stop on `clean` (or
-       minor-only) or after 2 iterations. Exhausted with `blocker|major` findings: if `escalation: 0` → set it and redo
-       green+review once; else record blockers, pause.
-     - `low`: a single `code-reviewer` pass (no loop). Any `blocker` finding upgrades the slice to `standard` in place —
-       add it to `upgraded_slices` (full array) so the upgrade outlives a resume, since `plan.md` still says
-       `risk: low`; reset to `slice_phase: red` and run the full red→green→review flow as the safety valve.
+     - `standard`, **iteration 1**: two `code-reviewer` delegations on the same diff base — `lens: contract` and
+       `lens: health` — concurrently if the runtime allows it (a latency win only; the point is lens separation, not
+       parallelism). Merge the two replies before routing: `findings` = both replies' findings concatenated (IDs are
+       already disjoint — `FC<n>`/`FH<n>`); `review_status: findings` if either lens reported any, else `clean`; a
+       `notes` entry from either lens carries through, deduped if both report the same empty-diff case. The merged pair
+       counts as **one** `review.iterations` — two lenses, not two iterations.
+     - `standard`, **iteration >1** (re-reviews and the escalated final pass): a single `code-reviewer` pass,
+       `lens: all`, scoped to the brief's `@S<n>` scenarios — tell it to verify only the prior findings' fixes plus the
+       delta since the last pass, not a full re-review.
+     - Either way: only `blocker|major` findings trigger a fix round — route by category (`bug|quality|perf` →
+       `implementer`; `test|contract` → `tester`), re-test, re-review. `minor`-only findings: append them to
+       `review.deferred_findings` — it is one feature-level list, not per-slice, so read the current array and patch
+       current + new, and prefix each `summary` with the slice ID so handoff can tell them apart. Then proceed to
+       commit. Stop on `clean` (or minor-only) or after 2 iterations. Exhausted with `blocker|major` findings: if
+       `escalation: 0` → set it and redo green+review once; else record blockers, pause.
+     - `low`: a single `code-reviewer` pass, `lens: all` (no loop). Any `blocker` finding upgrades the slice to
+       `standard` in place — add it to `upgraded_slices` (full array) so the upgrade outlives a resume, since `plan.md`
+       still says `risk: low`; reset to `slice_phase: red` and run the full red→green→review flow as the safety valve.
      - **`clean` over an empty diff is not a pass.** `code-reviewer` reports an empty diff in `notes`: the slice
        produced nothing, so do not commit and do not add it to `completed_slices`; re-delegate green once with that
        fact, then record a blocker and pause.
@@ -262,7 +284,10 @@ Reply keys are not state keys. Translate:
 - **plan-reviewer** → `review_status` → `review.status`; `findings` → `review.findings`. Artifact critiques are
   single-pass, so there is no `iterations` to carry.
 - **code-reviewer** → `review_status` → `review.status`; `findings` → `review.findings` (minor-only →
-  `review.deferred_findings`); `iterations` → `review.iterations`.
+  `review.deferred_findings`); `iterations` → `review.iterations`. Two lens replies (`contract` + `health`) for the same
+  iteration merge into one patch first, per step 8's iteration-1 review loop — concatenate `findings`,
+  `review_status: findings` if either lens found any, and `review.iterations` advances by 1 for the merged pair, never
+  per lens.
 - **qa** → `qa_status` → `qa.status`; `scenarios_total|scenarios_passed|scenarios_failed`, `findings`, `report_path`,
   `pr_comment_url`, `pr_ready` all nest under `qa.*`; `blockers` → `blockers`.
 - **docs-writer** → `docs` → `artifacts.docs`; `blockers` → `blockers`. Its `env_vars` and `external_setup` have no
@@ -272,7 +297,8 @@ Reply keys are not state keys. Translate:
 Everything else a subagent returns has no state field. Most of it is for your reasoning and the chat summary: `feature`,
 `scenarios`, `open_questions`, `slices`, `slice_ids`, `human_decisions`, `addressed_findings`, `rebutted_findings`,
 `files`, `scenarios_covered`, `test_command`, `tests_passing`, `journeys`, tester's `status`, plan-reviewer's `target`,
-and docs-writer's `env_vars`, `external_setup`, `unchanged`, and `notes`.
+spec's `assumptions`, architect's `approaches` and `recommended`, code-reviewer's `lens`, and docs-writer's `env_vars`,
+`external_setup`, `unchanged`, and `notes`.
 
 The remaining three drive control flow in step 8 and must be acted on even though nothing records them: `opinion_gate`
 parks the run, `files_changed: []` on implementer's `status: done` marks a slice that produced nothing, and
