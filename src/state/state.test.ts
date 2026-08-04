@@ -60,7 +60,7 @@ describe("validateState", () => {
       expect(result.data.qa.cycles).toBe(0)
       expect(result.data.pending_gate).toBe("")
       expect(result.data.mode).toBe("interactive")
-      expect(result.data.artifacts).toEqual({ spec: "", contracts: [], plan: "" })
+      expect(result.data.artifacts).toEqual({ spec: "", contracts: [], plan: "", docs: [] })
       expect(result.data.roadmap).toEqual({ issue: 0, epic: 0, feature_id: "", path: "" })
     }
   })
@@ -141,6 +141,22 @@ describe("validateState", () => {
       escalation: 2,
     })
     expect(result.success).toBe(false)
+  })
+
+  test("records docs-sync paths without disturbing sibling artifacts", () => {
+    const result = validateState({
+      feature: "x",
+      workflow: "sdd",
+      stage: "docs_sync",
+      updated: new Date().toISOString(),
+      artifacts: { spec: "docs/feats/x/spec.md", docs: ["src/billing/README.md", "AGENTS.md"] },
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.artifacts.docs).toEqual(["src/billing/README.md", "AGENTS.md"])
+      expect(result.data.artifacts.spec).toBe("docs/feats/x/spec.md")
+      expect(result.data.artifacts.contracts).toEqual([])
+    }
   })
 
   test("rejects a malformed finding record", () => {

@@ -48,8 +48,9 @@ export const StateSchema = z.object({
       spec: z.string().default(""),
       contracts: z.array(z.string()).default([]),
       plan: z.string().default(""),
+      docs: z.array(z.string()).default([]),
     })
-    .default({ spec: "", contracts: [], plan: "" }),
+    .default({ spec: "", contracts: [], plan: "", docs: [] }),
   verification: z
     .object({
       status: z.string().default(""),
