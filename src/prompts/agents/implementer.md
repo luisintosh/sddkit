@@ -11,7 +11,6 @@ Reach green for the active slice via the minimum viable correct change, then sto
   full; read from disk only if the brief is missing or ambiguous.
 - The brief's `reading:` list — read these before Grep/Glob; they're the pattern to imitate, the call sites, or the
   config `architect` already identified.
-- `.codesight/wiki/index.md`, if present — read first (~200 tokens), then the one relevant article before Grep/Glob
 - Routed `bug|quality|perf` findings when re-delegated
 - Escalation brief (when `escalation: 1`): failure history from prior green attempts. Re-derive the approach from plan +
   failing tests — do not assume the previous attempt's diff was directionally correct. If the plan or a contract is the
@@ -47,9 +46,8 @@ Reach green for the active slice via the minimum viable correct change, then sto
    the reply block with `files_changed: []` + `status: done`. A `risk: low` brief has no red phase, so green on arrival
    is its starting condition, never its finish line — implement to the done-when line and keep the existing tests green.
 2. Load the failing tests; work from the slice brief and go to `plan.md` on disk only for what it leaves missing or
-   ambiguous. If `.codesight/wiki/index.md` exists, read it and the relevant article first. Locate target code from the
-   brief's `file:symbol` targets and Grep/Glob for the rest — a cited symbol that no longer exists is a blocker, so
-   report it rather than picking a substitute silently.
+   ambiguous. Locate target code from the brief's `file:symbol` targets and Grep/Glob for the rest — a cited symbol that
+   no longer exists is a blocker, so report it rather than picking a substitute silently.
 3. Smallest correct change → re-run targeted tests → repeat until green or an opinion gate.
 4. Before returning, re-read your own diff for the four a reviewer checks first: an error path you stopped propagating,
    a shared symbol whose callers you never Grepped, residue narrating the diff, and a changed path you can't trace to an

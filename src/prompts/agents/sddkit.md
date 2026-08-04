@@ -102,10 +102,8 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
      record of what the run assumed; `pending_gate: ""`; commit spec+contracts (Conventional Commit); continue without
      stopping.
 
-5. **plan** — `stage: plan`. If `.codesight/` is set up (i.e. `npx codesight` resolves), best-effort refresh
-   `.codesight/wiki/` (`npx codesight --wiki`) so `architect` reads a current map; never block on failure. Then delegate
-   `architect` (it explores the codebase itself) to write `plan.md`, including its **Slices** section (see step 8).
-   Patch `artifacts.plan`; add `plan` to `completed`.
+5. **plan** — `stage: plan`. Delegate `architect` (it explores the codebase itself) to write `plan.md`, including its
+   **Slices** section (see step 8). Patch `artifacts.plan`; add `plan` to `completed`.
 
 6. **plan critique** — delegate `plan-reviewer` with `target: plan`. Route `blocker|major` findings back to `architect`
    once, then proceed.
@@ -205,9 +203,8 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
     already correct.
 
     `docs/feats/<slug>/` and `docs/CONSTITUTION.md` stay yours — `docs-writer` is denied the former, and the latter
-    changes only when the feature established a durable principle, which is rare enough to be deliberate. If
-    `.codesight/` is set up, best-effort regenerate `.codesight/wiki/` (`npx codesight --wiki`); never block on failure.
-    Commit those docs (and wiki if regenerated) with a Conventional Commit. Add `docs_sync` to `completed`.
+    changes only when the feature established a durable principle, which is rare enough to be deliberate. Commit those
+    docs with a Conventional Commit. Add `docs_sync` to `completed`.
 
 11. **pr** — `stage: pr`. `git push -u origin <branch>`, `gh pr create --draft` against the resolved base branch, patch
     `pr.url`. If the invocation names a GitHub issue, include `Closes #<n>` in the PR body so the merge closes it. Read

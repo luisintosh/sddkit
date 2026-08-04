@@ -122,9 +122,8 @@ if [[ $rc -ne 0 ]]; then ok "checksum mismatch exits non-zero"; else bad "checks
 after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/spec.md" | awk '{print $1}')"
 assert_eq "$after_hash" "$before_hash" "no partial write after checksum mismatch"
 
-# 7. doctor mentions bun / sddkit-state / codesight
+# 7. doctor mentions bun / sddkit-state
 doctor_output="$(TARGET_DIR="$TARGET" bash "${REPO_ROOT}/install.sh" --doctor 2>&1)"
-if grep -q 'npx' <<<"$doctor_output"; then ok "doctor reports npx/codesight"; else bad "doctor npx: $doctor_output"; fi
 if grep -q 'sddkit-state' <<<"$doctor_output"; then ok "doctor reports sddkit-state"; else bad "doctor sddkit-state: $doctor_output"; fi
 if grep -q 'rtk' <<<"$doctor_output"; then
   bad "doctor should not mention rtk install (suggestion is post-install only)"
@@ -163,7 +162,6 @@ fi
 # 10. post-install next-step hints
 hints="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=opencode bash "${REPO_ROOT}/install.sh" 2>&1)"
 if grep -q '/setup-docs' <<<"$hints"; then ok "suggests /setup-docs"; else bad "missing /setup-docs hint"; fi
-if grep -q '/setup-context' <<<"$hints"; then ok "suggests /setup-context"; else bad "missing /setup-context hint"; fi
 if grep -qE 'brew install gh|gh is on PATH|cli.github.com' <<<"$hints"; then
   ok "suggests gh CLI"
 else

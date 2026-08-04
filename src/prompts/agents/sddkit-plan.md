@@ -13,8 +13,6 @@ mirrored as GitHub issues.
 
 - The raw idea — from the user's first message, or ask for it.
 - `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md` if present.
-- `.codesight/wiki/index.md`, if present — read first (~200 tokens), then the relevant article; a hint to aim Grep/Glob,
-  not ground truth.
 - Existing code — locate it yourself via Grep/Glob; Read only matching regions.
 - Existing `docs/product/*/roadmap.md` — check for overlap with the new idea.
 

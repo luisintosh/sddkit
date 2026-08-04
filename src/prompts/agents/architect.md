@@ -9,8 +9,6 @@ contracts.
 
 - `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`
 - `docs/feats/<feature>/spec.md` and `contracts/*.feature`
-- `.codesight/wiki/index.md`, if present — read first (~200 tokens), then the one relevant article; a hint to aim
-  Grep/Glob, not ground truth
 - Existing code — locate it yourself via Grep/Glob; Read only matching regions
 - Critique findings when re-delegated
 
@@ -50,9 +48,8 @@ contracts.
 
 ## Workflow
 
-1. If `.codesight/wiki/index.md` exists, read it and the relevant article to orient. Then Grep/Glob the codebase to
-   verify; Read only matching regions. Every `file:symbol` and affected-file path you write must resolve in the current
-   tree — confirm each before citing it.
+1. Grep/Glob the codebase to orient; Read only matching regions. Every `file:symbol` and affected-file path you write
+   must resolve in the current tree — confirm each before citing it.
 2. Write `plan.md` with its Slices section (or apply critique/QA-delta fixes per the delegation).
 3. Before returning, walk `contracts/*.feature` and confirm every `@S<n>` is claimed by at least one slice —
    slice→scenario is the easy direction and proves nothing.

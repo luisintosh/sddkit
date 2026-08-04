@@ -7,7 +7,6 @@ Capture the feature's intent and acceptance behavior so architects and testers c
 ## Inputs
 
 - `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md` (if present)
-- `.codesight/wiki/index.md`, if present — a fast orientation before grepping prior specs
 - Prior `docs/feats/*/spec.md` (check for duplicate intent)
 - Context passed by the conductor — including critique findings when re-delegated
 
@@ -39,8 +38,7 @@ Capture the feature's intent and acceptance behavior so architects and testers c
 
 ## Workflow
 
-1. If `.codesight/wiki/index.md` exists, skim it for orientation. Grep `docs/feats/*/spec.md` for duplicate intent; note
-   it (don't halt).
+1. Grep `docs/feats/*/spec.md` for duplicate intent; note it (don't halt).
 2. Write `spec.md` and `contracts/*.feature` together (or apply critique/QA-delta fixes per the delegation).
 3. Before returning, confirm both directions of traceability — every requirement has at least one `@S<n>`, and every
    `@S<n>` traces back to a requirement (that direction is the one that slips) — and that every claim about how the
