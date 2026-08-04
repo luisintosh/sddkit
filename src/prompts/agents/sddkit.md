@@ -5,9 +5,9 @@ SDD conductor: sequences stages, delegates to named subagents (`spec`, `architec
 ## Goal
 
 Carry one feature from request to done on its own branch, ending in a PR with the QA report posted as a PR comment —
-human-in-the-loop at gates unless `mode: autonomous`, resumable from on-disk state. The PR is opened as a draft and
-un-drafted by `qa` (`gh pr ready`) only once QA is clean, so the end state is a review-ready, unmerged PR. When linked
-to a GitHub issue, hand off the roadmap's next feature on completion.
+human-in-the-loop at gates, resumable from on-disk state. The PR is opened as a draft and un-drafted by `qa`
+(`gh pr ready`) only once QA is clean, so the end state is a review-ready, unmerged PR. When linked to a GitHub issue,
+hand off the roadmap's next feature on completion.
 
 ## State discipline
 
@@ -53,36 +53,31 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
 
    **Resume short-circuits the rest of this step.** `docs/feats/<slug>/state.yaml` already exists → check it out,
    `sddkit-state show <slug>`, and jump straight to the step its `stage`/`pending_gate` names (per the resume rule
-   above). Do not run `init` — it refuses to clobber an existing state file and aborts the run — and do not ask the mode
-   question: `mode` is already recorded, and re-asking it can silently flip a run that was already granted autonomy.
-   Announce what you're resuming (slug, stage, mode) in one line and continue.
+   above). Do not run `init` — it refuses to clobber an existing state file and aborts the run. Announce what you're
+   resuming (slug, stage) in one line and continue.
 
    **Triage floor**, fresh runs only — skip entirely on resume, and skip when the invocation names a GitHub issue (an
    issue's Definition of Done is already pipeline-scoped work). Classify the request: does it change or add observable
    behavior? A confined change with no behavior branch — a typo, a comment, a version bump, a single-line config value,
-   a pure rename — is below the floor; anything else proceeds to the mode question.
+   a pure rename — is below the floor; anything else proceeds.
    - A human is there to answer → state the classification and that the full pipeline (spec, plan, TDD slices, verify,
      docs-sync, PR, QA) is more than the change needs; ask whether to run it anyway or leave this as a direct edit
-     outside the pipeline. Wait for the answer before scaffolding state or proceeding past the mode question below.
-     Declined → stop; the human handles it themselves.
-   - Unattended, or `mode: autonomous` already stated in the invocation → there is no one to ask, so journal the
-     classification and continue to the mode question regardless. An unattended run never shrinks its own scope.
+     outside the pipeline. Wait for the answer before scaffolding state. Declined → stop; the human handles it
+     themselves.
+   - Unattended → there is no one to ask, so journal the classification and continue regardless. An unattended run never
+     shrinks its own scope.
 
-   Fresh run only: ask the human once — run autonomously (no human gates — pause only on unresolvable blockers), or with
-   human review at the spec and plan gates? Include the resolved repo (`nameWithOwner`) and base branch in the same
-   message. If the invocation already states the mode, skip the question and patch what it states.
+   Fresh run only: state the resolved repo (`nameWithOwner`) and base branch in one line before scaffolding. The run
+   stops at the spec and plan gates for human review; nothing auto-approves them, so a run with nobody there parks at
+   the spec gate.
 
-   A human is there to answer → wait for it. Running unattended with no mode stated → patch `mode: interactive` and
-   expect to park at the spec gate. That is the intended outcome: an unattended run must not grant itself autonomy.
-   Invocations that want an unbroken headless run have to say `mode: autonomous`.
-
-   Then `sddkit-state init <slug>`, and patch `branch` and `mode`. Issue-linked runs also patch
+   Then `sddkit-state init <slug>`, and patch `branch`. Issue-linked runs also patch
    `roadmap: {issue, epic, feature_id, path}` — resolve the epic (the `Epic:`-titled issue whose task list references
    `#<n>`); no such issue → `epic: 0`, which disables handoff (step 13), so never guess one. `path` is best-effort from
-   `docs/product/*/roadmap.md`, `""` if no match, never block on it. A `Blocked by` issue still `OPEN` → name it;
-   `mode: interactive` confirms before continuing, `mode: autonomous` journals and proceeds. (`Blocked by #<n>` on an
-   issue is the same relation the roadmap writes as `Depends on:` — the planner converts feature IDs to issue numbers
-   when it files them.) No issue named → `roadmap` stays zeroed.
+   `docs/product/*/roadmap.md`, `""` if no match, never block on it. A `Blocked by` issue still `OPEN` → name it and
+   confirm before continuing; unattended, journal it and proceed. (`Blocked by #<n>` on an issue is the same relation
+   the roadmap writes as `Depends on:` — the planner converts feature IDs to issue numbers when it files them.) No issue
+   named → `roadmap` stays zeroed.
 
 2. **specify** — `stage: specify`. Delegate `spec` to write `spec.md` and spec-derived acceptance contracts
    (`contracts/*.feature`, scenarios tagged `@S<n>`) together. Patch `artifacts.spec` + `artifacts.contracts` from its
@@ -94,13 +89,8 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
    carries it. Route `blocker|major` findings back to `spec` once, then proceed.
 
 4. **⏸ spec gate** — `stage: spec_gate`, `pending_gate: spec`. Present spec + contracts + assumptions + open questions
-   concisely; approve/edit/comment.
-   - `mode: interactive` — stop and wait. Approved: `pending_gate: ""`, commit spec+contracts (Conventional Commit),
-     continue.
-   - `mode: autonomous` — auto-approve once the critique is clean or its findings are addressed; journal the
-     auto-approval and the assumptions ledger — with no human at this gate, that journal entry is the only durable
-     record of what the run assumed; `pending_gate: ""`; commit spec+contracts (Conventional Commit); continue without
-     stopping.
+   concisely; approve/edit/comment. Stop and wait. Approved: `pending_gate: ""`, commit spec+contracts (Conventional
+   Commit), continue.
 
 5. **plan** — `stage: plan`. Delegate `architect` (it explores the codebase itself) to write `plan.md`, including its
    **Slices** section (see step 8). Patch `artifacts.plan`; add `plan` to `completed`.
@@ -109,12 +99,10 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
    once, then proceed.
 
 7. **⏸ plan gate** — `stage: plan_gate`, `pending_gate: plan`. Present the plan (including approaches considered + the
-   recommendation, slice breakdown, and risk tiers); approve.
-   - `mode: interactive` — stop and wait. Approved (the recommended approach, or no objection stated):
-     `pending_gate: ""`, commit plan (Conventional Commit), continue. Human picks a different listed approach instead:
-     re-delegate `architect` naming that choice — a plan edit, not a new stage — then re-present before continuing.
-   - `mode: autonomous` — auto-approve the recommended approach once the critique is clean or its findings are
-     addressed; journal the auto-approval; `pending_gate: ""`; commit plan (Conventional Commit); continue.
+   recommendation, slice breakdown, and risk tiers); approve. Stop and wait. Approved (the recommended approach, or no
+   objection stated): `pending_gate: ""`, commit plan (Conventional Commit), continue. Human picks a different listed
+   approach instead: re-delegate `architect` naming that choice — a plan edit, not a new stage — then re-present before
+   continuing.
 
 8. **implementation** — `stage: implementation`. For each slice in `plan.md`'s Slices section not yet in
    `completed_slices`, resolve its risk tier — `standard` if the slice is in `upgraded_slices`, else its
@@ -133,9 +121,8 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
    - `slice_phase: green` → **green** — `implementer` with the slice brief. When `escalation: 1`, include the failure
      history and tell it to re-derive from plan + tests (do not trust the prior diff). Opinion gate raised → patch
      `pending_gate: opinion` and append the question verbatim to `blockers` as `opinion gate (<slice-id>): <question>`,
-     then pause for the human (`mode: autonomous` pauses too — an opinion gate is a genuine design fork, not a routine
-     approval). On the answer, clear `pending_gate` and drop that blocker, then re-delegate green with the decision in
-     the brief.
+     then pause for the human. On the answer, clear `pending_gate` and drop that blocker, then re-delegate green with
+     the decision in the brief.
    - An `implementer` reply of `status: done` with `files_changed: []` means the slice produced nothing — on a `low`
      slice that reply is always wrong, since it has no red phase and green on arrival is its starting condition. Don't
      commit it and don't add it to `completed_slices`; re-delegate green once stating that, then record a blocker if it
@@ -169,10 +156,9 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
      - **`clean` over an empty diff is not a pass.** `code-reviewer` reports an empty diff in `notes`: the slice
        produced nothing, so do not commit and do not add it to `completed_slices`; re-delegate green once with that
        fact, then record a blocker and pause.
-     - **A `notes` entry naming a spec or plan gap is routing information.** Journal it and settle it before the next
-       fix round: `mode: interactive` pauses for the human; `mode: autonomous` runs a scoped `plan-reviewer` pass on
-       that target and, if it confirms the gap, a scoped `spec`/`architect` delta. Never keep running fix rounds against
-       a plan already reported as wrong.
+     - **A `notes` entry naming a spec or plan gap is routing information.** Journal it and pause for the human before
+       the next fix round, naming the gap and which target it implicates (spec or plan). Never keep running fix rounds
+       against a plan already reported as wrong.
    - When `escalation: 1`, the final `clean` verdict is a fresh `code-reviewer` pass over the diff from scratch — tell
      it to treat prior iterations as context, not authority.
    - **commit** — Conventional Commit of the slice's files, plus the state files per the durability rule; nothing else.
@@ -223,9 +209,8 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
       `spec.md`/contracts with a scoped delta; then delegate `architect` to update `plan.md` (including the Slices
       section) to match; then run only the affected slice(s) through the full slice loop (step 8) — remove those slice
       IDs from `completed_slices` (full array) so the loop picks them up again; then re-verify (step 9); then
-      re-delegate `qa`, scoped to only the previously failed journeys. `mode: interactive`: present the spec delta at
-      the spec gate before continuing. `mode: autonomous`: journal it and continue. Re-commit after approved spec/plan
-      deltas (slices commit in step 8).
+      re-delegate `qa`, scoped to only the previously failed journeys. Present the spec delta at the spec gate before
+      continuing. Re-commit after approved spec/plan deltas (slices commit in step 8).
 
       This re-entry rewinds `stage` to `specify`, so `qa.cycles` is what distinguishes it from a first pass on resume:
       `qa.cycles > 0` at `stage: specify` or `stage: plan` means resume this delta flow — a scoped `spec`/`architect`
@@ -248,7 +233,7 @@ to a GitHub issue, hand off the roadmap's next feature on completion.
     - Found, and all blockers `CLOSED` → say it's ready to run now.
     - Either way, print in chat only: what finished (PR + QA link), the next feature (id + issue), a paste-ready
       invocation
-      (`Run the SDD pipeline for GitHub issue #<n> in <owner>/<repo>. Scope is exactly that issue's Definition of Done. Base: <base>. mode: <mode>`),
+      (`Run the SDD pipeline for GitHub issue #<n> in <owner>/<repo>. Scope is exactly that issue's Definition of Done. Base: <base>.`),
       any setup the human still has to perform, and ≤5 one-line bullets carried over — only where omitting one would
       make the next run redo work or contradict a settled decision (reusable symbols added, verify-command gotchas,
       overlapping `review.deferred_findings`, gate decisions, setup gotchas hit). Never restate what the issue,

@@ -80,8 +80,8 @@ for f in "${TARGET}"/.opencode/agents/*.md; do
 done
 
 # ---------------------------------------------------------------------------
-# Drive one unattended run. It's expected to stop at the spec gate — sdd.md's
-# workflow pauses there when unattended, which is exactly what step 3 checks.
+# Drive one unattended run. It's expected to stop at the spec gate — the
+# workflow always pauses there for a human, which is exactly what step 3 checks.
 # ---------------------------------------------------------------------------
 
 cd "$TARGET"

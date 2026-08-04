@@ -59,7 +59,6 @@ describe("validateState", () => {
       expect(result.data.green_attempts).toBe(0)
       expect(result.data.qa.cycles).toBe(0)
       expect(result.data.pending_gate).toBe("")
-      expect(result.data.mode).toBe("interactive")
       expect(result.data.artifacts).toEqual({ spec: "", contracts: [], plan: "", docs: [] })
       expect(result.data.roadmap).toEqual({ issue: 0, epic: 0, feature_id: "", path: "" })
     }
@@ -105,29 +104,6 @@ describe("validateState", () => {
       workflow: "sdd",
       stage: "initialized",
       updated: new Date().toISOString(),
-    })
-    expect(result.success).toBe(false)
-  })
-
-  test("accepts an autonomous mode value", () => {
-    const result = validateState({
-      feature: "x",
-      workflow: "sdd",
-      stage: "initialized",
-      updated: new Date().toISOString(),
-      mode: "autonomous",
-    })
-    expect(result.success).toBe(true)
-    if (result.success) expect(result.data.mode).toBe("autonomous")
-  })
-
-  test("rejects an unknown mode value", () => {
-    const result = validateState({
-      feature: "x",
-      workflow: "sdd",
-      stage: "initialized",
-      updated: new Date().toISOString(),
-      mode: "yolo",
     })
     expect(result.success).toBe(false)
   })
