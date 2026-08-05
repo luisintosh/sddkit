@@ -245,8 +245,6 @@ agents:
 commands:
   setup-docs:
     description: Scaffold project docs required for the AI working context.
-  setup-context:
-    description: Bootstrap the CodeSight codebase context map used by spec/architect/implementer.
 
 opencode_config:
   model: opencode-go/glm-5.2

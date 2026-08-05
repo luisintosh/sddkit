@@ -14,7 +14,7 @@ Prompts live once under `src/prompts/`; `bun run build` transpiles them into Ope
 src/
   catalog.yaml           per-agent models/permissions for both targets
   prompts/agents/        canonical agent bodies (no app frontmatter)
-  prompts/commands/      setup-docs / setup-context
+  prompts/commands/      setup-docs
   prompts/fragments/     shared includes
   state/                 sddkit-state CLI (schema, merge, io)
 tools/
@@ -45,7 +45,7 @@ docs/domains/<domain>.md same, for a domain too cross-cutting to own a directory
 bin/sddkit-state            installed by install.sh
 .opencode/               OpenCode agents + opencode.jsonc
 .cursor/agents/          Cursor subagents
-.cursor/skills/          sddkit, sddkit-plan + setup-* skills
+.cursor/skills/          sddkit, sddkit-plan + setup-docs skill
 ```
 
 ## Models
@@ -82,7 +82,7 @@ Re-running is idempotent: unchanged files skip, upstream updates apply, local ed
 Flags: `--dry-run`, `--doctor`.
 
 After install, ensure `bun` is on `PATH` (portable `bin/sddkit-state` is a Bun script) and prefer invoking
-`./bin/sddkit-state` from the repo root. The installer prints next steps: `/setup-docs`, `/setup-context`, installing
+`./bin/sddkit-state` from the repo root. The installer prints next steps: `/setup-docs`, installing
 [`gh`](https://cli.github.com/) (required — the pipeline verifies it at start), and an optional
 [rtk](https://github.com/rtk-ai/rtk) hint (never auto-installed).
 
@@ -95,14 +95,6 @@ After install, ensure `bun` is on `PATH` (portable `bin/sddkit-state` is a Bun s
 Creates `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and `docs/feats/.gitkeep` if missing. `AGENTS.md`
 must include install/dev/build/test/lint/typecheck (and a single-test-file command). It does **not** backfill domain
 READMEs for existing code — `docs-writer` creates each one as a feature touches that domain.
-
-### Setup Context (optional)
-
-```text
-/setup-context
-```
-
-Runs [`codesight`](https://github.com/Houseofmvps/codesight) to generate `.codesight/wiki/`.
 
 ### Start a Feature
 

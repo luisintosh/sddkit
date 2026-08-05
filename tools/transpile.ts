@@ -124,13 +124,6 @@ async function emitOpencode(catalog: Catalog) {
     default_agent: catalog.opencode_config.default_agent,
     instructions: catalog.opencode_config.instructions,
     command: commands,
-    mcp: {
-      codesight: {
-        type: "local",
-        command: ["npx", "codesight", "--mcp"],
-        enabled: true,
-      },
-    },
     lsp: true,
     formatter: true,
     permission: {

@@ -52,7 +52,7 @@ without asking you a follow-up.
 ## Reviewing a plan
 
 - **Accuracy** — every `file:symbol` reuse claim and affected-file path resolves in the current tree; confirm with
-  Grep/Read rather than trusting the citation, since `architect` may have taken it from a stale `.codesight` wiki. Each
+  Grep/Read rather than trusting the citation, which may name a symbol that has since moved or never existed. Each
   slice's targeted test command must be one this repo can actually run per `AGENTS.md` — wrong runner, wrong path, or a
   missing script is a `blocker`. So is a slice tagged `risk: low` that actually changes behavior: mis-tiering skips the
   red phase, where that behavior would have been pinned by a failing test first.

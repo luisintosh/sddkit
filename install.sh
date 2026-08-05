@@ -169,31 +169,18 @@ doctor() {
     log "  [warn] gh not found — required by the pipeline: brew install gh && gh auth login"
   fi
 
-  if command -v npx >/dev/null 2>&1; then
-    log "  [ok]   npx is on PATH (codesight)"
-  else
-    log "  [warn] npx not found — Node >= 18 for /setup-context"
-  fi
-
-  if [[ -f "${TARGET_DIR}/.codesight/wiki/index.md" ]]; then
-    log "  [ok]   .codesight/wiki/ present"
-  else
-    log "  [warn] .codesight/wiki/ missing — run /setup-context to bootstrap"
-  fi
-
   log ""
 }
 
 suggest_next_steps() {
   log "Next steps:"
   log "  1. /setup-docs       — scaffold AGENTS.md + docs/ARCHITECTURE.md + CONSTITUTION"
-  log "  2. /setup-context    — optional CodeSight wiki (needs Node >= 18 / npx)"
   if ! command -v gh >/dev/null 2>&1; then
-    log "  3. Install gh (required by the pipeline):"
+    log "  2. Install gh (required by the pipeline):"
     log "       brew install gh && gh auth login"
     log "       # or: https://cli.github.com/"
   else
-    log "  3. gh is on PATH — run 'gh auth login' if you aren't logged in"
+    log "  2. gh is on PATH — run 'gh auth login' if you aren't logged in"
   fi
   log ""
   log "Optional: sddkit-plan — Product Owner planner (Cursor: /sddkit-plan skill;"
