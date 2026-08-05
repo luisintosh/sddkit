@@ -113,6 +113,10 @@ Runs [`codesight`](https://github.com/Houseofmvps/codesight) to generate `.codes
 `sddkit` verifies `gh` + the target repo, creates `feat/<slug>`, and asks once (interactive vs autonomous), then
 scaffolds state with `./bin/sddkit-state init` and runs the pipeline. Resume by asking to continue.
 
+Not for a confined, no-behavior-branch change — a typo, a comment, a version bump, a single-line config value, a pure
+rename. A fresh interactive run flags these and asks before scaffolding state; an unattended run, or one naming a GitHub
+issue, always runs the full pipeline regardless.
+
 Name a GitHub issue (`gh issue view` number or URL) and `sddkit` links to it: scope comes from its Definition of Done,
 the slug is derived from the issue title, and completion prints a **handoff** — a paste-ready invocation for the
 roadmap's next feature, plus anything this run learned that the next one needs.

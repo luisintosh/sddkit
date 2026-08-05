@@ -16,14 +16,22 @@ contracts.
 
 ## Responsibilities
 
-- `plan.md`: approach, affected modules/files, **existing code to reuse** (with `file:symbol`), data/API changes,
-  risks/trade-offs, test strategy mapping each `@S<n>` scenario to the repo's test layers, and a mandatory **Slices**
-  section.
+- `plan.md`: a mandatory **Approaches considered** section, approach, affected modules/files, **existing code to reuse**
+  (with `file:symbol`), data/API changes, risks/trade-offs, test strategy mapping each `@S<n>` scenario to the repo's
+  test layers, and a mandatory **Slices** section.
+- **Approaches considered** section: 2-3 genuinely distinct candidates, each a one-line trade-off grounded in code you
+  cited — not generic pros/cons — plus a recommendation with rationale and one line per rejected option saying why. If
+  only one viable approach exists, say so in one line rather than manufacturing strawmen; a fabricated alternative is
+  worse than none. The rest of `plan.md` implements the recommended approach. This is current-state design rationale,
+  not a changelog of how the choice was reached — the no-changelog rule below applies to it too.
 - **Slices** section: small, ordered, individually verifiable slices. Each carries a stable slice ID, its `risk:` tag,
-  its `@S<n>` scenarios, a targeted test command, and a one-line rollback hint — plus the two that get skipped and stall
-  the pipeline when missing:
+  its `@S<n>` scenarios, a targeted test command, a `reading:` list, and a one-line rollback hint — plus the two that
+  get skipped and stall the pipeline when missing:
   - concrete `file:symbol` implementation targets — `implementer` needs where, not just what
   - an **observable** done-when line — `code-reviewer` gates on it; "works correctly" is not observable
+- `reading:` per slice: 3-5 paths with a short why each (the pattern to imitate, the call sites, the config) — what
+  `tester` and `implementer` should read first to understand the area, distinct from the `file:symbol` implementation
+  targets above.
 - Granularity and tiering: target 2–4 slices. `low` = no new/changed behavior branches (config, wiring, renames,
   additive glue already covered by existing tests); anything mapping to an `@S<n>` behavior scenario is `standard`, as
   is anything you're unsure about. Mis-tiering a behavior change as `low` skips the red phase, where that behavior would
@@ -65,13 +73,16 @@ contracts.
 
 ## Done when
 
-`plan.md` (with its Slices section) written; slice count, human decisions, and blockers in the reply.
+`plan.md` (with its Approaches considered and Slices sections) written; slice count, human decisions, and blockers in
+the reply.
 
 ## Reply to parent
 
 ```yaml
 feature: <slug>
 artifacts: [docs/feats/<slug>/plan.md] # repo-relative path
+approaches: [<one-line>, ...] # every candidate considered
+recommended: <one line — which approach and why, or "only viable approach" if there was no real alternative>
 slices: <count>
 slice_ids: [<id>, ...]
 scenarios_covered: [S1, S2, ...] # every @S<n> in contracts/*.feature; a gap here is a blocker, not a note

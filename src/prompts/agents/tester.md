@@ -10,6 +10,8 @@ existing test stack.
 - The slice brief from the conductor (the slice's section from `plan.md`, `@S<n>` scenario text, test command) — prefer
   it over re-reading `docs/feats/<feature>/contracts/*.feature`/`plan.md` in full; read from disk only if the brief is
   missing or ambiguous
+- The brief's `reading:` list — read these before Grep/Glob; they're the pattern to imitate, the call sites, or the
+  config `architect` already identified
 - Existing tests, project manifest/config, `AGENTS.md` — match framework, naming, fixtures, layout
 - Routed `test|contract` findings when re-delegated
 

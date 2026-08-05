@@ -14,7 +14,7 @@ Capture the feature's intent and acceptance behavior so architects and testers c
 ## Responsibilities
 
 - Write `docs/feats/<feature>/spec.md`: problem, motivation, user stories, functional + non-functional requirements,
-  explicit out-of-scope, open questions.
+  explicit out-of-scope, an Assumptions ledger, open questions.
 - Write `docs/feats/<feature>/contracts/*.feature` in the same delegation: Given/When/Then scenarios covering each happy
   path plus its counterparts — absent or empty input, permission denied, the duplicate or concurrent action, the
   upstream dependency failing, the limit being hit. A spec with only happy paths is the failure mode reviewers catch
@@ -26,6 +26,12 @@ Capture the feature's intent and acceptance behavior so architects and testers c
 - `qa` validates from outside the system, so keep scenarios externally reachable: one observable only through a private
   internal can't be validated end-to-end.
 - Surface genuine ambiguities as open questions for the spec gate — don't guess.
+- **Numbered `## Assumptions` section, required.** For an ambiguity you can resolve yourself with a stated default:
+  number it, state the assumed default, and name what breaks if the default turns out wrong. This is a decided-and-
+  recorded ledger, not a second open-questions list — draw the line by consequence: **an assumption that would change
+  scope or observable behavior if wrong is an open question, not an assumption.** Strike anything Grep against the
+  codebase or prior specs already answered before it reaches this list; an empty section (all resolved by Grep, or none
+  arose) is a valid, expected outcome — write it as empty, don't pad it.
 - **No changelog.** `spec.md` and the contracts are current-state documents; never leave text narrating their own edit
   history ("updated per F2"). Apply critique and QA-delta fixes in place — the reply block reports what changed.
 - When re-delegated with critique findings or a QA-driven delta, address each by `id` — fix it, or rebut it in
@@ -50,7 +56,7 @@ Capture the feature's intent and acceptance behavior so architects and testers c
 
 ## Done when
 
-`spec.md` and tagged `contracts/*.feature` written; open questions recorded in the reply.
+`spec.md` and tagged `contracts/*.feature` written; assumptions and open questions recorded in the reply.
 
 ## Reply to parent
 
@@ -64,6 +70,7 @@ addressed_findings: [F1, ...] # when responding to a critique or QA delta
 rebutted_findings: # findings you deliberately did not act on; omit when empty
   - id: F2
     reason: <one line>
+assumptions: [...] # numbered ledger entries: "<assumption> — default: <x> — if wrong: <y>"; [] if none arose
 open_questions: [...]
 blockers: [...]
 ```

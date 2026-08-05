@@ -37,13 +37,15 @@ without asking you a follow-up.
 - **Audience fit** — `architect` needs enough constraint to choose an approach without guessing; `tester` needs
   Given/When/Then concrete enough to assert on without inventing values; `qa` needs scenarios reachable from outside the
   system, since one observable only through a private internal cannot be validated end-to-end; the human at the gate
-  needs the open questions, not silent assumptions.
+  needs the open questions and the recorded assumptions, not silent, unrecorded ones.
 - **Actionability** — concrete examples over adjectives: "fast", "robust" each need a number, a threshold, or a named
   behavior. Every requirement testable as written.
 - **Consistency** — `@S<n>` tags unique, stable, never renumbered or reused; a numbering gap left by a removed scenario
   is legitimate, not a finding. Every requirement traceable to at least one scenario and every scenario back to a
   requirement; no tech or implementation choices leaking in, which are the plan's job and a `spec` finding when they
-  appear here.
+  appear here. Each `## Assumptions` entry carries a default and names what breaks if it's wrong; one that would change
+  scope or observable behavior if wrong belongs in open questions instead — flag the miscategorization. An entry Grep
+  against the codebase or a prior spec would already answer shouldn't be there either.
 - **Maintenance** — out-of-scope stated explicitly rather than left implied; no restating what `AGENTS.md` or
   `docs/ARCHITECTURE.md` already owns; open questions recorded rather than quietly assumed away.
 
@@ -57,15 +59,20 @@ without asking you a follow-up.
 - **Edge cases** — every `@S<n>` in `contracts/*.feature` is claimed by at least one slice. Check that direction
   explicitly: a slice mapping to scenarios proves nothing about a scenario no slice mentions, and the orphans are
   usually the error and edge ones. Every slice needs its rollback hint and done-when line.
-- **Audience fit** — each slice must carry what its consumer needs: `tester` needs the `@S<n>` list and the test
-  command, `implementer` needs concrete `file:symbol` targets, `code-reviewer` needs an observable done-when, and the
-  conductor needs a stable slice ID plus the `risk:` tag to build the brief and drive the loop. A slice missing one of
-  those stalls that agent mid-pipeline.
+- **Audience fit** — each slice must carry what its consumer needs: `tester` and `implementer` need the `reading:` list
+  as a starting point — its absence costs them a rediscovery pass that the plan should have done once — `tester` also
+  needs the `@S<n>` list and the test command, `implementer` needs concrete `file:symbol` targets, `code-reviewer` needs
+  an observable done-when, and the conductor needs a stable slice ID plus the `risk:` tag to build the brief and drive
+  the loop. A slice missing one of those stalls that agent mid-pipeline.
 - **Actionability** — a competent implementer could start the slice without asking `architect` a question. "TBD",
   "handle errors properly" are findings. Done-when lines must be observable, not "works correctly".
 - **Consistency** — slice IDs unique and stable; each `risk:` tag agreeing with its own one-line justification; test
   commands agreeing with `AGENTS.md`; nothing outside the approved spec's scope; conventions matching
-  `docs/ARCHITECTURE.md`; `docs/CONSTITUTION.md` conflicts named rather than designed around.
+  `docs/ARCHITECTURE.md`; `docs/CONSTITUTION.md` conflicts named rather than designed around. `## Approaches considered`
+  candidates are genuinely distinct with rationale grounded in cited code, not interchangeable restatements of the same
+  idea or generic pros/cons; the recommendation is the approach the rest of `plan.md` actually implements — a mismatch
+  between the two is a `blocker`, not a style note. A single-viable-approach plan that says so in one line is fine; one
+  presenting fabricated alternatives to check a box is a finding.
 - **Maintenance** — new code where existing code would serve, a second implementation parallel to one already in the
   tree, or plan text restating what `AGENTS.md`/`docs/ARCHITECTURE.md` already own (two copies drift apart).
 

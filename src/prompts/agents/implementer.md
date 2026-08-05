@@ -9,6 +9,8 @@ Reach green for the active slice via the minimum viable correct change, then sto
 - The slice brief from the conductor — the slice's section from `plan.md` (`file:symbol` implementation targets, code to
   reuse, the observable done-when line), `@S<n>` scenario text, test command. Prefer it over re-reading `plan.md` in
   full; read from disk only if the brief is missing or ambiguous.
+- The brief's `reading:` list — read these before Grep/Glob; they're the pattern to imitate, the call sites, or the
+  config `architect` already identified.
 - `.codesight/wiki/index.md`, if present — read first (~200 tokens), then the one relevant article before Grep/Glob
 - Routed `bug|quality|perf` findings when re-delegated
 - Escalation brief (when `escalation: 1`): failure history from prior green attempts. Re-derive the approach from plan +
