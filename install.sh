@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Install the SDD harness (OpenCode and/or Cursor) into the current repository.
-# Skills + sddkit-state land under .agents/; Cursor specialists under .cursor/agents/.
+# Install the SDD harness into a repository (project) or $HOME (global).
+# Skills + sddkit-state land under .agents/; host specialists under isolated leaves.
 #
-# Interactive (TTY): prompts for target and version.
-# Non-interactive / CI: defaults (target=all); env overrides for tests:
-#   TARGET_DIR, VERSION, BRANCH, LOCAL_SOURCE, INSTALL_TARGET
+# Interactive (TTY): Clack TUI when bun + tools/install-tui.ts are available; else bash menus.
+# Non-interactive / CI: defaults (scope=project, target=all); env overrides:
+#   TARGET_DIR, VERSION, BRANCH, LOCAL_SOURCE, INSTALL_SCOPE, INSTALL_TARGET
 #
 # Flags: --dry-run, --doctor
 
@@ -16,6 +16,7 @@ TARGET_DIR="${TARGET_DIR:-$PWD}"
 VERSION="${VERSION:-}"
 BRANCH="${BRANCH:-}"
 LOCAL_SOURCE="${LOCAL_SOURCE:-}"
+INSTALL_SCOPE="${INSTALL_SCOPE:-}"
 INSTALL_TARGET="${INSTALL_TARGET:-}"
 
 DRY_RUN=false
@@ -30,6 +31,8 @@ done
 
 log() { printf '%s\n' "$*" >&2; }
 die() { log "ERROR: $*"; exit 1; }
+
+HOSTS="cursor claude codex opencode"
 
 download() {
   local url="$1" dest="$2"
@@ -75,48 +78,148 @@ prompt_default() {
   fi
 }
 
-resolve_interactive() {
-  if [[ -n "$INSTALL_TARGET" ]]; then
+toolkit_root() {
+  local src="${BASH_SOURCE[0]:-}"
+  if [[ -n "$src" && -f "$src" ]]; then
+    (cd "$(dirname "$src")" && pwd)
+  fi
+}
+
+normalize_targets() {
+  INSTALL_TARGET="${INSTALL_TARGET// /}"
+  [[ -n "$INSTALL_TARGET" ]] || die "INSTALL_TARGET is empty"
+  if [[ "$INSTALL_TARGET" == "all" ]]; then
     return 0
   fi
-  if [[ -t 0 ]]; then
-    log "SDD harness installer"
-    log ""
-    local t
-    t="$(prompt_default "Install target (all / opencode / cursor)" "all")"
-    case "$t" in
-      all|opencode|cursor) INSTALL_TARGET="$t" ;;
-      *) die "invalid target: $t (use all, opencode, or cursor)" ;;
+  local part parts
+  IFS=',' read -r -a parts <<< "$INSTALL_TARGET"
+  for part in "${parts[@]}"; do
+    case "$part" in
+      cursor|claude|codex|opencode) ;;
+      *) die "invalid INSTALL_TARGET host: ${part} (use all or comma list: cursor,claude,codex,opencode)" ;;
     esac
+  done
+}
 
-    if [[ -z "$LOCAL_SOURCE" && -z "$BRANCH" && -z "$VERSION" ]]; then
-      local vchoice
-      vchoice="$(prompt_default "Version source (latest / tag / branch / local)" "latest")"
-      case "$vchoice" in
-        latest) ;;
-        tag)
-          VERSION="$(prompt_default "Tag (e.g. v0.3.0)" "")"
-          [[ -n "$VERSION" ]] || die "tag required"
-          ;;
-        branch)
-          BRANCH="$(prompt_default "Branch name" "master")"
-          ;;
-        local)
-          LOCAL_SOURCE="$(prompt_default "Local checkout path" "")"
-          [[ -n "$LOCAL_SOURCE" ]] || die "local path required"
-          ;;
-        *) die "invalid version source: $vchoice" ;;
-      esac
+wants_host() {
+  local host="$1"
+  [[ "$INSTALL_TARGET" == "all" ]] && return 0
+  [[ ",${INSTALL_TARGET}," == *",${host},"* ]]
+}
+
+try_tui() {
+  [[ -t 0 ]] || return 1
+  [[ -z "$INSTALL_TARGET" && -z "$INSTALL_SCOPE" ]] || return 1
+  command -v bun >/dev/null 2>&1 || return 1
+  local root
+  root="$(toolkit_root)" || return 1
+  [[ -n "$root" && -f "${root}/tools/install-tui.ts" ]] || return 1
+  [[ -d "${root}/node_modules/@clack/prompts" ]] || return 1
+
+  local envf
+  envf="$(mktemp)"
+  if ! bun "${root}/tools/install-tui.ts" --write-env "$envf"; then
+    rm -f "$envf"
+    die "aborted"
+  fi
+  local line key
+  while IFS= read -r line; do
+    [[ -z "$line" ]] && continue
+    key="${line%%=*}"
+    case "$key" in
+      INSTALL_SCOPE|INSTALL_TARGET|VERSION|BRANCH|LOCAL_SOURCE)
+        eval "$line"
+        ;;
+    esac
+  done < "$envf"
+  rm -f "$envf"
+  return 0
+}
+
+resolve_interactive() {
+  if try_tui; then
+    normalize_targets
+    case "$INSTALL_SCOPE" in
+      project|global) ;;
+      *) die "invalid INSTALL_SCOPE: ${INSTALL_SCOPE} (use project or global)" ;;
+    esac
+    return 0
+  fi
+
+  if [[ -z "$INSTALL_SCOPE" ]]; then
+    if [[ -t 0 ]]; then
+      INSTALL_SCOPE="$(prompt_default "Install scope (project / global)" "project")"
+    else
+      INSTALL_SCOPE="project"
     fi
+  fi
+  case "$INSTALL_SCOPE" in
+    project|global) ;;
+    *) die "invalid INSTALL_SCOPE: ${INSTALL_SCOPE} (use project or global)" ;;
+  esac
 
-    local confirm
-    confirm="$(prompt_default "Install into ${TARGET_DIR}? (y/N)" "y")"
+  if [[ -z "$INSTALL_TARGET" ]]; then
+    if [[ -t 0 ]]; then
+      log "SDD harness installer"
+      log ""
+      INSTALL_TARGET="$(prompt_default "Hosts (all or comma list: cursor,claude,codex,opencode)" "all")"
+    else
+      INSTALL_TARGET="all"
+    fi
+  fi
+  normalize_targets
+
+  if [[ -t 0 && -z "$LOCAL_SOURCE" && -z "$BRANCH" && -z "$VERSION" ]]; then
+    local vchoice
+    vchoice="$(prompt_default "Version source (latest / tag / branch / local)" "latest")"
+    case "$vchoice" in
+      latest) ;;
+      tag)
+        VERSION="$(prompt_default "Tag (e.g. v0.3.0)" "")"
+        [[ -n "$VERSION" ]] || die "tag required"
+        ;;
+      branch)
+        BRANCH="$(prompt_default "Branch name" "master")"
+        ;;
+      local)
+        LOCAL_SOURCE="$(prompt_default "Local checkout path" "")"
+        [[ -n "$LOCAL_SOURCE" ]] || die "local path required"
+        ;;
+      *) die "invalid version source: $vchoice" ;;
+    esac
+  fi
+
+  if [[ -t 0 ]]; then
+    local dest_hint confirm
+    if [[ "$INSTALL_SCOPE" == "global" ]]; then
+      dest_hint="${HOME}"
+    else
+      dest_hint="${TARGET_DIR}"
+    fi
+    confirm="$(prompt_default "Install ${INSTALL_TARGET} into ${dest_hint}? (y/N)" "y")"
     case "$confirm" in
       y|Y|yes|YES|Yes) ;;
       *) die "aborted" ;;
     esac
-  else
-    INSTALL_TARGET="all"
+  fi
+}
+
+host_on_path() {
+  local host="$1"
+  case "$host" in
+    cursor) command -v cursor >/dev/null 2>&1 || command -v cursor-agent >/dev/null 2>&1 ;;
+    claude) command -v claude >/dev/null 2>&1 ;;
+    codex) command -v codex >/dev/null 2>&1 ;;
+    opencode) command -v opencode >/dev/null 2>&1 ;;
+    *) return 1 ;;
+  esac
+}
+
+state_bin_in_use() {
+  if [[ -x "${TARGET_DIR}/.agents/bin/sddkit-state" || -f "${TARGET_DIR}/.agents/bin/sddkit-state" ]]; then
+    printf '%s' "${TARGET_DIR}/.agents/bin/sddkit-state"
+  elif [[ -x "${HOME}/.agents/bin/sddkit-state" || -f "${HOME}/.agents/bin/sddkit-state" ]]; then
+    printf '%s' "${HOME}/.agents/bin/sddkit-state"
   fi
 }
 
@@ -124,20 +227,17 @@ doctor() {
   log ""
   log "Doctor:"
 
-  if command -v opencode >/dev/null 2>&1; then
-    log "  [ok]   opencode is on PATH"
-  else
-    log "  [warn] opencode not found — https://opencode.ai (only needed for OpenCode target)"
-  fi
-
-  if command -v cursor >/dev/null 2>&1 || command -v cursor-agent >/dev/null 2>&1; then
-    log "  [ok]   Cursor CLI detected"
-  else
-    log "  [warn] Cursor CLI not detected (optional; open the repo in Cursor for .cursor/ agents)"
-  fi
+  local host
+  for host in $HOSTS; do
+    if host_on_path "$host"; then
+      log "  [ok]   ${host} CLI is on PATH"
+    else
+      log "  [warn] ${host} CLI not detected (install still allowed)"
+    fi
+  done
 
   if git -C "$TARGET_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    log "  [ok]   inside a git repository"
+    log "  [ok]   ${TARGET_DIR} is a git repository"
   else
     log "  [warn] ${TARGET_DIR} is not a git repository"
   fi
@@ -148,16 +248,27 @@ doctor() {
     log "  [warn] AGENTS.md missing — run /setup-docs first"
   fi
 
-  if [[ -x "${TARGET_DIR}/.agents/bin/sddkit-state" ]] || [[ -f "${TARGET_DIR}/.agents/bin/sddkit-state" ]]; then
-    log "  [ok]   .agents/bin/sddkit-state present"
+  log "  paths:"
+  log "    skills          ${TARGET_DIR}/.agents/skills/  or  ${HOME}/.agents/skills/"
+  log "    sddkit-state    ${TARGET_DIR}/.agents/bin/  or  ${HOME}/.agents/bin/"
+  log "    cursor agents   ${TARGET_DIR}/.cursor/agents/  or  ${HOME}/.cursor/agents/"
+  log "    claude agents   ${TARGET_DIR}/.claude/agents/  or  ${HOME}/.claude/agents/"
+  log "    claude skills   ${TARGET_DIR}/.claude/skills/  or  ${HOME}/.claude/skills/"
+  log "    codex agents    ${TARGET_DIR}/.codex/agents/  or  \${CODEX_HOME:-$HOME/.codex}/agents/"
+  log "    opencode        ${TARGET_DIR}/.opencode/  or  ${HOME}/.config/opencode/agents/ (no jsonc)"
+
+  local state_bin
+  state_bin="$(state_bin_in_use)"
+  if [[ -n "$state_bin" ]]; then
+    log "  [ok]   sddkit-state: ${state_bin}"
   else
-    log "  [warn] .agents/bin/sddkit-state missing — re-run the installer"
+    log "  [warn] sddkit-state missing — re-run the installer"
   fi
 
   if command -v bun >/dev/null 2>&1; then
     log "  [ok]   bun is on PATH (needed to run the portable sddkit-state script)"
   else
-    log "  [warn] bun not found — install from https://bun.sh to run .agents/bin/sddkit-state"
+    log "  [warn] bun not found — install from https://bun.sh to run sddkit-state"
   fi
 
   if command -v gh >/dev/null 2>&1; then
@@ -184,11 +295,10 @@ suggest_next_steps() {
     log "  2. gh is on PATH — run 'gh auth login' if you aren't logged in"
   fi
   log ""
-  log "Optional: sddkit-plan — Product Owner planner (Cursor: /sddkit-plan skill;"
-  log "  OpenCode: Tab-switch to the sddkit-plan agent) turns a raw idea into a"
-  log "  feature roadmap at docs/product/<slug>/roadmap.md, with GitHub issues"
-  log "  wired by Blocked-by. Run each feature through sddkit one at a time —"
-  log "  it hands you the next feature's invocation when one is done."
+  log "Optional: sddkit-plan — Product Owner planner (/sddkit-plan skill, or the"
+  log "  OpenCode sddkit-plan agent) turns a raw idea into a feature roadmap at"
+  log "  docs/product/<slug>/roadmap.md. Run each feature through sddkit one at a"
+  log "  time — it hands you the next feature's invocation when one is done."
   log ""
   log "Optional: rtk (filters noisy bash output for agents)"
   log "  brew install rtk   # or see https://github.com/rtk-ai/rtk"
@@ -200,23 +310,17 @@ suggest_next_steps() {
   log ""
 }
 
-# Build dist/ + manifest.txt in a toolkit checkout (needs bun).
-build_payload() {
+require_payload() {
   local src="$1"
-  command -v bun >/dev/null 2>&1 || die "bun is required to build the harness — https://bun.sh"
-  log "Building install payload in ${src}..."
-  (cd "$src" && bun install --frozen-lockfile 2>/dev/null || bun install) || die "bun install failed in ${src}"
-  (cd "$src" && bun run build) || die "bun run build failed in ${src}"
-  [[ -f "${src}/manifest.txt" && -f "${src}/dist/bin/sddkit-state" ]] || die "build did not produce dist/ + manifest.txt"
+  [[ -f "${src}/manifest.txt" && -d "${src}/dist" && -f "${src}/dist/bin/sddkit-state" ]] \
+    || die "${src} is missing dist/ + manifest.txt — clients copy a committed payload (run bun run build in the toolkit checkout)"
 }
 
-# Ensure LOCAL_SOURCE has a fresh dist/; for remote, download release tarball or build from source.
+# Ensure LOCAL_SOURCE has dist/; for remote, download release tarball or a source tree that already contains dist/.
 prepare_payload_dir() {
   # Sets global PAYLOAD_DIR to a directory containing manifest.txt and dist/
   if [[ -n "$LOCAL_SOURCE" ]]; then
-    if [[ ! -f "${LOCAL_SOURCE}/manifest.txt" || ! -d "${LOCAL_SOURCE}/dist/opencode" ]]; then
-      build_payload "$LOCAL_SOURCE"
-    fi
+    require_payload "$LOCAL_SOURCE"
     PAYLOAD_DIR="$LOCAL_SOURCE"
     return 0
   fi
@@ -234,7 +338,7 @@ prepare_payload_dir() {
     fi
     if [[ -z "$tag" ]]; then
       branch="master"
-      log "Could not resolve a release tag; falling back to master (build from source)"
+      log "Could not resolve a release tag; falling back to master"
     else
       log "Resolved latest release: ${tag}"
     fi
@@ -242,7 +346,6 @@ prepare_payload_dir() {
 
   local scratch
   scratch="$(mktemp -d)"
-  # Caller owns cleanup via stage_dir trap; stash scratch under stage parent.
   PAYLOAD_SCRATCH="$scratch"
 
   if [[ -n "$tag" ]]; then
@@ -251,7 +354,6 @@ prepare_payload_dir() {
     if download "$asset_url" "${scratch}/sddkit-dist.tar.gz" 2>/dev/null; then
       mkdir -p "${scratch}/payload"
       tar -xzf "${scratch}/sddkit-dist.tar.gz" -C "${scratch}/payload" || die "failed to extract sddkit-dist.tar.gz"
-      # tarball may contain dist/ + manifest.txt at root or nested
       if [[ -f "${scratch}/payload/manifest.txt" && -d "${scratch}/payload/dist" ]]; then
         PAYLOAD_DIR="${scratch}/payload"
       else
@@ -264,7 +366,7 @@ prepare_payload_dir() {
       log "Using prebuilt release payload"
       return 0
     fi
-    log "No release asset (or download failed); building from source tag ${tag}"
+    log "No release asset (or download failed); using source tag ${tag}"
   fi
 
   local ref_path tarball_url
@@ -278,7 +380,7 @@ prepare_payload_dir() {
   download "$tarball_url" "${scratch}/src.tar.gz" || die "failed to download source tarball"
   mkdir -p "${scratch}/src"
   tar -xzf "${scratch}/src.tar.gz" -C "${scratch}/src" --strip-components=1 || die "failed to extract source tarball"
-  build_payload "${scratch}/src"
+  require_payload "${scratch}/src"
   PAYLOAD_DIR="${scratch}/src"
 }
 
@@ -330,10 +432,8 @@ install_tree() {
     $DRY_RUN || { mkdir -p "$(dirname "$dest")"; cp "${stage_dir}/${rel_path}" "$dest"; }
   done < <(manifest_paths_of "$new_manifest")
 
-  # Prune using old manifest (paths relative to dest_root)
   while IFS= read -r dest_rel; do
     [[ -z "$dest_rel" ]] && continue
-    # Skip if still present under new prefix
     if manifest_hash "$new_manifest" "${prefix}/${dest_rel}" >/dev/null 2>&1; then
       continue
     fi
@@ -356,8 +456,6 @@ install_tree() {
 
   if ! $DRY_RUN; then
     mkdir -p "$dest_root"
-    # Write dest-relative manifest for next run (avoid piping `while read` —
-    # EOF status 1 trips `set -o pipefail`).
     local filtered unsorted
     filtered="$(mktemp)"
     unsorted="$(mktemp)"
@@ -377,14 +475,19 @@ install_tree() {
 
   log "  ${prefix}: installed ${installed}, updated ${updated}, backed up ${backed_up}, pruned ${pruned}, unchanged ${skipped}."
   if $backup_used; then
-    log "  Locally modified files preserved under ${dest_root#"$TARGET_DIR"/}/.backup-*/"
+    log "  Locally modified files preserved under ${dest_root}/.backup-*/"
   fi
 }
 
 install_bin() {
   local stage_dir="$1" new_manifest="$2"
   local src="${stage_dir}/bin/sddkit-state"
-  local dest="${TARGET_DIR}/.agents/bin/sddkit-state"
+  local dest
+  if [[ "$INSTALL_SCOPE" == "global" ]]; then
+    dest="${HOME}/.agents/bin/sddkit-state"
+  else
+    dest="${TARGET_DIR}/.agents/bin/sddkit-state"
+  fi
   local want_hash
   want_hash="$(manifest_hash "$new_manifest" "bin/sddkit-state")" || die "manifest missing bin/sddkit-state"
 
@@ -397,13 +500,15 @@ install_bin() {
       log "  + install  .agents/bin/sddkit-state"
     fi
     if ! $DRY_RUN; then
-      mkdir -p "${TARGET_DIR}/.agents/bin"
+      mkdir -p "$(dirname "$dest")"
       cp "$src" "$dest"
       chmod +x "$dest"
     fi
   fi
 
-  prune_legacy_bin
+  if [[ "$INSTALL_SCOPE" == "project" ]]; then
+    prune_legacy_bin
+  fi
 }
 
 prune_legacy_bin() {
@@ -417,15 +522,61 @@ prune_legacy_bin() {
 }
 
 prune_legacy_cursor_skills() {
-  local dest="${TARGET_DIR}/.cursor/skills"
+  local dest
+  if [[ "$INSTALL_SCOPE" == "global" ]]; then
+    dest="${HOME}/.cursor/skills"
+  else
+    dest="${TARGET_DIR}/.cursor/skills"
+  fi
   [[ -d "$dest" ]] || return 0
   local name
   for name in sddkit sddkit-plan setup-docs; do
     if [[ -e "${dest}/${name}" ]]; then
-      $DRY_RUN || rm -rf "${dest}/${name}"
+      $DRY_RUN || rm -rf "${dest:?}/${name}"
       log "  - prune    .cursor/skills/${name} (moved to .agents/skills/)"
     fi
   done
+}
+
+resolve_dests() {
+  if [[ "$INSTALL_SCOPE" == "global" ]]; then
+    AGENTS_ROOT="${HOME}/.agents"
+    CURSOR_AGENTS="${HOME}/.cursor/agents"
+    CLAUDE_AGENTS="${HOME}/.claude/agents"
+    CLAUDE_SKILLS="${HOME}/.claude/skills"
+    CODEX_AGENTS="${CODEX_HOME:-$HOME/.codex}/agents"
+    OPENCODE_DEST="${HOME}/.config/opencode/agents"
+    OPENCODE_PREFIX="opencode/agents"
+  else
+    AGENTS_ROOT="${TARGET_DIR}/.agents"
+    CURSOR_AGENTS="${TARGET_DIR}/.cursor/agents"
+    CLAUDE_AGENTS="${TARGET_DIR}/.claude/agents"
+    CLAUDE_SKILLS="${TARGET_DIR}/.claude/skills"
+    CODEX_AGENTS="${TARGET_DIR}/.codex/agents"
+    OPENCODE_DEST="${TARGET_DIR}/.opencode"
+    OPENCODE_PREFIX="opencode"
+  fi
+}
+
+install_selected() {
+  local stage_dir="$1" new_manifest="$2"
+  resolve_dests
+
+  install_tree "agents" "$AGENTS_ROOT" "$stage_dir" "$new_manifest"
+
+  if wants_host cursor; then
+    install_tree "cursor/agents" "$CURSOR_AGENTS" "$stage_dir" "$new_manifest"
+  fi
+  if wants_host claude; then
+    install_tree "claude/agents" "$CLAUDE_AGENTS" "$stage_dir" "$new_manifest"
+    install_tree "agents/skills" "$CLAUDE_SKILLS" "$stage_dir" "$new_manifest"
+  fi
+  if wants_host codex; then
+    install_tree "codex/agents" "$CODEX_AGENTS" "$stage_dir" "$new_manifest"
+  fi
+  if wants_host opencode; then
+    install_tree "$OPENCODE_PREFIX" "$OPENCODE_DEST" "$stage_dir" "$new_manifest"
+  fi
 }
 
 main() {
@@ -439,9 +590,9 @@ main() {
 
   if [[ -n "$LOCAL_SOURCE" ]]; then
     [[ -d "$LOCAL_SOURCE" ]] || die "LOCAL_SOURCE does not exist: $LOCAL_SOURCE"
-    log "Installing from local source: ${LOCAL_SOURCE}"
+    log "Installing from local source: ${LOCAL_SOURCE} (scope=${INSTALL_SCOPE} target=${INSTALL_TARGET})"
   else
-    log "Installing ${REPO_NAME} into ${TARGET_DIR} (target=${INSTALL_TARGET})..."
+    log "Installing ${REPO_NAME} (scope=${INSTALL_SCOPE} target=${INSTALL_TARGET})..."
   fi
 
   local PAYLOAD_DIR="" PAYLOAD_SCRATCH=""
@@ -452,7 +603,6 @@ main() {
   prepare_payload_dir
   [[ -n "$PAYLOAD_DIR" && -f "${PAYLOAD_DIR}/manifest.txt" ]] || die "payload prepare failed"
 
-  # Stage: copy manifest + every listed dist file; verify checksums.
   cp "${PAYLOAD_DIR}/manifest.txt" "${stage_dir}/manifest.txt"
   [[ -s "${stage_dir}/manifest.txt" ]] || die "manifest.txt is empty"
 
@@ -476,30 +626,13 @@ main() {
   log "Verified ${file_count} files against manifest.txt"
 
   local new_manifest="${stage_dir}/manifest.txt"
-
-  case "$INSTALL_TARGET" in
-    all)
-      install_tree "opencode" "${TARGET_DIR}/.opencode" "$stage_dir" "$new_manifest"
-      install_tree "cursor" "${TARGET_DIR}/.cursor" "$stage_dir" "$new_manifest"
-      install_tree "agents" "${TARGET_DIR}/.agents" "$stage_dir" "$new_manifest"
-      ;;
-    opencode)
-      install_tree "opencode" "${TARGET_DIR}/.opencode" "$stage_dir" "$new_manifest"
-      install_tree "agents" "${TARGET_DIR}/.agents" "$stage_dir" "$new_manifest"
-      ;;
-    cursor)
-      install_tree "cursor" "${TARGET_DIR}/.cursor" "$stage_dir" "$new_manifest"
-      install_tree "agents" "${TARGET_DIR}/.agents" "$stage_dir" "$new_manifest"
-      ;;
-    *) die "invalid INSTALL_TARGET: $INSTALL_TARGET" ;;
-  esac
-
+  install_selected "$stage_dir" "$new_manifest"
   install_bin "$stage_dir" "$new_manifest"
   prune_legacy_cursor_skills
 
   if $DRY_RUN; then
     log ""
-    log "Dry run complete (target=${INSTALL_TARGET})."
+    log "Dry run complete (scope=${INSTALL_SCOPE} target=${INSTALL_TARGET})."
     return 0
   fi
 

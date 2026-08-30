@@ -58,6 +58,14 @@ assert_file_exists "${TARGET}/.opencode/agents/sddkit-plan.md" "opencode sddkit-
 assert_file_exists "${TARGET}/.opencode/opencode.jsonc" "opencode.jsonc installed"
 assert_file_absent "${TARGET}/.opencode/plugins/sdd-guard.ts" "plugin not installed"
 assert_file_exists "${TARGET}/.cursor/agents/implementer.md" "cursor implementer installed"
+assert_file_exists "${TARGET}/.claude/agents/spec.md" "claude spec agent installed"
+assert_file_exists "${TARGET}/.claude/skills/sddkit/SKILL.md" "claude skills copy installed"
+assert_file_exists "${TARGET}/.codex/agents/spec.toml" "codex spec agent installed"
+if [[ -L "${TARGET}/.claude/skills/sddkit/SKILL.md" ]]; then
+  bad "claude skills must be a copy, not a symlink"
+else
+  ok "claude skills are a copy, not a symlink"
+fi
 assert_file_exists "${TARGET}/.agents/skills/sddkit/SKILL.md" "sddkit skill installed under .agents"
 assert_file_exists "${TARGET}/.agents/skills/sddkit-plan/SKILL.md" "sddkit-plan skill installed under .agents"
 assert_file_exists "${TARGET}/.agents/skills/setup-docs/SKILL.md" "setup-docs skill installed under .agents"
@@ -65,7 +73,10 @@ assert_file_exists "${TARGET}/.agents/skills/sddkit/references/reply-mapping.md"
 assert_file_absent "${TARGET}/.cursor/skills/sddkit/SKILL.md" "legacy .cursor/skills/sddkit not installed"
 assert_file_exists "${TARGET}/.agents/bin/sddkit-state" "sddkit-state installed under .agents/bin"
 assert_file_exists "${TARGET}/.opencode/.harness-manifest" "opencode harness-manifest recorded"
-assert_file_exists "${TARGET}/.cursor/.harness-manifest" "cursor harness-manifest recorded"
+assert_file_exists "${TARGET}/.cursor/agents/.harness-manifest" "cursor harness-manifest recorded under agents leaf"
+assert_file_exists "${TARGET}/.claude/agents/.harness-manifest" "claude agents harness-manifest recorded"
+assert_file_exists "${TARGET}/.claude/skills/.harness-manifest" "claude skills harness-manifest recorded"
+assert_file_exists "${TARGET}/.codex/agents/.harness-manifest" "codex harness-manifest recorded"
 assert_file_exists "${TARGET}/.agents/.harness-manifest" "agents harness-manifest recorded"
 
 # 2. no-op reinstall
@@ -153,6 +164,8 @@ cp "${REPO_ROOT}/manifest.txt" "$UPSTREAM/"
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor bash "${REPO_ROOT}/install.sh" >/dev/null
 assert_file_exists "${TARGET2}/.cursor/agents/tester.md" "cursor-only installs .cursor"
 assert_file_absent "${TARGET2}/.opencode/agents/sddkit.md" "cursor-only skips .opencode"
+assert_file_absent "${TARGET2}/.claude/agents/spec.md" "cursor-only skips .claude"
+assert_file_absent "${TARGET2}/.codex/agents/spec.toml" "cursor-only skips .codex"
 assert_file_exists "${TARGET2}/.agents/bin/sddkit-state" "cursor-only still installs sddkit-state"
 assert_file_exists "${TARGET2}/.agents/skills/sddkit/SKILL.md" "cursor-only installs shared skills"
 
@@ -187,6 +200,66 @@ if grep -qE 'brew install gh|gh is on PATH|cli.github.com' <<<"$hints"; then
 else
   bad "missing gh CLI hint"
 fi
+
+# 11. missing dist fails (no client-side build)
+EMPTY_SOURCE="${WORK}/empty-source"
+mkdir -p "$EMPTY_SOURCE"
+set +e
+LOCAL_SOURCE="$EMPTY_SOURCE" TARGET_DIR="$TARGET" INSTALL_TARGET=all \
+  bash "${REPO_ROOT}/install.sh" >/dev/null 2>&1
+empty_rc=$?
+set -e
+if [[ $empty_rc -ne 0 ]]; then
+  ok "installer fails when LOCAL_SOURCE has no dist/"
+else
+  bad "installer should fail when dist/ is missing"
+fi
+
+# 12. global install uses isolated leaves and does not clobber host config
+rm -rf "${UPSTREAM}/dist"
+cp -R "${REPO_ROOT}/dist" "${UPSTREAM}/dist"
+cp "${REPO_ROOT}/manifest.txt" "$UPSTREAM/"
+
+FAKE_HOME="${WORK}/fake-home"
+mkdir -p "${FAKE_HOME}/.cursor/agents" "${FAKE_HOME}/.config/opencode" "${FAKE_HOME}/.claude" "${FAKE_HOME}/.codex"
+printf '%s' "user-agent" > "${FAKE_HOME}/.cursor/agents/user-agent.md"
+printf '%s' '{"keep":"opencode"}' > "${FAKE_HOME}/.config/opencode/opencode.jsonc"
+printf '%s' '{"keep":true}' > "${FAKE_HOME}/.claude/settings.json"
+printf '%s' "# user config" > "${FAKE_HOME}/.codex/config.toml"
+
+GLOBAL_TARGET="${WORK}/global-consumer"
+mkdir -p "$GLOBAL_TARGET"
+HOME="$FAKE_HOME" INSTALL_SCOPE=global INSTALL_TARGET=all \
+  LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$GLOBAL_TARGET" bash "${REPO_ROOT}/install.sh" >/dev/null
+
+assert_file_exists "${FAKE_HOME}/.agents/skills/sddkit/SKILL.md" "global skills land in ~/.agents"
+assert_file_exists "${FAKE_HOME}/.agents/bin/sddkit-state" "global sddkit-state lands in ~/.agents/bin"
+assert_file_exists "${FAKE_HOME}/.cursor/agents/implementer.md" "global cursor agents leaf"
+assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global install keeps planted cursor agent"
+assert_file_exists "${FAKE_HOME}/.claude/agents/spec.md" "global claude agents leaf"
+assert_file_exists "${FAKE_HOME}/.claude/skills/sddkit/SKILL.md" "global claude skills copy"
+assert_file_exists "${FAKE_HOME}/.codex/agents/spec.toml" "global codex agents leaf"
+assert_file_exists "${FAKE_HOME}/.config/opencode/agents/sddkit.md" "global opencode agents only"
+assert_file_absent "${GLOBAL_TARGET}/.claude/agents/spec.md" "global install does not write claude into TARGET_DIR"
+assert_file_absent "${GLOBAL_TARGET}/.agents/skills/sddkit/SKILL.md" "global install does not write skills into TARGET_DIR"
+assert_eq "$(cat "${FAKE_HOME}/.config/opencode/opencode.jsonc")" '{"keep":"opencode"}' \
+  "global install does not clobber opencode.jsonc"
+assert_eq "$(cat "${FAKE_HOME}/.claude/settings.json")" '{"keep":true}' \
+  "global install does not clobber claude settings.json"
+assert_eq "$(cat "${FAKE_HOME}/.codex/config.toml")" "# user config" \
+  "global install does not clobber codex config.toml"
+if [[ -L "${FAKE_HOME}/.claude/skills/sddkit/SKILL.md" ]]; then
+  bad "global claude skills must be a copy"
+else
+  ok "global claude skills are a copy"
+fi
+
+rm "${UPSTREAM}/dist/cursor/agents/qa.md"
+HARNESS_ROOT="$UPSTREAM" bun "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
+HOME="$FAKE_HOME" INSTALL_SCOPE=global INSTALL_TARGET=cursor \
+  LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$GLOBAL_TARGET" bash "${REPO_ROOT}/install.sh" >/dev/null
+assert_file_absent "${FAKE_HOME}/.cursor/agents/qa.md" "global prune removes upstream-deleted cursor agent"
+assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global prune keeps planted non-sddkit agent"
 
 echo ""
 echo "${pass} passed, ${fail} failed"

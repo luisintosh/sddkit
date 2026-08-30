@@ -37,6 +37,7 @@ bash test/e2e-install.sh
 | Script                      | Purpose                                                               |
 | --------------------------- | --------------------------------------------------------------------- |
 | `bun tools/transpile.ts`    | `src/` → `dist/{opencode,cursor,claude,codex}` + `dist/agents/skills` |
+| `bun tools/install-tui.ts`  | Clack TUI used by `install.sh` when stdin is a TTY                    |
 | `bun tools/build-cli.ts`    | portable `dist/bin/sddkit-state` (+ `--compile` for mac binaries)     |
 | `bun tools/gen-manifest.ts` | `manifest.txt` from `dist/`                                           |
 | `bun tools/check.ts`        | hygiene                                                               |
@@ -55,8 +56,8 @@ Publishing a GitHub Release runs CI’s `release-assets` job, which uploads:
 - `sddkit-dist.tar.gz` (`dist/` + `manifest.txt`) — preferred by `install.sh` for tags
 - `sddkit-state-darwin-arm64` / `sddkit-state-darwin-x64`
 
-If the release asset is missing, the installer falls back to downloading the source tarball and running `bun run build`
-(requires bun).
+If the release asset is missing, the installer downloads the source tarball and uses the committed `dist/` — it never
+runs `bun run build` on the client.
 
 - Annotated tags; don’t move published tags — cut a new patch instead.
 - Default interactive install resolves the latest tag, then falls back to `master`.

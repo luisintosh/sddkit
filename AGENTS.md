@@ -6,8 +6,8 @@ file.
 ## What this is
 
 sddkit ships no runtime app. It ships agent prompts plus a small state CLI that `install.sh` installs into a _consuming_
-repo (`.opencode/`, `.cursor/agents/`, `.agents/skills/`, `.agents/bin/sddkit-state`). Transpile also emits Claude Code
-and Codex specialists under `dist/claude/` and `dist/codex/`. Nothing here runs against this repo's own code.
+repo or `$HOME` (`.opencode/`, `.cursor/agents/`, `.claude/`, `.codex/agents/`, `.agents/skills/`,
+`.agents/bin/sddkit-state`). Nothing here runs against this repo's own code.
 
 ## Generation model
 

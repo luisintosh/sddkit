@@ -19,11 +19,12 @@ src/
   state/                 sddkit-state CLI (schema, merge, io)
 tools/
   transpile.ts           → dist/{opencode,cursor,claude,codex} + dist/agents/skills
+  install-tui.ts         Clack TUI (TTY + bun checkout)
   build-cli.ts           → dist/bin/sddkit-state (+ optional mac binaries)
   gen-manifest.ts        → manifest.txt
   check.ts               hygiene
 dist/                    generated install payload (tracked; never hand-edit)
-install.sh               interactive installer
+install.sh               multi-host installer (TUI or bash menus)
 ```
 
 State lives in the **consuming repo**:
@@ -46,8 +47,9 @@ docs/domains/<domain>.md same, for a domain too cross-cutting to own a directory
 .agents/skills/          sddkit, sddkit-plan + setup-docs
 .opencode/               OpenCode agents + opencode.jsonc
 .cursor/agents/          Cursor specialists
-.claude/agents/          Claude Code specialists (emitted; installer in a later release)
-.codex/agents/           Codex specialists (emitted; installer in a later release)
+.claude/agents/          Claude Code specialists
+.claude/skills/          copy of shared skills (Claude does not load .agents/skills/)
+.codex/agents/           Codex specialists
 ```
 
 ## Models
@@ -90,13 +92,20 @@ From the root of the consuming repository:
 curl -fsSL https://raw.githubusercontent.com/luisintosh/sddkit/refs/heads/master/install.sh | bash
 ```
 
-On a TTY the installer asks for **target** (`all` / `opencode` / `cursor`), **version** (latest / tag / branch / local),
-and confirmation. Non-interactive runs default to `all` + latest tag.
+On a TTY the installer asks for **scope** (this repo vs `$HOME`), **hosts** (Cursor / Claude Code / Codex / OpenCode —
+one, many, or all), **version** (latest / tag / branch / local), and confirmation. Detected CLIs are pre-checked; you
+can still install a host that is not on `PATH`. Non-interactive runs default to `project` + `all` + latest tag.
 
-Re-running is idempotent: unchanged files skip, upstream updates apply, local edits are backed up under
-`.opencode/.backup-*/` or `.cursor/.backup-*/` before replace, removed upstream files are pruned.
+A local checkout used as `LOCAL_SOURCE` must already contain `dist/` and `manifest.txt` — the installer never builds on
+the client.
+
+Re-running is idempotent: unchanged files skip, upstream updates apply, local edits are backed up under the dest leaf
+(`.cursor/agents/.backup-*/`, `.claude/agents/.backup-*/`, …) before replace, removed upstream files are pruned.
 
 Flags: `--dry-run`, `--doctor`.
+
+Env (CI / scripts): `INSTALL_SCOPE=project|global`, `INSTALL_TARGET=all|cursor,claude,codex,opencode`. Global OpenCode
+writes only `~/.config/opencode/agents/` — never `opencode.jsonc`. Claude skills are a **copy** of `.agents/skills/`.
 
 After install, ensure `bun` is on `PATH` (portable `.agents/bin/sddkit-state` is a Bun script) and invoke
 `.agents/bin/sddkit-state` from the repo root. The installer prints next steps: `/setup-docs`, installing
