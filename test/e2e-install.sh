@@ -50,12 +50,15 @@ assert_file_exists "${TARGET}/.opencode/agents/sddkit-plan.md" "opencode sddkit-
 assert_file_exists "${TARGET}/.opencode/opencode.jsonc" "opencode.jsonc installed"
 assert_file_absent "${TARGET}/.opencode/plugins/sdd-guard.ts" "plugin not installed"
 assert_file_exists "${TARGET}/.cursor/agents/implementer.md" "cursor implementer installed"
-assert_file_exists "${TARGET}/.cursor/skills/sddkit/SKILL.md" "cursor sddkit skill installed"
-assert_file_exists "${TARGET}/.cursor/skills/sddkit-plan/SKILL.md" "cursor sddkit-plan skill installed"
-assert_file_exists "${TARGET}/.cursor/skills/setup-docs/SKILL.md" "cursor setup-docs skill installed"
-assert_file_exists "${TARGET}/bin/sddkit-state" "sddkit-state binary/script installed"
+assert_file_exists "${TARGET}/.agents/skills/sddkit/SKILL.md" "sddkit skill installed under .agents"
+assert_file_exists "${TARGET}/.agents/skills/sddkit-plan/SKILL.md" "sddkit-plan skill installed under .agents"
+assert_file_exists "${TARGET}/.agents/skills/setup-docs/SKILL.md" "setup-docs skill installed under .agents"
+assert_file_exists "${TARGET}/.agents/skills/sddkit/references/reply-mapping.md" "sddkit reply-mapping reference installed"
+assert_file_absent "${TARGET}/.cursor/skills/sddkit/SKILL.md" "legacy .cursor/skills/sddkit not installed"
+assert_file_exists "${TARGET}/.agents/bin/sddkit-state" "sddkit-state installed under .agents/bin"
 assert_file_exists "${TARGET}/.opencode/.harness-manifest" "opencode harness-manifest recorded"
 assert_file_exists "${TARGET}/.cursor/.harness-manifest" "cursor harness-manifest recorded"
+assert_file_exists "${TARGET}/.agents/.harness-manifest" "agents harness-manifest recorded"
 
 # 2. no-op reinstall
 reinstall_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all bash "${REPO_ROOT}/install.sh" --dry-run 2>&1)"
@@ -142,14 +145,23 @@ cp "${REPO_ROOT}/manifest.txt" "$UPSTREAM/"
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor bash "${REPO_ROOT}/install.sh" >/dev/null
 assert_file_exists "${TARGET2}/.cursor/agents/tester.md" "cursor-only installs .cursor"
 assert_file_absent "${TARGET2}/.opencode/agents/sddkit.md" "cursor-only skips .opencode"
-assert_file_exists "${TARGET2}/bin/sddkit-state" "cursor-only still installs sddkit-state"
+assert_file_exists "${TARGET2}/.agents/bin/sddkit-state" "cursor-only still installs sddkit-state"
+assert_file_exists "${TARGET2}/.agents/skills/sddkit/SKILL.md" "cursor-only installs shared skills"
+
+# 8b. prune leftover ./bin and .cursor/skills
+mkdir -p "${TARGET2}/bin" "${TARGET2}/.cursor/skills/sddkit"
+echo leftover > "${TARGET2}/bin/sddkit-state"
+echo leftover > "${TARGET2}/.cursor/skills/sddkit/SKILL.md"
+LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor bash "${REPO_ROOT}/install.sh" >/dev/null
+assert_file_absent "${TARGET2}/bin/sddkit-state" "reinstall prunes leftover ./bin/sddkit-state"
+assert_file_absent "${TARGET2}/.cursor/skills/sddkit/SKILL.md" "reinstall prunes leftover .cursor/skills/sddkit"
 
 # 9. sddkit-state CLI smoke
-chmod +x "${TARGET}/bin/sddkit-state"
+chmod +x "${TARGET}/.agents/bin/sddkit-state"
 if command -v bun >/dev/null 2>&1; then
-  (cd "$TARGET" && ./bin/sddkit-state init smoke-feat >/dev/null)
+  (cd "$TARGET" && .agents/bin/sddkit-state init smoke-feat >/dev/null)
   assert_file_exists "${TARGET}/docs/feats/smoke-feat/state.yaml" "sddkit-state init writes state.yaml"
-  (cd "$TARGET" && ./bin/sddkit-state patch smoke-feat --yaml 'stage: specify' >/dev/null)
+  (cd "$TARGET" && .agents/bin/sddkit-state patch smoke-feat --yaml 'stage: specify' >/dev/null)
   if grep -q 'stage: specify' "${TARGET}/docs/feats/smoke-feat/state.yaml"; then
     ok "sddkit-state patch updates stage"
   else

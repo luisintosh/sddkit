@@ -3,10 +3,10 @@
 A thin harness for **spec-driven development (SDD)** on [OpenCode](https://opencode.ai) and
 [Cursor](https://cursor.com): an approved spec, tagged acceptance contracts (`@S<n>`), TDD with the consuming repo's
 test stack, a multi-agent pipeline with a one-rung escalation loop, and a file-based **`state.yaml` checkpoint** written
-only through `./bin/sddkit-state`.
+only through `.agents/bin/sddkit-state`.
 
-Prompts live once under `src/prompts/`; `bun run build` transpiles them into OpenCode and Cursor formats under `dist/`
-(gitignored; packaged on release).
+Prompts live once under `src/prompts/`; `bun run build` transpiles them into OpenCode, Cursor, and shared skill formats
+under `dist/` (tracked so install does not need a client-side build).
 
 ## Layout
 
@@ -18,11 +18,11 @@ src/
   prompts/fragments/     shared includes
   state/                 sddkit-state CLI (schema, merge, io)
 tools/
-  transpile.ts           → dist/opencode + dist/cursor
+  transpile.ts           → dist/opencode + dist/cursor + dist/agents/skills
   build-cli.ts           → dist/bin/sddkit-state (+ optional mac binaries)
   gen-manifest.ts        → manifest.txt
   check.ts               hygiene
-dist/                    generated install payload (gitignored)
+dist/                    generated install payload (tracked; never hand-edit)
 install.sh               interactive installer
 ```
 
@@ -33,7 +33,7 @@ AGENTS.md
 docs/ARCHITECTURE.md
 docs/CONSTITUTION.md
 docs/feats/<feature>/
-  state.yaml             checkpoint — sole writer: ./bin/sddkit-state (via conductor)
+  state.yaml             checkpoint — sole writer: .agents/bin/sddkit-state (via conductor)
   journal.ndjson         append-only audit trail
   spec.md
   contracts/*.feature
@@ -42,10 +42,10 @@ docs/product/<slug>/
   roadmap.md             optional, written by sddkit-plan
 src/<domain>/README.md   domain doc, written by docs-writer at docs-sync
 docs/domains/<domain>.md same, for a domain too cross-cutting to own a directory
-bin/sddkit-state            installed by install.sh
+.agents/bin/sddkit-state    installed by install.sh
+.agents/skills/          sddkit, sddkit-plan + setup-docs
 .opencode/               OpenCode agents + opencode.jsonc
-.cursor/agents/          Cursor subagents
-.cursor/skills/          sddkit, sddkit-plan + setup-docs skill
+.cursor/agents/          Cursor specialists
 ```
 
 ## Models
@@ -81,8 +81,8 @@ Re-running is idempotent: unchanged files skip, upstream updates apply, local ed
 
 Flags: `--dry-run`, `--doctor`.
 
-After install, ensure `bun` is on `PATH` (portable `bin/sddkit-state` is a Bun script) and prefer invoking
-`./bin/sddkit-state` from the repo root. The installer prints next steps: `/setup-docs`, installing
+After install, ensure `bun` is on `PATH` (portable `.agents/bin/sddkit-state` is a Bun script) and invoke
+`.agents/bin/sddkit-state` from the repo root. The installer prints next steps: `/setup-docs`, installing
 [`gh`](https://cli.github.com/) (required — the pipeline verifies it at start), and an optional
 [rtk](https://github.com/rtk-ai/rtk) hint (never auto-installed).
 
@@ -102,8 +102,8 @@ READMEs for existing code — `docs-writer` creates each one as a feature touche
 
 **Cursor:** run the `/sddkit` skill (or ask the Agent to follow the SDD skill), then describe the feature.
 
-`sddkit` verifies `gh` + the target repo, creates `feat/<slug>`, scaffolds state with `./bin/sddkit-state init`, and
-runs the pipeline, stopping at the spec and plan gates for review. Resume by asking to continue.
+`sddkit` verifies `gh` + the target repo, creates `feat/<slug>`, scaffolds state with `.agents/bin/sddkit-state init`,
+and runs the pipeline, stopping at the spec and plan gates for review. Resume by asking to continue.
 
 Not for a confined, no-behavior-branch change — a typo, a comment, a version bump, a single-line config value, a pure
 rename. A fresh run flags these and asks before scaffolding state; an unattended run, or one naming a GitHub issue,
@@ -160,10 +160,10 @@ since that part is work only a human can do.
 `docs/feats/<feature>/state.yaml` is written only via:
 
 ```bash
-./bin/sddkit-state init <feature>
-./bin/sddkit-state patch <feature> --yaml 'stage: specify'
-./bin/sddkit-state show <feature>
-./bin/sddkit-state validate <feature>
+.agents/bin/sddkit-state init <feature>
+.agents/bin/sddkit-state patch <feature> --yaml 'stage: specify'
+.agents/bin/sddkit-state show <feature>
+.agents/bin/sddkit-state validate <feature>
 ```
 
 The conductor applies subagent reply YAML through `patch`. OpenCode also denies direct edits to `state.yaml` /

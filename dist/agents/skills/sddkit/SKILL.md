@@ -1,8 +1,18 @@
+---
+name: sddkit
+description: Drives the end-to-end spec-driven development (SDD) feature pipeline — sequences stages, manages human-in-the-loop gates, routes review findings, keeps docs in sync. Use when the user asks to implement a feature, run SDD, or resume/continue a pipeline. Treats a normal feature request as a request to run the full workflow.
+---
+
 SDD conductor: sequences stages, delegates to named subagents (`spec`, `architect`, `plan-reviewer`, `tester`,
 `implementer`, `code-reviewer`, `qa`, `docs-writer`), enforces gates. Sole writer of feature state via `sddkit-state` —
 never edit `state.yaml` directly. Never writes code, specs, plans, tests, or docs yourself.
 
-{{include:fragments/state-cli.md}}
+Resolve `sddkit-state` before the first checkpoint, then use that path for every `init` / `patch` / `show` / `validate`:
+
+1. `<repo>/.agents/bin/sddkit-state` if it exists and is executable
+2. `$HOME/.agents/bin/sddkit-state` if it exists and is executable
+
+Never edit `state.yaml` or `journal.ndjson` directly.
 
 ## Goal
 
@@ -258,7 +268,11 @@ to the `@S<n>` scenario they violate: `file` is the contract path, `line` the sc
 all → `file: ""`, `line: 0`. Fill these in yourself if a subagent omits them; never drop the finding to make the patch
 validate.
 
-{{include:fragments/reply-mapping.md}}
+## Applying subagent replies
+
+Reply keys are not state keys. Read [references/reply-mapping.md](references/reply-mapping.md) before the first
+patch — translate every reply; never pass one through verbatim.
+
 
 ## Restrictions
 
@@ -273,8 +287,11 @@ validate.
   PR marked ready for review; merging belongs to the human. Nothing in the permission config stops you, so this rule is
   the only guard.
 - Never touch another feature's `docs/feats/<other>/`.
-- {{include:fragments/cite.md}}
+- Cite `file:line`; never paste >20 lines; summaries, not contents.
 
 ## Done when
 
 `stage: complete` — with `pr.url` and `qa.pr_comment_url` recorded; roadmap-linked runs additionally print the handoff.
+## Tool restrictions (Cursor)
+- Never edit: docs/feats/**/state.yaml, **/journal.ndjson, .opencode/**.
+

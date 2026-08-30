@@ -6,17 +6,17 @@ file.
 ## What this is
 
 sddkit ships no runtime app. It ships agent prompts plus a small state CLI that `install.sh` installs into a _consuming_
-repo (`.opencode/`, `.cursor/`, `bin/sddkit-state`). Nothing here runs against this repo's own code.
+repo (`.opencode/`, `.cursor/agents/`, `.agents/skills/`, `.agents/bin/sddkit-state`). Nothing here runs against this
+repo's own code.
 
 ## Generation model
 
 `src/catalog.yaml` (per-agent model, mode, temperature, steps, permissions) and `src/prompts/**` are the **only**
-sources of truth. `tools/transpile.ts` emits two targets from them — `dist/opencode/` (YAML frontmatter +
-`opencode.jsonc`) and `dist/cursor/` (frontmatter with a `[]`-suffixed model and a `## Tool restrictions (Cursor)`
-section synthesized from the OpenCode permission map, since Cursor has no permission config).
+sources of truth. `tools/transpile.ts` emits OpenCode agents, Cursor specialists, and shared skills under
+`dist/agents/skills/`.
 
-- Never hand-edit `dist/` or `manifest.txt` — both are generated and gitignored. Fix the catalog or the prompt body and
-  rebuild.
+- Never hand-edit `dist/` or `manifest.txt` — both are generated and **tracked**. Fix the catalog or the prompt body,
+  then `bun run build` before commit.
 - Prompt bodies in `src/prompts/agents/*.md` carry **no frontmatter**; transpile adds it.
 - `{{include:fragments/<name>.md}}` in a prompt body is resolved at transpile time.
 

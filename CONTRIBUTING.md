@@ -7,8 +7,8 @@
 | `src/prompts/**`, `src/catalog.yaml` | `bun run build`              |
 | `src/state/**`                       | `bun run build` + `bun test` |
 
-`dist/` and `manifest.txt` are **generated and gitignored**. CI builds them; releases attach `sddkit-dist.tar.gz`. Do
-not commit them.
+`dist/` and `manifest.txt` are **generated and tracked** so clients install without a build. Never hand-edit them. After
+any `src/` change run `bun run build` before commit; CI fails if they drift.
 
 ## Hygiene (`bun run check`)
 
@@ -36,7 +36,7 @@ bash test/e2e-install.sh
 
 | Script                      | Purpose                                                           |
 | --------------------------- | ----------------------------------------------------------------- |
-| `bun tools/transpile.ts`    | `src/` → `dist/opencode` + `dist/cursor`                          |
+| `bun tools/transpile.ts`    | `src/` → `dist/opencode` + `dist/cursor` + `dist/agents/skills`   |
 | `bun tools/build-cli.ts`    | portable `dist/bin/sddkit-state` (+ `--compile` for mac binaries) |
 | `bun tools/gen-manifest.ts` | `manifest.txt` from `dist/`                                       |
 | `bun tools/check.ts`        | hygiene                                                           |
