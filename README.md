@@ -1,24 +1,24 @@
 # sddkit
 
-A thin harness for **spec-driven development (SDD)** on [OpenCode](https://opencode.ai) and
-[Cursor](https://cursor.com): an approved spec, tagged acceptance contracts (`@S<n>`), TDD with the consuming repo's
-test stack, a multi-agent pipeline with a one-rung escalation loop, and a file-based **`state.yaml` checkpoint** written
-only through `.agents/bin/sddkit-state`.
+A thin harness for **spec-driven development (SDD)** on [OpenCode](https://opencode.ai), [Cursor](https://cursor.com),
+[Claude Code](https://code.claude.com), and [Codex](https://developers.openai.com/codex): an approved spec, tagged
+acceptance contracts (`@S<n>`), TDD with the consuming repo's test stack, a multi-agent pipeline with a one-rung
+escalation loop, and a file-based **`state.yaml` checkpoint** written only through `.agents/bin/sddkit-state`.
 
-Prompts live once under `src/prompts/`; `bun run build` transpiles them into OpenCode, Cursor, and shared skill formats
-under `dist/` (tracked so install does not need a client-side build).
+Prompts live once under `src/prompts/`; `bun run build` transpiles them into OpenCode, Cursor, Claude Code, Codex, and
+shared skill formats under `dist/` (tracked so install does not need a client-side build).
 
 ## Layout
 
 ```text
 src/
-  catalog.yaml           per-agent models/permissions for both targets
+  catalog.yaml           host × profile models + per-agent adapters
   prompts/agents/        canonical agent bodies (no app frontmatter)
   prompts/commands/      setup-docs
   prompts/fragments/     shared includes
   state/                 sddkit-state CLI (schema, merge, io)
 tools/
-  transpile.ts           → dist/opencode + dist/cursor + dist/agents/skills
+  transpile.ts           → dist/{opencode,cursor,claude,codex} + dist/agents/skills
   build-cli.ts           → dist/bin/sddkit-state (+ optional mac binaries)
   gen-manifest.ts        → manifest.txt
   check.ts               hygiene
@@ -46,24 +46,41 @@ docs/domains/<domain>.md same, for a domain too cross-cutting to own a directory
 .agents/skills/          sddkit, sddkit-plan + setup-docs
 .opencode/               OpenCode agents + opencode.jsonc
 .cursor/agents/          Cursor specialists
+.claude/agents/          Claude Code specialists (emitted; installer in a later release)
+.codex/agents/           Codex specialists (emitted; installer in a later release)
 ```
 
 ## Models
 
-| agent           | OpenCode                      | Cursor           | notes                                                  |
-| --------------- | ----------------------------- | ---------------- | ------------------------------------------------------ |
-| `sddkit`        | `opencode-go/qwen3.7-plus`    | `inherit`        | conductor (Cursor: `/sddkit` skill)                    |
-| `spec`          | `openai/gpt-5.6-sol`          | `grok-4.5`       | what & why + contracts                                 |
-| `architect`     | `openai/gpt-5.6-sol`          | `grok-4.5`       | plan + slices                                          |
-| `plan-reviewer` | `opencode-go/kimi-k3`         | `kimi-k3`        | read-only spec/plan critique (pre-gate)                |
-| `tester`        | `opencode-go/kimi-k2.7-code`  | `kimi-k2.7-code` | TDD red                                                |
-| `implementer`   | `openai/gpt-5.6-luna`         | `composer-2.5`   | TDD green (+ escalation re-run)                        |
-| `code-reviewer` | `opencode-go/kimi-k2.7-code`  | `kimi-k2.7-code` | read-only slice-diff review                            |
-| `qa`            | `opencode-go/deepseek-v4-pro` | `composer-2.5`   | end-to-end validation                                  |
-| `docs-writer`   | `opencode-go/kimi-k3`         | `kimi-k3`        | domain READMEs + AGENTS/ARCHITECTURE (docs-sync)       |
-| `sddkit-plan`   | `openai/gpt-5.6-sol`          | `inherit`        | product owner → roadmap (Cursor: `/sddkit-plan` skill) |
+Models live in `src/catalog.yaml` as a host × profile matrix. Agents declare a `profile`; emitters format the host's
+entry. Skills (`sddkit`, `sddkit-plan`) inherit the session model — run `/sddkit` on Grok 4.6 Extra High, Claude opus,
+or Codex sol.
 
-Checked in CI against `src/catalog.yaml` and emitted frontmatter.
+| profile    | OpenCode                      | Cursor                       | Claude    | Codex                 |
+| ---------- | ----------------------------- | ---------------------------- | --------- | --------------------- |
+| `conduct`  | `opencode-go/qwen3.7-plus`    | `inherit`                    | `inherit` | `inherit`             |
+| `think`    | `openai/gpt-5.6-sol`          | `grok-4.6[effort=xhigh]`     | `opus`    | `gpt-5.6-sol`         |
+| `execute`  | `openai/gpt-5.6-luna`         | `gpt-5.6-luna[effort=high]`  | `sonnet`  | `gpt-5.6-luna[high]`  |
+| `test`     | `opencode-go/kimi-k2.7-code`  | `composer-2.5[]`             | `sonnet`  | `gpt-5.6-luna[high]`  |
+| `review`   | `opencode-go/kimi-k3`         | `gpt-5.6-terra[effort=high]` | `opus`    | `gpt-5.6-terra[high]` |
+| `critique` | `opencode-go/kimi-k2.7-code`  | `gpt-5.6-terra[effort=high]` | `opus`    | `gpt-5.6-terra[high]` |
+| `validate` | `opencode-go/deepseek-v4-pro` | `grok-4.6[effort=medium]`    | `sonnet`  | `gpt-5.6-luna[high]`  |
+| `write`    | `opencode-go/kimi-k3`         | `gpt-5.6-luna[effort=high]`  | `sonnet`  | `gpt-5.6-luna[high]`  |
+
+| agent           | profile    |
+| --------------- | ---------- |
+| `sddkit`        | `conduct`  |
+| `spec`          | `think`    |
+| `architect`     | `think`    |
+| `plan-reviewer` | `review`   |
+| `tester`        | `test`     |
+| `implementer`   | `execute`  |
+| `code-reviewer` | `critique` |
+| `qa`            | `validate` |
+| `docs-writer`   | `write`    |
+| `sddkit-plan`   | `think`    |
+
+Checked in CI against `src/catalog.yaml` and emitted frontmatter / Codex TOML.
 
 ## Install
 
@@ -100,7 +117,8 @@ READMEs for existing code — `docs-writer` creates each one as a feature touche
 
 **OpenCode:** default agent is `sddkit` — type a feature request.
 
-**Cursor:** run the `/sddkit` skill (or ask the Agent to follow the SDD skill), then describe the feature.
+**Cursor / Claude / Codex:** run the `/sddkit` skill (or ask the Agent to follow the SDD skill) on your most capable
+session model (Grok Extra High / opus / sol), then describe the feature.
 
 `sddkit` verifies `gh` + the target repo, creates `feat/<slug>`, scaffolds state with `.agents/bin/sddkit-state init`,
 and runs the pipeline, stopping at the spec and plan gates for review. Resume by asking to continue.

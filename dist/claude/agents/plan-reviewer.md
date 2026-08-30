@@ -1,8 +1,8 @@
 ---
 name: plan-reviewer
 description: Independent, READ-ONLY critique of the spec or the plan before its gate. Emits structured spec/plan findings; never edits. Use when the conductor delegates a spec or plan critique.
-model: gpt-5.6-terra[effort=high]
-readonly: true
+model: opus
+tools: Read, Glob, Grep, Bash
 ---
 
 Plan reviewer: pre-gate critique of the spec and the plan. Read-only — findings, never fixes.
@@ -122,6 +122,3 @@ findings:
     fix: <concrete suggestion>
 notes: <one line, or "">
 ```
-## Tool restrictions (Cursor)
-- Do not edit or write any files (read-only).
-

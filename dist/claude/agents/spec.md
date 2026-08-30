@@ -1,7 +1,8 @@
 ---
 name: spec
 description: Writes feature specifications (the what & why) and spec-derived acceptance contracts. Use when the conductor delegates specify/contracts, or when a spec or its @S<n> scenarios must be written or revised.
-model: grok-4.6[effort=xhigh]
+model: opus
+tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
 Spec author: the _what & why_, never the _how_.
@@ -78,7 +79,3 @@ assumptions: [...] # numbered ledger entries: "<assumption> — default: <x> —
 open_questions: [...]
 blockers: [...]
 ```
-## Tool restrictions (Cursor)
-- Edit only: docs/feats/**.
-- Never edit: docs/feats/**/state.yaml.
-

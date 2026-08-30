@@ -1,33 +1,41 @@
 #!/usr/bin/env bun
 /**
- * Emit dist/opencode, dist/cursor, and dist/agents/skills from src/catalog.yaml + src/prompts/.
+ * Emit dist/opencode, dist/cursor, dist/claude, dist/codex, and dist/agents/skills.
  */
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import { fileURLToPath } from "node:url"
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml"
+import {
+  formatClaudeModel,
+  formatCodexModel,
+  formatCursorModel,
+  formatOpenCodeModel,
+  type Host,
+  type ModelRef,
+} from "./models.ts"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const srcDir = path.join(root, "src")
 const distDir = path.join(root, "dist")
 
 type AgentCatalog = {
+  profile: string
   description: string
   opencode: {
     mode: "primary" | "subagent"
-    model: string
     temperature?: number
     steps?: number
     permission?: unknown
   }
-  cursor: {
-    model: string
+  cursor?: {
     readonly?: boolean
     skill?: boolean
   }
 }
 
 type Catalog = {
+  hosts: Record<Host, { profiles: Record<string, ModelRef> }>
   agents: Record<string, AgentCatalog>
   commands: Record<string, { description: string }>
   opencode_config: {
@@ -36,6 +44,29 @@ type Catalog = {
     default_agent: string
     instructions: string[]
   }
+}
+
+function resolveModel(catalog: Catalog, host: Host, agent: AgentCatalog): ModelRef {
+  const ref = catalog.hosts[host]?.profiles[agent.profile]
+  if (!ref?.id) {
+    throw new Error(`catalog: hosts.${host}.profiles.${agent.profile} missing`)
+  }
+  return ref
+}
+
+function isReadonly(agent: AgentCatalog): boolean {
+  if (agent.cursor?.readonly) return true
+  const edit = (agent.opencode.permission as { edit?: unknown } | undefined)?.edit
+  return edit === "deny"
+}
+
+function claudeTools(agent: AgentCatalog): string {
+  if (isReadonly(agent)) return "Read, Glob, Grep, Bash"
+  return "Read, Glob, Grep, Edit, Write, Bash"
+}
+
+function tomlString(value: string): string {
+  return JSON.stringify(value)
 }
 
 async function loadCatalog(): Promise<Catalog> {
@@ -63,10 +94,6 @@ async function readPrompt(rel: string): Promise<string> {
 function yamlFrontmatter(obj: Record<string, unknown>): string {
   const yaml = stringifyYaml(obj, { lineWidth: 0 }).trimEnd()
   return `---\n${yaml}\n---\n\n`
-}
-
-function cursorModel(model: string): string {
-  return model.endsWith("[]") ? model : `${model}[]`
 }
 
 function cursorRestrictions(oc: AgentCatalog["opencode"]): string {
@@ -172,7 +199,7 @@ async function emitOpencode(catalog: Catalog) {
     const fm: Record<string, unknown> = {
       description: agent.description,
       mode: agent.opencode.mode,
-      model: agent.opencode.model,
+      model: formatOpenCodeModel(resolveModel(catalog, "opencode", agent)),
     }
     if (agent.opencode.temperature !== undefined) fm.temperature = agent.opencode.temperature
     if (agent.opencode.steps !== undefined) fm.steps = agent.opencode.steps
@@ -188,7 +215,7 @@ async function emitSharedSkills(catalog: Catalog) {
   const replyMapping = await fs.readFile(path.join(srcDir, "prompts", "fragments", "reply-mapping.md"), "utf8")
 
   for (const [name, agent] of Object.entries(catalog.agents)) {
-    if (!agent.cursor.skill) continue
+    if (!agent.cursor?.skill) continue
     let raw = await fs.readFile(path.join(srcDir, "prompts", "agents", `${name}.md`), "utf8")
     if (raw.includes("{{include:fragments/reply-mapping.md}}")) {
       raw = raw.replace("{{include:fragments/reply-mapping.md}}", replyMappingPointer())
@@ -232,7 +259,7 @@ async function emitCursor(catalog: Catalog) {
   await rmrf(outRoot)
 
   for (const [name, agent] of Object.entries(catalog.agents)) {
-    if (agent.cursor.skill) continue
+    if (agent.cursor?.skill) continue
     const body = await readPrompt(`agents/${name}.md`)
     const restrictions = cursorRestrictions(agent.opencode)
     const fullBody = `${body.trimEnd() + restrictions}\n`
@@ -240,10 +267,50 @@ async function emitCursor(catalog: Catalog) {
     const fm: Record<string, unknown> = {
       name,
       description: agent.description,
-      model: cursorModel(agent.cursor.model),
+      model: formatCursorModel(resolveModel(catalog, "cursor", agent)),
     }
-    if (agent.cursor.readonly) fm.readonly = true
+    if (agent.cursor?.readonly) fm.readonly = true
     await writeFile(path.join(outRoot, "agents", `${name}.md`), yamlFrontmatter(fm) + fullBody)
+  }
+}
+
+async function emitClaude(catalog: Catalog) {
+  const outRoot = path.join(distDir, "claude")
+  await rmrf(outRoot)
+
+  for (const [name, agent] of Object.entries(catalog.agents)) {
+    if (agent.cursor?.skill) continue
+    const body = await readPrompt(`agents/${name}.md`)
+    const fm: Record<string, unknown> = {
+      name,
+      description: agent.description,
+      model: formatClaudeModel(resolveModel(catalog, "claude", agent)),
+      tools: claudeTools(agent),
+    }
+    await writeFile(path.join(outRoot, "agents", `${name}.md`), yamlFrontmatter(fm) + body)
+  }
+}
+
+async function emitCodex(catalog: Catalog) {
+  const outRoot = path.join(distDir, "codex")
+  await rmrf(outRoot)
+
+  for (const [name, agent] of Object.entries(catalog.agents)) {
+    if (agent.cursor?.skill) continue
+    const body = await readPrompt(`agents/${name}.md`)
+    const resolved = formatCodexModel(resolveModel(catalog, "codex", agent))
+    const sandbox = isReadonly(agent) ? "read-only" : "workspace-write"
+    const lines = [
+      `name = ${tomlString(name)}`,
+      `description = ${tomlString(agent.description)}`,
+      `developer_instructions = ${tomlString(body.trim())}`,
+    ]
+    if (resolved.model !== "inherit") {
+      lines.push(`model = ${tomlString(resolved.model)}`)
+      if (resolved.reasoning) lines.push(`model_reasoning_effort = ${tomlString(resolved.reasoning)}`)
+    }
+    lines.push(`sandbox_mode = ${tomlString(sandbox)}`)
+    await writeFile(path.join(outRoot, "agents", `${name}.toml`), `${lines.join("\n")}\n`)
   }
 }
 
@@ -253,7 +320,9 @@ async function main() {
   await emitOpencode(catalog)
   await emitSharedSkills(catalog)
   await emitCursor(catalog)
-  console.log("transpile: wrote dist/opencode, dist/cursor, and dist/agents/skills")
+  await emitClaude(catalog)
+  await emitCodex(catalog)
+  console.log("transpile: wrote dist/opencode, dist/cursor, dist/claude, dist/codex, and dist/agents/skills")
 }
 
 await main()

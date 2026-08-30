@@ -34,22 +34,18 @@ async function sha256(filePath: string): Promise<string> {
   return createHash("sha256").update(buf).digest("hex")
 }
 
-const distOc = path.join(root, "dist", "opencode")
-const distCu = path.join(root, "dist", "cursor")
-const distAgents = path.join(root, "dist", "agents")
+const distRoots = ["opencode", "cursor", "claude", "codex", "agents"].map((d) => path.join(root, "dist", d))
 const bin = path.join(root, "dist", "bin", "sddkit-state")
 
 try {
-  await fs.stat(distOc)
-  await fs.stat(distCu)
-  await fs.stat(distAgents)
+  for (const d of distRoots) await fs.stat(d)
   await fs.stat(bin)
 } catch {
   console.error("ERROR: dist/ incomplete — run: bun tools/transpile.ts && bun tools/build-cli.ts")
   process.exit(1)
 }
 
-const files = [...(await walkFiles(distOc)), ...(await walkFiles(distCu)), ...(await walkFiles(distAgents)), bin]
+const files = [...(await Promise.all(distRoots.map(walkFiles))).flat(), bin]
 const lines: string[] = []
 for (const abs of files) {
   const rel = path.relative(path.join(root, "dist"), abs).split(path.sep).join("/")

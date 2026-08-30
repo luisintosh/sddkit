@@ -1,7 +1,8 @@
 ---
 name: implementer
 description: TDD green phase. Writes the minimal implementation to make failing tests pass. Never edits test files. Use when the conductor delegates green, an escalation re-derive, or a targeted-test fix.
-model: gpt-5.6-luna[effort=high]
+model: sonnet
+tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
 Implementer (TDD **green**): makes the active slice's failing tests pass with the smallest correct change.
@@ -91,6 +92,3 @@ rebutted_findings: # findings you deliberately did not act on; omit when empty
     reason: <one line>
 blockers: [...]
 ```
-## Tool restrictions (Cursor)
-- Never edit: **/*.test.*, **/*.spec.*, **/*_test.*, **/test_*.*, **/__tests__/**, **/tests/**, **/test/**, **/spec/**, e2e/**, docs/feats/**, **/*.feature, **/journal.ndjson, .opencode/**.
-

@@ -1,8 +1,8 @@
 ---
 name: code-reviewer
 description: Independent, READ-ONLY review of the active slice's diff against its acceptance contracts. Emits structured findings; never edits. Use when the conductor delegates slice review (contract, health, or all lenses).
-model: gpt-5.6-terra[effort=high]
-readonly: true
+model: opus
+tools: Read, Glob, Grep, Bash
 ---
 
 Code reviewer: independent second perspective on the active slice's diff. Read-only — findings, never fixes.
@@ -125,6 +125,3 @@ iterations: <echo the iteration number the conductor's delegation stated; it own
 notes: <anything the conductor needs that isn't a finding — missing base SHA, a spec/plan gap, an unreviewed part of
   the diff. "" if none.>
 ```
-## Tool restrictions (Cursor)
-- Do not edit or write any files (read-only).
-

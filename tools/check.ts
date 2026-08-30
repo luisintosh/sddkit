@@ -3,7 +3,7 @@
  * Hygiene checks (run after `bun run build`):
  *   1. catalog.yaml shape + prompt files
  *   2. dist/ frontmatter matches catalog models
- *   3. README dual-model table matches catalog
+ *   3. README profile × host matrix matches catalog
  *   4. manifest.txt matches dist/ hashes
  */
 import { createHash } from "node:crypto"
@@ -12,6 +12,17 @@ import { readFile, readdir, stat } from "node:fs/promises"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { parse as parseYaml } from "yaml"
+import {
+  formatClaudeModel,
+  formatCodexDisplay,
+  formatCodexModel,
+  formatCursorModel,
+  formatOpenCodeModel,
+  GOLDEN_MODELS,
+  type Host,
+  type ModelRef,
+  PROFILE_NAMES,
+} from "./models.ts"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const errors: string[] = []
@@ -45,9 +56,20 @@ async function walkFiles(dir: string) {
 }
 
 type AgentCatalog = {
+  profile?: string
   description?: string
-  opencode?: { mode?: string; model?: string; temperature?: number; steps?: number; permission?: unknown }
-  cursor?: { model?: string; skill?: boolean }
+  opencode?: { mode?: string; temperature?: number; steps?: number; permission?: unknown }
+  cursor?: { skill?: boolean }
+}
+
+type Catalog = {
+  hosts?: Record<string, { profiles?: Record<string, ModelRef> }>
+  agents?: Record<string, AgentCatalog>
+  commands?: Record<string, unknown>
+}
+
+function resolveRef(catalog: Catalog, host: Host, profile: string): ModelRef | undefined {
+  return catalog.hosts?.[host]?.profiles?.[profile]
 }
 
 /**
@@ -80,11 +102,6 @@ function stable(value: unknown): string {
   return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stable(v)}`).join(",")}}`
 }
 
-type Catalog = {
-  agents?: Record<string, AgentCatalog>
-  commands?: Record<string, unknown>
-}
-
 const catalogPath = path.join(root, "src", "catalog.yaml")
 let catalog: Catalog | undefined
 try {
@@ -102,16 +119,57 @@ if (catalog) {
   for (const name of agentNames) {
     const a = catalog.agents![name]!
     if (!a.description?.trim()) fail(`catalog: agents.${name}.description required`)
-    if (!a.opencode?.model?.startsWith("opencode-go/") && !a.opencode?.model?.startsWith("openai/")) {
-      fail(`catalog: agents.${name}.opencode.model must start with opencode-go/ or openai/`)
+    if (!a.profile) fail(`catalog: agents.${name}.profile required`)
+    else {
+      for (const host of ["opencode", "cursor", "claude", "codex"] as const) {
+        const ref = resolveRef(catalog, host, a.profile)
+        if (!ref?.id) fail(`catalog: hosts.${host}.profiles.${a.profile} required for agents.${name}`)
+      }
     }
-    if (!a.cursor?.model) fail(`catalog: agents.${name}.cursor.model required`)
     if (!ASK_ALLOWED.has(name)) failOnAsk(`catalog: agents.${name}`, a.opencode?.permission)
     try {
       await stat(path.join(root, "src", "prompts", "agents", `${name}.md`))
     } catch {
       fail(`src/prompts/agents/${name}.md missing`)
     }
+  }
+  for (const host of ["opencode", "cursor", "claude", "codex"] as const) {
+    for (const profile of PROFILE_NAMES) {
+      if (!resolveRef(catalog, host, profile)?.id) {
+        fail(`catalog: hosts.${host}.profiles.${profile} required`)
+      }
+    }
+  }
+  const goldenCursorThink = formatCursorModel(resolveRef(catalog, "cursor", "think")!)
+  if (goldenCursorThink !== GOLDEN_MODELS.cursor.think) {
+    fail(`catalog: cursor think formatted as ${goldenCursorThink} != golden ${GOLDEN_MODELS.cursor.think}`)
+  }
+  const goldenCursorTest = formatCursorModel(resolveRef(catalog, "cursor", "test")!)
+  if (goldenCursorTest !== GOLDEN_MODELS.cursor.test) {
+    fail(`catalog: cursor test formatted as ${goldenCursorTest} != golden ${GOLDEN_MODELS.cursor.test}`)
+  }
+  const goldenCursorExecute = formatCursorModel(resolveRef(catalog, "cursor", "execute")!)
+  if (goldenCursorExecute !== GOLDEN_MODELS.cursor.execute) {
+    fail(`catalog: cursor execute formatted as ${goldenCursorExecute} != golden ${GOLDEN_MODELS.cursor.execute}`)
+  }
+  const goldenClaudeThink = formatClaudeModel(resolveRef(catalog, "claude", "think")!)
+  if (goldenClaudeThink !== GOLDEN_MODELS.claude.think) {
+    fail(`catalog: claude think formatted as ${goldenClaudeThink} != golden ${GOLDEN_MODELS.claude.think}`)
+  }
+  const goldenClaudeExecute = formatClaudeModel(resolveRef(catalog, "claude", "execute")!)
+  if (goldenClaudeExecute !== GOLDEN_MODELS.claude.execute) {
+    fail(`catalog: claude execute formatted as ${goldenClaudeExecute} != golden ${GOLDEN_MODELS.claude.execute}`)
+  }
+  const goldenCodexThink = formatCodexModel(resolveRef(catalog, "codex", "think")!)
+  if (goldenCodexThink.model !== GOLDEN_MODELS.codex.think.model || goldenCodexThink.reasoning) {
+    fail(`catalog: codex think formatted as ${JSON.stringify(goldenCodexThink)} != golden`)
+  }
+  const goldenCodexExecute = formatCodexModel(resolveRef(catalog, "codex", "execute")!)
+  if (
+    goldenCodexExecute.model !== GOLDEN_MODELS.codex.execute.model ||
+    goldenCodexExecute.reasoning !== GOLDEN_MODELS.codex.execute.reasoning
+  ) {
+    fail(`catalog: codex execute formatted as ${JSON.stringify(goldenCodexExecute)} != golden`)
   }
   for (const cmd of Object.keys(catalog.commands || {})) {
     try {
@@ -155,8 +213,9 @@ if (catalog) {
         permission?: unknown
       }
       const oc = catalog.agents![name]!.opencode!
-      if (fm.model !== oc.model) {
-        fail(`dist drift: opencode ${name} model ${fm.model} != catalog ${oc.model} — run bun run build`)
+      const wantOc = formatOpenCodeModel(resolveRef(catalog, "opencode", catalog.agents![name]!.profile!)!)
+      if (fm.model !== wantOc) {
+        fail(`dist drift: opencode ${name} model ${fm.model} != catalog ${wantOc} — run bun run build`)
       }
       if (fm.temperature !== oc.temperature) {
         fail(
@@ -190,7 +249,7 @@ if (catalog) {
           continue
         }
         const fm = parseYaml(m[1]!) as { model?: string; is_background?: boolean }
-        const wantModel = agent.cursor!.model!.endsWith("[]") ? agent.cursor!.model! : `${agent.cursor!.model!}[]`
+        const wantModel = formatCursorModel(resolveRef(catalog, "cursor", agent.profile!)!)
         if (fm.model !== wantModel) {
           fail(`dist drift: cursor ${name} model ${fm.model} != catalog ${wantModel} — run bun run build`)
         }
@@ -199,6 +258,39 @@ if (catalog) {
         }
       } catch {
         fail(`dist/cursor/agents/${name}.md missing — run bun run build`)
+      }
+      try {
+        const raw = await readFile(path.join(root, "dist", "claude", "agents", `${name}.md`), "utf8")
+        const m = raw.match(/^---\n([\s\S]*?)\n---\n/)
+        if (!m) {
+          fail(`dist/claude/agents/${name}.md: missing frontmatter`)
+        } else {
+          const fm = parseYaml(m[1]!) as { model?: string }
+          const wantModel = formatClaudeModel(resolveRef(catalog, "claude", agent.profile!)!)
+          if (fm.model !== wantModel) {
+            fail(`dist drift: claude ${name} model ${fm.model} != catalog ${wantModel} — run bun run build`)
+          }
+        }
+      } catch {
+        fail(`dist/claude/agents/${name}.md missing — run bun run build`)
+      }
+      try {
+        const raw = await readFile(path.join(root, "dist", "codex", "agents", `${name}.toml`), "utf8")
+        const want = formatCodexModel(resolveRef(catalog, "codex", agent.profile!)!)
+        const model = raw.match(/^model = "(.*)"$/m)?.[1]
+        const reasoning = raw.match(/^model_reasoning_effort = "(.*)"$/m)?.[1]
+        if (want.model === "inherit") {
+          if (model) fail(`dist drift: codex ${name} must omit model when inherit`)
+        } else if (model !== want.model) {
+          fail(`dist drift: codex ${name} model ${model} != catalog ${want.model} — run bun run build`)
+        }
+        if ((reasoning ?? undefined) !== want.reasoning) {
+          fail(
+            `dist drift: codex ${name} model_reasoning_effort ${reasoning} != catalog ${want.reasoning} — run bun run build`,
+          )
+        }
+      } catch {
+        fail(`dist/codex/agents/${name}.toml missing — run bun run build`)
       }
     }
   }
@@ -211,29 +303,59 @@ try {
 }
 
 const readme = await readFile(path.join(root, "README.md"), "utf8")
-const rowRe = /^\|\s*`([a-z0-9-]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|/gm
-const readmeRows = new Map<string, { opencode: string; cursor: string }>()
-for (const m of readme.matchAll(rowRe)) {
-  readmeRows.set(m[1]!, { opencode: m[2]!, cursor: m[3]! })
+const modelsSection = readme.split("## Models")[1]?.split(/^## /m)[0] ?? ""
+const profileRowRe = /^\|\s*`([a-z0-9-]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|\s*`([^`]+)`\s*\|/gm
+const agentRowRe = /^\|\s*`([a-z0-9-]+)`\s*\|\s*`([a-z0-9-]+)`\s*\|/gm
+const readmeProfiles = new Map<string, { opencode: string; cursor: string; claude: string; codex: string }>()
+const readmeAgents = new Map<string, string>()
+for (const m of modelsSection.matchAll(profileRowRe)) {
+  readmeProfiles.set(m[1]!, { opencode: m[2]!, cursor: m[3]!, claude: m[4]!, codex: m[5]! })
+}
+for (const m of modelsSection.matchAll(agentRowRe)) {
+  if (readmeProfiles.has(m[1]!)) continue
+  readmeAgents.set(m[1]!, m[2]!)
 }
 
 if (catalog) {
-  if (readmeRows.size === 0) {
-    fail("README.md: no dual-model table rows found")
+  if (readmeProfiles.size === 0) {
+    fail("README.md: no profile × host matrix rows found")
   } else {
-    for (const name of agentNames) {
-      const row = readmeRows.get(name)
+    for (const profile of PROFILE_NAMES) {
+      const row = readmeProfiles.get(profile)
       if (!row) {
-        fail(`README.md: model table missing row for "${name}"`)
+        fail(`README.md: profile matrix missing row for "${profile}"`)
         continue
       }
-      const wantOc = catalog.agents![name]!.opencode!.model!
-      const wantCu = catalog.agents![name]!.cursor!.model!
-      if (row.opencode !== wantOc) fail(`README.md: ${name} OpenCode model ${row.opencode} != catalog ${wantOc}`)
-      if (row.cursor !== wantCu) fail(`README.md: ${name} Cursor model ${row.cursor} != catalog ${wantCu}`)
+      const wantOc = formatOpenCodeModel(resolveRef(catalog, "opencode", profile)!)
+      const wantCu = formatCursorModel(resolveRef(catalog, "cursor", profile)!)
+      const wantCl = formatClaudeModel(resolveRef(catalog, "claude", profile)!)
+      const wantCx = formatCodexDisplay(resolveRef(catalog, "codex", profile)!)
+      if (row.opencode !== wantOc) fail(`README.md: ${profile} OpenCode ${row.opencode} != catalog ${wantOc}`)
+      if (row.cursor !== wantCu) fail(`README.md: ${profile} Cursor ${row.cursor} != catalog ${wantCu}`)
+      if (row.claude !== wantCl) fail(`README.md: ${profile} Claude ${row.claude} != catalog ${wantCl}`)
+      if (row.codex !== wantCx) fail(`README.md: ${profile} Codex ${row.codex} != catalog ${wantCx}`)
     }
-    for (const name of readmeRows.keys()) {
-      if (!catalog.agents![name]) fail(`README.md: model table lists "${name}" not in catalog`)
+    for (const profile of readmeProfiles.keys()) {
+      if (!PROFILE_NAMES.includes(profile as (typeof PROFILE_NAMES)[number])) {
+        fail(`README.md: profile matrix lists "${profile}" not in catalog`)
+      }
+    }
+  }
+  if (readmeAgents.size === 0) {
+    fail("README.md: no agent → profile table rows found")
+  } else {
+    for (const name of agentNames) {
+      const profile = readmeAgents.get(name)
+      if (!profile) {
+        fail(`README.md: agent table missing row for "${name}"`)
+        continue
+      }
+      if (profile !== catalog.agents![name]!.profile) {
+        fail(`README.md: ${name} profile ${profile} != catalog ${catalog.agents![name]!.profile}`)
+      }
+    }
+    for (const name of readmeAgents.keys()) {
+      if (!catalog.agents![name]) fail(`README.md: agent table lists "${name}" not in catalog`)
     }
   }
 }
@@ -242,6 +364,8 @@ async function expectedManifestEntries() {
   const files = [
     ...(await walkFiles(path.join(root, "dist", "opencode"))),
     ...(await walkFiles(path.join(root, "dist", "cursor"))),
+    ...(await walkFiles(path.join(root, "dist", "claude"))),
+    ...(await walkFiles(path.join(root, "dist", "codex"))),
     ...(await walkFiles(path.join(root, "dist", "agents"))),
     path.join(root, "dist", "bin", "sddkit-state"),
   ]
@@ -295,4 +419,6 @@ if (errors.length > 0) {
   process.exit(1)
 }
 
-console.log(`check: ok (${agentNames.length} agents, ${readmeRows.size} README rows, manifest fresh)`)
+console.log(
+  `check: ok (${agentNames.length} agents, ${readmeProfiles.size} profile rows, ${readmeAgents.size} agent rows, manifest fresh)`,
+)

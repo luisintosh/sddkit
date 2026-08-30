@@ -6,14 +6,13 @@ file.
 ## What this is
 
 sddkit ships no runtime app. It ships agent prompts plus a small state CLI that `install.sh` installs into a _consuming_
-repo (`.opencode/`, `.cursor/agents/`, `.agents/skills/`, `.agents/bin/sddkit-state`). Nothing here runs against this
-repo's own code.
+repo (`.opencode/`, `.cursor/agents/`, `.agents/skills/`, `.agents/bin/sddkit-state`). Transpile also emits Claude Code
+and Codex specialists under `dist/claude/` and `dist/codex/`. Nothing here runs against this repo's own code.
 
 ## Generation model
 
-`src/catalog.yaml` (per-agent model, mode, temperature, steps, permissions) and `src/prompts/**` are the **only**
-sources of truth. `tools/transpile.ts` emits OpenCode agents, Cursor specialists, and shared skills under
-`dist/agents/skills/`.
+`src/catalog.yaml` (host × profile models; per-agent mode, temperature, steps, permissions) and `src/prompts/**` are the
+**only** sources of truth. `tools/transpile.ts` emits OpenCode, Cursor, Claude Code, Codex, and shared skills.
 
 - Never hand-edit `dist/` or `manifest.txt` — both are generated and **tracked**. Fix the catalog or the prompt body,
   then `bun run build` before commit.
@@ -24,8 +23,8 @@ sources of truth. `tools/transpile.ts` emits OpenCode agents, Cursor specialists
 
 `bun run check` fails the build (and CI) on drift, so these must be updated together:
 
-- Changing an agent's model in `src/catalog.yaml` requires editing the dual-model table in `README.md` to match — the
-  check compares them row by row.
+- Changing a host profile in `src/catalog.yaml` requires editing the profile × host matrix in `README.md` to match — the
+  check compares the matrix and each agent's `profile`.
 - Any `src/` change requires a `bun run build` before `bun run check`; check compares against `dist/` and against
   `manifest.txt` hashes.
 

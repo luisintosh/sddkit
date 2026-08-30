@@ -1,18 +1,61 @@
-# Per-agent metadata for OpenCode and Cursor emitters. Bodies live in prompts/agents/.
+# Per-agent metadata. Model IDs live only under hosts.*.profiles.
+# Agents declare profile; host blocks are adapters (mode, permission, skill).
 #
 # Permission maps: opencode applies the LAST matching pattern, so order is
 # load-bearing — broad rules first, narrow exceptions last. Reordering a block
 # silently changes what an agent may edit.
 
+hosts:
+  opencode:
+    profiles:
+      conduct: { id: opencode-go/qwen3.7-plus }
+      think: { id: openai/gpt-5.6-sol }
+      execute: { id: openai/gpt-5.6-luna }
+      review: { id: opencode-go/kimi-k3 }
+      test: { id: opencode-go/kimi-k2.7-code }
+      critique: { id: opencode-go/kimi-k2.7-code }
+      validate: { id: opencode-go/deepseek-v4-pro }
+      write: { id: opencode-go/kimi-k3 }
+  cursor:
+    profiles:
+      conduct: { id: inherit }
+      think: { id: grok-4.6, effort: xhigh }
+      execute: { id: gpt-5.6-luna, effort: high }
+      review: { id: gpt-5.6-terra, effort: high }
+      test: { id: composer-2.5 }
+      critique: { id: gpt-5.6-terra, effort: high }
+      validate: { id: grok-4.6, effort: medium }
+      write: { id: gpt-5.6-luna, effort: high }
+  claude:
+    profiles:
+      conduct: { id: inherit }
+      think: { id: opus }
+      execute: { id: sonnet }
+      review: { id: opus }
+      test: { id: sonnet }
+      critique: { id: opus }
+      validate: { id: sonnet }
+      write: { id: sonnet }
+  codex:
+    profiles:
+      conduct: { id: inherit }
+      think: { id: gpt-5.6-sol }
+      execute: { id: gpt-5.6-luna, effort: high }
+      review: { id: gpt-5.6-terra, effort: high }
+      test: { id: gpt-5.6-luna, effort: high }
+      critique: { id: gpt-5.6-terra, effort: high }
+      validate: { id: gpt-5.6-luna, effort: high }
+      write: { id: gpt-5.6-luna, effort: high }
+
 agents:
   sddkit:
+    profile: conduct
     description: >-
       Drives the end-to-end spec-driven development (SDD) feature pipeline — sequences stages, manages human-in-the-loop
       gates, routes review findings, keeps docs in sync. Use when the user asks to implement a feature, run SDD, or
       resume/continue a pipeline. Treats a normal feature request as a request to run the full workflow.
     opencode:
       mode: primary
-      model: opencode-go/qwen3.7-plus
       temperature: 0.2
       steps: 100
       permission:
@@ -21,16 +64,15 @@ agents:
           "**/journal.ndjson": deny
           ".opencode/**": deny
     cursor:
-      model: inherit
       skill: true
 
   spec:
+    profile: think
     description: >-
       Writes feature specifications (the what & why) and spec-derived acceptance contracts. Use when the conductor
       delegates specify/contracts, or when a spec or its @S<n> scenarios must be written or revised.
     opencode:
       mode: subagent
-      model: openai/gpt-5.6-sol
       temperature: 0.3
       steps: 20
       permission:
@@ -39,16 +81,15 @@ agents:
           "docs/feats/**": allow
           "docs/feats/**/state.yaml": deny
         bash: deny
-    cursor:
-      model: grok-4.5
+    cursor: {}
 
   architect:
+    profile: think
     description: >-
       Plans implementation strategy and writes feature plans (SDD plan stage). Owns codebase exploration. Use when the
       conductor delegates plan, or when a feature plan and its Slices section must be written or revised.
     opencode:
       mode: subagent
-      model: openai/gpt-5.6-sol
       temperature: 0.3
       steps: 30
       permission:
@@ -57,16 +98,15 @@ agents:
           "docs/feats/**": allow
           "docs/feats/**/state.yaml": deny
         bash: allow
-    cursor:
-      model: grok-4.5
+    cursor: {}
 
   plan-reviewer:
+    profile: review
     description: >-
       Independent, READ-ONLY critique of the spec or the plan before its gate. Emits structured spec/plan findings;
       never edits. Use when the conductor delegates a spec or plan critique.
     opencode:
       mode: subagent
-      model: opencode-go/kimi-k3
       temperature: 0.1
       steps: 25
       permission:
@@ -79,16 +119,15 @@ agents:
           "git log*": allow
           "git status*": allow
     cursor:
-      model: kimi-k3
       readonly: true
 
   tester:
+    profile: test
     description: >-
       TDD red phase. Writes failing tests from acceptance contracts. Edits test-only locations — never implementation,
       never the contracts. Use when the conductor delegates the red phase of a slice.
     opencode:
       mode: subagent
-      model: opencode-go/kimi-k2.7-code
       temperature: 0.2
       steps: 40
       permission:
@@ -107,16 +146,15 @@ agents:
           # Must stay last: acceptance contracts are .feature files, and only
           # the trailing position keeps this deny ahead of the allow above.
           "docs/feats/**": deny
-    cursor:
-      model: kimi-k2.7-code
+    cursor: {}
 
   implementer:
+    profile: execute
     description: >-
       TDD green phase. Writes the minimal implementation to make failing tests pass. Never edits test files. Use when
       the conductor delegates green, an escalation re-derive, or a targeted-test fix.
     opencode:
       mode: subagent
-      model: openai/gpt-5.6-luna
       temperature: 0.2
       steps: 40
       permission:
@@ -136,16 +174,15 @@ agents:
           "**/*.feature": deny
           "**/journal.ndjson": deny
           ".opencode/**": deny
-    cursor:
-      model: composer-2.5
+    cursor: {}
 
   code-reviewer:
+    profile: critique
     description: >-
       Independent, READ-ONLY review of the active slice's diff against its acceptance contracts. Emits structured
       findings; never edits. Use when the conductor delegates slice review (contract, health, or all lenses).
     opencode:
       mode: subagent
-      model: opencode-go/kimi-k2.7-code
       temperature: 0.1
       steps: 25
       permission:
@@ -158,16 +195,15 @@ agents:
           "git log*": allow
           "git status*": allow
     cursor:
-      model: kimi-k2.7-code
       readonly: true
 
   qa:
+    profile: validate
     description: >-
       Validates the implementation against spec + acceptance contracts. Playwright for UI; non-UI validation menu
       otherwise. Posts the evidence report as a PR comment. Use when the conductor delegates QA.
     opencode:
       mode: subagent
-      model: opencode-go/deepseek-v4-pro
       temperature: 0.1
       steps: 60
       permission:
@@ -175,16 +211,15 @@ agents:
           "*": deny
           "/tmp/**": allow
         bash: allow
-    cursor:
-      model: composer-2.5
+    cursor: {}
 
   docs-writer:
+    profile: write
     description: >-
       Writes the human-facing docs a finished feature leaves behind — the owning domain's README, plus AGENTS.md and
       docs/ARCHITECTURE.md. Current state only, never a changelog. Use when the conductor delegates docs-sync.
     opencode:
       mode: subagent
-      model: opencode-go/kimi-k3
       temperature: 0.1
       steps: 30
       permission:
@@ -204,17 +239,16 @@ agents:
           "git show*": allow
           "git log*": allow
           "git status*": allow
-    cursor:
-      model: kimi-k3
+    cursor: {}
 
   sddkit-plan:
+    profile: think
     description: >-
       Product Owner planner. Refines a raw idea into a measurable goal, then writes a feature roadmap at
       docs/product/<slug>/roadmap.md. Use when the user asks to plan a product, write a roadmap, or turn an idea into
       sequenced features. Standalone — does not run the SDD pipeline.
     opencode:
       mode: primary
-      model: openai/gpt-5.6-sol
       temperature: 0.4
       steps: 80
       permission:
@@ -237,7 +271,6 @@ agents:
           "gh issue view*": allow
           "gh issue list*": allow
     cursor:
-      model: inherit
       skill: true
 
 commands:
