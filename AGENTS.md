@@ -32,9 +32,6 @@ repo or `$HOME` (`.opencode/`, `.cursor/agents/`, `.claude/`, `.codex/agents/`, 
 
 @CONTRIBUTING.md
 
-Do **not** run `test/e2e-pipeline.sh` unless explicitly asked. It spends real opencode-go budget, requires an installed
-and authenticated `opencode`, and is deliberately excluded from CI.
-
 ## Code style
 
 Biome lints `src/**/*.ts` and `tools/**/*.ts` (`bun run lint`, `bun run lint:fix`). Prettier formats those same files

@@ -30,8 +30,6 @@ bun test
 bash test/e2e-install.sh
 ```
 
-`test/e2e-pipeline.sh` (Tier 2) needs a billed `opencode run` and is not in CI.
-
 ## Tooling (Bun TypeScript)
 
 | Script                      | Purpose                                                               |

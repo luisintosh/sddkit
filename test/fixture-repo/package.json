@@ -2,7 +2,7 @@
   "name": "fixture-repo",
   "private": true,
   "type": "module",
-  "description": "Tiny Node project used by test/e2e-pipeline.sh to exercise the SDD harness end-to-end against a real (small, cheap) opencode run.",
+  "description": "Tiny Node project used as a local smoke-test fixture.",
   "scripts": {
     "dev": "node src/index.js",
     "build": "node --check src/index.js",
