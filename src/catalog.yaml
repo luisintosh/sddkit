@@ -8,8 +8,8 @@ agents:
   sddkit:
     description: >-
       Drives the end-to-end spec-driven development (SDD) feature pipeline — sequences stages, manages human-in-the-loop
-      gates, routes review findings, keeps docs in sync. Treats a normal feature request as a request to run the full
-      workflow.
+      gates, routes review findings, keeps docs in sync. Use when the user asks to implement a feature, run SDD, or
+      resume/continue a pipeline. Treats a normal feature request as a request to run the full workflow.
     opencode:
       mode: primary
       model: opencode-go/qwen3.7-plus
@@ -26,8 +26,8 @@ agents:
 
   spec:
     description: >-
-      Writes feature specifications (the what & why) and spec-derived acceptance contracts. SDD specify/contracts
-      stages.
+      Writes feature specifications (the what & why) and spec-derived acceptance contracts. Use when the conductor
+      delegates specify/contracts, or when a spec or its @S<n> scenarios must be written or revised.
     opencode:
       mode: subagent
       model: openai/gpt-5.6-sol
@@ -44,8 +44,8 @@ agents:
 
   architect:
     description: >-
-      Plans implementation strategy and writes feature plans (SDD plan stage). Owns codebase exploration. Read-mostly;
-      designs before code.
+      Plans implementation strategy and writes feature plans (SDD plan stage). Owns codebase exploration. Use when the
+      conductor delegates plan, or when a feature plan and its Slices section must be written or revised.
     opencode:
       mode: subagent
       model: openai/gpt-5.6-sol
@@ -63,7 +63,7 @@ agents:
   plan-reviewer:
     description: >-
       Independent, READ-ONLY critique of the spec or the plan before its gate. Emits structured spec/plan findings;
-      never edits.
+      never edits. Use when the conductor delegates a spec or plan critique.
     opencode:
       mode: subagent
       model: opencode-go/kimi-k3
@@ -85,7 +85,7 @@ agents:
   tester:
     description: >-
       TDD red phase. Writes failing tests from acceptance contracts. Edits test-only locations — never implementation,
-      never the contracts.
+      never the contracts. Use when the conductor delegates the red phase of a slice.
     opencode:
       mode: subagent
       model: opencode-go/kimi-k2.7-code
@@ -112,8 +112,8 @@ agents:
 
   implementer:
     description: >-
-      TDD green phase. Writes the minimal implementation to make failing tests pass. Never edits test files. On
-      escalation, re-derive from plan+tests.
+      TDD green phase. Writes the minimal implementation to make failing tests pass. Never edits test files. Use when
+      the conductor delegates green, an escalation re-derive, or a targeted-test fix.
     opencode:
       mode: subagent
       model: openai/gpt-5.6-luna
@@ -142,7 +142,7 @@ agents:
   code-reviewer:
     description: >-
       Independent, READ-ONLY review of the active slice's diff against its acceptance contracts. Emits structured
-      findings; never edits.
+      findings; never edits. Use when the conductor delegates slice review (contract, health, or all lenses).
     opencode:
       mode: subagent
       model: opencode-go/kimi-k2.7-code
@@ -164,7 +164,7 @@ agents:
   qa:
     description: >-
       Validates the implementation against spec + acceptance contracts. Playwright for UI; non-UI validation menu
-      otherwise. Posts the evidence report as a PR comment.
+      otherwise. Posts the evidence report as a PR comment. Use when the conductor delegates QA.
     opencode:
       mode: subagent
       model: opencode-go/deepseek-v4-pro
@@ -181,8 +181,7 @@ agents:
   docs-writer:
     description: >-
       Writes the human-facing docs a finished feature leaves behind — the owning domain's README, plus AGENTS.md and
-      docs/ARCHITECTURE.md. Current state only, never a changelog. Reports the env vars and external service setup the
-      human still has to do.
+      docs/ARCHITECTURE.md. Current state only, never a changelog. Use when the conductor delegates docs-sync.
     opencode:
       mode: subagent
       model: opencode-go/kimi-k3
@@ -210,10 +209,9 @@ agents:
 
   sddkit-plan:
     description: >-
-      Product Owner planner. Refines a raw idea into a clear, measurable goal by exploring the codebase first and asking
-      only the high-leverage questions code can't answer (assumptions stated), explores candidate approaches, then
-      writes a feature roadmap with per-feature Definition of Done and sequencing at docs/product/<slug>/roadmap.md.
-      Offers to commit it and to create GitHub issues (epic + per-feature). Standalone — does not run the SDD pipeline.
+      Product Owner planner. Refines a raw idea into a measurable goal, then writes a feature roadmap at
+      docs/product/<slug>/roadmap.md. Use when the user asks to plan a product, write a roadmap, or turn an idea into
+      sequenced features. Standalone — does not run the SDD pipeline.
     opencode:
       mode: primary
       model: openai/gpt-5.6-sol
@@ -244,7 +242,9 @@ agents:
 
 commands:
   setup-docs:
-    description: Scaffold project docs required for the AI working context.
+    description: >-
+      Scaffolds AGENTS.md, docs/ARCHITECTURE.md, docs/CONSTITUTION.md, and docs/feats/. Use when the user runs
+      /setup-docs or asks to create the project's AI working-context docs.
 
 opencode_config:
   model: opencode-go/glm-5.2

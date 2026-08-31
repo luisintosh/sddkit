@@ -119,6 +119,11 @@ if (catalog) {
     } catch {
       fail(`src/prompts/commands/${cmd}.md missing`)
     }
+    try {
+      await stat(path.join(root, "dist", "agents", "skills", cmd, "SKILL.md"))
+    } catch {
+      fail(`dist/agents/skills/${cmd}/SKILL.md missing — run bun run build`)
+    }
   }
 }
 
@@ -171,9 +176,9 @@ if (catalog) {
     const agent = catalog.agents![name]!
     if (agent.cursor?.skill) {
       try {
-        await stat(path.join(distCu, "skills", name, "SKILL.md"))
+        await stat(path.join(root, "dist", "agents", "skills", name, "SKILL.md"))
       } catch {
-        fail(`dist/cursor/skills/${name}/SKILL.md missing — run bun run build`)
+        fail(`dist/agents/skills/${name}/SKILL.md missing — run bun run build`)
       }
     } else {
       const cuPath = path.join(distCu, "agents", `${name}.md`)
@@ -189,8 +194,8 @@ if (catalog) {
         if (fm.model !== wantModel) {
           fail(`dist drift: cursor ${name} model ${fm.model} != catalog ${wantModel} — run bun run build`)
         }
-        if (fm.is_background !== true) {
-          fail(`dist drift: cursor ${name} is_background must be true — run bun run build`)
+        if (fm.is_background === true) {
+          fail(`dist drift: cursor ${name} must not set is_background — conductor is sequential`)
         }
       } catch {
         fail(`dist/cursor/agents/${name}.md missing — run bun run build`)
@@ -237,6 +242,7 @@ async function expectedManifestEntries() {
   const files = [
     ...(await walkFiles(path.join(root, "dist", "opencode"))),
     ...(await walkFiles(path.join(root, "dist", "cursor"))),
+    ...(await walkFiles(path.join(root, "dist", "agents"))),
     path.join(root, "dist", "bin", "sddkit-state"),
   ]
   const entries: [string, string][] = []

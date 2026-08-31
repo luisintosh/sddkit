@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Emit dist/opencode and dist/cursor from src/catalog.yaml + src/prompts/.
+ * Emit dist/opencode, dist/cursor, and dist/agents/skills from src/catalog.yaml + src/prompts/.
  */
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
@@ -181,32 +181,29 @@ async function emitOpencode(catalog: Catalog) {
   }
 }
 
-async function emitCursor(catalog: Catalog) {
-  const outRoot = path.join(distDir, "cursor")
+async function emitSharedSkills(catalog: Catalog) {
+  const outRoot = path.join(distDir, "agents", "skills")
   await rmrf(outRoot)
 
+  const replyMapping = await fs.readFile(path.join(srcDir, "prompts", "fragments", "reply-mapping.md"), "utf8")
+
   for (const [name, agent] of Object.entries(catalog.agents)) {
-    const body = await readPrompt(`agents/${name}.md`)
-    const restrictions = cursorRestrictions(agent.opencode)
-    const fullBody = `${body.trimEnd() + restrictions}\n`
-
-    if (agent.cursor.skill) {
-      const skillFm = {
-        name,
-        description: agent.description,
-      }
-      await writeFile(path.join(outRoot, "skills", name, "SKILL.md"), yamlFrontmatter(skillFm) + fullBody)
-      continue
+    if (!agent.cursor.skill) continue
+    let raw = await fs.readFile(path.join(srcDir, "prompts", "agents", `${name}.md`), "utf8")
+    if (raw.includes("{{include:fragments/reply-mapping.md}}")) {
+      raw = raw.replace("{{include:fragments/reply-mapping.md}}", replyMappingPointer())
+      await writeFile(path.join(outRoot, name, "references", "reply-mapping.md"), `${replyMapping.trim()}\n`)
     }
-
-    const fm: Record<string, unknown> = {
+    const body = await resolveIncludes(`${raw.trim()}\n`)
+    const restrictions = cursorRestrictions(agent.opencode)
+    const skillFm = {
       name,
       description: agent.description,
-      model: cursorModel(agent.cursor.model),
-      is_background: true,
     }
-    if (agent.cursor.readonly) fm.readonly = true
-    await writeFile(path.join(outRoot, "agents", `${name}.md`), yamlFrontmatter(fm) + fullBody)
+    await writeFile(
+      path.join(outRoot, name, "SKILL.md"),
+      `${yamlFrontmatter(skillFm)}${body.trimEnd() + restrictions}\n`,
+    )
   }
 
   for (const [name, meta] of Object.entries(catalog.commands)) {
@@ -216,7 +213,37 @@ async function emitCursor(catalog: Catalog) {
       description: meta.description,
       "disable-model-invocation": true,
     }
-    await writeFile(path.join(outRoot, "skills", name, "SKILL.md"), yamlFrontmatter(fm) + body)
+    await writeFile(path.join(outRoot, name, "SKILL.md"), yamlFrontmatter(fm) + body)
+  }
+}
+
+function replyMappingPointer(): string {
+  return [
+    "## Applying subagent replies",
+    "",
+    "Reply keys are not state keys. Read [references/reply-mapping.md](references/reply-mapping.md) before the first",
+    "patch — translate every reply; never pass one through verbatim.",
+    "",
+  ].join("\n")
+}
+
+async function emitCursor(catalog: Catalog) {
+  const outRoot = path.join(distDir, "cursor")
+  await rmrf(outRoot)
+
+  for (const [name, agent] of Object.entries(catalog.agents)) {
+    if (agent.cursor.skill) continue
+    const body = await readPrompt(`agents/${name}.md`)
+    const restrictions = cursorRestrictions(agent.opencode)
+    const fullBody = `${body.trimEnd() + restrictions}\n`
+
+    const fm: Record<string, unknown> = {
+      name,
+      description: agent.description,
+      model: cursorModel(agent.cursor.model),
+    }
+    if (agent.cursor.readonly) fm.readonly = true
+    await writeFile(path.join(outRoot, "agents", `${name}.md`), yamlFrontmatter(fm) + fullBody)
   }
 }
 
@@ -224,8 +251,9 @@ async function main() {
   const catalog = await loadCatalog()
   await fs.mkdir(distDir, { recursive: true })
   await emitOpencode(catalog)
+  await emitSharedSkills(catalog)
   await emitCursor(catalog)
-  console.log("transpile: wrote dist/opencode and dist/cursor")
+  console.log("transpile: wrote dist/opencode, dist/cursor, and dist/agents/skills")
 }
 
 await main()

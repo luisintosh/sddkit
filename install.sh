@@ -2,6 +2,7 @@
 set -euo pipefail
 
 # Install the SDD harness (OpenCode and/or Cursor) into the current repository.
+# Skills + sddkit-state land under .agents/; Cursor specialists under .cursor/agents/.
 #
 # Interactive (TTY): prompts for target and version.
 # Non-interactive / CI: defaults (target=all); env overrides for tests:
@@ -147,16 +148,16 @@ doctor() {
     log "  [warn] AGENTS.md missing — run /setup-docs first"
   fi
 
-  if [[ -x "${TARGET_DIR}/bin/sddkit-state" ]] || [[ -f "${TARGET_DIR}/bin/sddkit-state" ]]; then
-    log "  [ok]   bin/sddkit-state present"
+  if [[ -x "${TARGET_DIR}/.agents/bin/sddkit-state" ]] || [[ -f "${TARGET_DIR}/.agents/bin/sddkit-state" ]]; then
+    log "  [ok]   .agents/bin/sddkit-state present"
   else
-    log "  [warn] bin/sddkit-state missing — re-run the installer"
+    log "  [warn] .agents/bin/sddkit-state missing — re-run the installer"
   fi
 
   if command -v bun >/dev/null 2>&1; then
     log "  [ok]   bun is on PATH (needed to run the portable sddkit-state script)"
   else
-    log "  [warn] bun not found — install from https://bun.sh to run bin/sddkit-state"
+    log "  [warn] bun not found — install from https://bun.sh to run .agents/bin/sddkit-state"
   fi
 
   if command -v gh >/dev/null 2>&1; then
@@ -383,30 +384,48 @@ install_tree() {
 install_bin() {
   local stage_dir="$1" new_manifest="$2"
   local src="${stage_dir}/bin/sddkit-state"
-  local dest="${TARGET_DIR}/bin/sddkit-state"
+  local dest="${TARGET_DIR}/.agents/bin/sddkit-state"
   local want_hash
   want_hash="$(manifest_hash "$new_manifest" "bin/sddkit-state")" || die "manifest missing bin/sddkit-state"
 
   if [[ -f "$dest" ]] && [[ "$(sha256_of "$dest")" == "$want_hash" ]]; then
-    log "  bin/sddkit-state unchanged"
+    log "  .agents/bin/sddkit-state unchanged"
   else
     if [[ -f "$dest" ]]; then
-      log "  ~ update   bin/sddkit-state"
+      log "  ~ update   .agents/bin/sddkit-state"
     else
-      log "  + install  bin/sddkit-state"
+      log "  + install  .agents/bin/sddkit-state"
     fi
     if ! $DRY_RUN; then
-      mkdir -p "${TARGET_DIR}/bin"
+      mkdir -p "${TARGET_DIR}/.agents/bin"
       cp "$src" "$dest"
       chmod +x "$dest"
     fi
   fi
 
-  # Drop legacy binary name from earlier releases.
-  if [[ -e "${TARGET_DIR}/bin/sdd-state" ]]; then
-    $DRY_RUN || rm -f "${TARGET_DIR}/bin/sdd-state"
-    log "  - prune    bin/sdd-state (renamed to sddkit-state)"
-  fi
+  prune_legacy_bin
+}
+
+prune_legacy_bin() {
+  local leftover
+  for leftover in "${TARGET_DIR}/bin/sddkit-state" "${TARGET_DIR}/bin/sdd-state"; do
+    if [[ -e "$leftover" ]]; then
+      $DRY_RUN || rm -f "$leftover"
+      log "  - prune    ${leftover#"$TARGET_DIR"/} (moved to .agents/bin/sddkit-state)"
+    fi
+  done
+}
+
+prune_legacy_cursor_skills() {
+  local dest="${TARGET_DIR}/.cursor/skills"
+  [[ -d "$dest" ]] || return 0
+  local name
+  for name in sddkit sddkit-plan setup-docs; do
+    if [[ -e "${dest}/${name}" ]]; then
+      $DRY_RUN || rm -rf "${dest}/${name}"
+      log "  - prune    .cursor/skills/${name} (moved to .agents/skills/)"
+    fi
+  done
 }
 
 main() {
@@ -462,17 +481,21 @@ main() {
     all)
       install_tree "opencode" "${TARGET_DIR}/.opencode" "$stage_dir" "$new_manifest"
       install_tree "cursor" "${TARGET_DIR}/.cursor" "$stage_dir" "$new_manifest"
+      install_tree "agents" "${TARGET_DIR}/.agents" "$stage_dir" "$new_manifest"
       ;;
     opencode)
       install_tree "opencode" "${TARGET_DIR}/.opencode" "$stage_dir" "$new_manifest"
+      install_tree "agents" "${TARGET_DIR}/.agents" "$stage_dir" "$new_manifest"
       ;;
     cursor)
       install_tree "cursor" "${TARGET_DIR}/.cursor" "$stage_dir" "$new_manifest"
+      install_tree "agents" "${TARGET_DIR}/.agents" "$stage_dir" "$new_manifest"
       ;;
     *) die "invalid INSTALL_TARGET: $INSTALL_TARGET" ;;
   esac
 
   install_bin "$stage_dir" "$new_manifest"
+  prune_legacy_cursor_skills
 
   if $DRY_RUN; then
     log ""
@@ -481,7 +504,7 @@ main() {
   fi
 
   log ""
-  log "Done. Add ./bin to PATH (or invoke ./bin/sddkit-state) so the conductor can checkpoint state."
+  log "Done. Invoke .agents/bin/sddkit-state (or \$HOME/.agents/bin/sddkit-state) so the conductor can checkpoint state."
   log ""
   suggest_next_steps
   doctor

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode-go/glm-5.2",
+  "small_model": "opencode-go/deepseek-v4-flash",
+  "default_agent": "sddkit",
+  "instructions": [
+    "AGENTS.md"
+  ],
+  "command": {
+    "setup-docs": {
+      "description": "Scaffolds AGENTS.md, docs/ARCHITECTURE.md, docs/CONSTITUTION.md, and docs/feats/. Use when the user runs /setup-docs or asks to create the project's AI working-context docs.",
+      "template": "Set up the project's AI working context.\n\nCreate missing files only; never overwrite existing files unless the user explicitly asks to refresh.\n\nInspect the repository enough to infer project name, purpose, stack, commands, conventions, architecture, and durable\nconstraints.\n\nCreate:\n\n- AGENTS.md: concise always-loaded AI instructions with project commands, conventions, and links to docs/ARCHITECTURE.md\n  and docs/CONSTITUTION.md.\n- docs/ARCHITECTURE.md: concise system overview, module map, data flow, key decisions, dependencies, and testing\n  strategy.\n- docs/CONSTITUTION.md: concise governing principles for implementation and review.\n- docs/feats/.gitkeep: ensure the feature artifact directory exists.\n\nAGENTS.md must include these commands, using n/a when genuinely unknown: install, dev/run (how to start the app locally\n— the QA agent depends on this), build, test (plus how to run a single test file), lint, typecheck.\n\nVerify, don't guess: where possible confirm each command exists in the project manifest/scripts before writing it.\n\nRecord the domain-doc convention in docs/ARCHITECTURE.md, one line: a domain's `README.md` lives in the directory that\nowns it, and `docs/domains/<domain>.md` covers a domain too cross-cutting to have one. Do **not** write those domain\ndocs now — the pipeline's `docs-writer` creates each one as a feature touches that domain, from a diff it can actually\nread. Guessing them from an unfamiliar tree produces exactly the filler these documents exist to avoid.\n\nWrite everything you create to these rules:\n\n**Current state only.** Never narrate a document's own history — no changelog, no dates, no \"updated because\", no\n\"previously this used\", no feature or PR reference. **Every line earns its place**: cut throat-clearing intros, \"this\nsection describes…\", restatements of what the reader just read, and \"note that\" preambles; a named symbol, path,\ncommand, or number beats an adjective, and \"fast\", \"robust\", \"handled properly\" say nothing. **Never restate what\nanother document owns** — `AGENTS.md` owns commands and conventions, `docs/ARCHITECTURE.md` owns the system-wide map,\n`docs/feats/<slug>/` owns per-feature spec and plan; link, never copy, because two copies drift apart. **Omit a section\nwith nothing to say** rather than writing \"N/A\" or \"None yet\" — a missing section is itself information. The one\nexception is `Configuration`: when something genuinely needs none, `None.` on one line, because that absence is the\nanswer the reader came for.\n\nReturn a compact summary: created, skipped, inferred commands, and unknowns."
+    }
+  },
+  "lsp": true,
+  "formatter": true,
+  "permission": {
+    "edit": {
+      "*": "allow",
+      "docs/feats/**/state.yaml": "deny",
+      "**/journal.ndjson": "deny",
+      ".opencode/**": "deny"
+    },
+    "read": "allow",
+    "webfetch": "allow",
+    "bash": {
+      "*": "allow",
+      "rm -rf *": "deny",
+      "rm -fr *": "deny",
+      "rm -r *": "deny",
+      "git clean *": "deny",
+      "git reset --hard*": "deny",
+      "git checkout -- *": "deny",
+      "git restore *": "deny",
+      "git push --force*": "deny",
+      "git push -f *": "deny",
+      "git push* main*": "deny",
+      "git push* master*": "deny",
+      "sudo *": "deny",
+      "chmod -R *": "deny",
+      "chown -R *": "deny",
+      "* | sh": "deny",
+      "* | bash": "deny",
+      "curl * | *": "deny",
+      "wget * | *": "deny"
+    }
+  }
+}
