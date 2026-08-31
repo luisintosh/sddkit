@@ -10,6 +10,7 @@
     "gen-manifest": "bun tools/gen-manifest.ts",
     "build": "bun tools/transpile.ts && bun tools/build-cli.ts && bun tools/gen-manifest.ts",
     "check": "bun tools/check.ts",
+    "release": "bun tools/release.ts",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "format": "prettier --write ."

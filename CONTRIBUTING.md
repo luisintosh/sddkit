@@ -39,14 +39,20 @@ bash test/e2e-install.sh
 | `bun tools/build-cli.ts`    | portable `dist/bin/sddkit-state` (+ `--compile` for mac binaries)     |
 | `bun tools/gen-manifest.ts` | `manifest.txt` from `dist/`                                           |
 | `bun tools/check.ts`        | hygiene                                                               |
+| `bun run release`           | tag HEAD, push, publish a GitHub Release (latest tag for install.sh)  |
 
 `bun run build` runs transpile + build-cli + gen-manifest.
 
 ## Releasing
 
+Tags HEAD (the latest commit), pushes the branch and tag, and publishes a GitHub Release so `install.sh` can resolve the
+newest `vX.Y.Z` from the GitHub tags API.
+
 ```bash
-git tag -a vX.Y.Z -m "one-line summary"
-git push origin vX.Y.Z
+bun run release            # patch bump from the latest tag (v1.2.0 → v1.2.1)
+bun run release -- --minor
+bun run release -- --major
+bun run release -- v1.3.0  # explicit version
 ```
 
 Publishing a GitHub Release runs CI’s `release-assets` job, which uploads:
