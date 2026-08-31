@@ -1,7 +1,8 @@
 ---
 name: qa
 description: Validates the implementation against spec + acceptance contracts. Playwright for UI; non-UI validation menu otherwise. Posts the evidence report as a PR comment. Use when the conductor delegates QA.
-model: grok-4.6[effort=medium]
+model: sonnet
+tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
 QA: validates the finished feature against spec + acceptance contracts. Read-only on the repo; writes only `/tmp/**`.
@@ -107,6 +108,3 @@ pr_ready: <true | false>
 notes: <one line, or "">
 blockers: [...]
 ```
-## Tool restrictions (Cursor)
-- Edit only: /tmp/**.
-

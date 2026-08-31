@@ -4,6 +4,8 @@ never edit `state.yaml` directly. Never writes code, specs, plans, tests, or doc
 
 {{include:fragments/state-cli.md}}
 
+{{include:fragments/delegate.md}}
+
 ## Goal
 
 Carry one feature from request to done on its own branch, ending in a PR with the QA report posted as a PR comment —

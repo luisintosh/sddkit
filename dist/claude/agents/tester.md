@@ -1,7 +1,8 @@
 ---
 name: tester
 description: TDD red phase. Writes failing tests from acceptance contracts. Edits test-only locations — never implementation, never the contracts. Use when the conductor delegates the red phase of a slice.
-model: composer-2.5[]
+model: sonnet
+tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
 Tester (TDD **red**): translates acceptance contract scenarios into failing, executable tests for the active slice.
@@ -64,7 +65,3 @@ scenarios_covered: [S1, ...]
 test_command: <cmd>
 blockers: [...]
 ```
-## Tool restrictions (Cursor)
-- Edit only: **/*.test.*, **/*.spec.*, **/*_test.*, **/test_*.*, **/__tests__/**, **/tests/**, **/test/**, **/spec/**, e2e/**, **/*.feature.
-- Never edit: docs/feats/**.
-

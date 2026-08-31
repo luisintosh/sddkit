@@ -14,9 +14,9 @@ any `src/` change run `bun run build` before commit; CI fails if they drift.
 
 Requires a prior `bun run build`. Validates:
 
-- `src/catalog.yaml` shape (no `implementer-pro`, OpenCode models prefixed `opencode-go/`)
-- Emitted dist frontmatter matches catalog models
-- README dual-model table matches catalog
+- `src/catalog.yaml` shape (no `implementer-pro`, every host × profile present)
+- Emitted dist frontmatter / Codex TOML matches catalog profiles
+- README profile × host matrix and agent → profile table match catalog
 - `manifest.txt` hashes match `dist/`
 
 ## Before committing
@@ -34,12 +34,12 @@ bash test/e2e-install.sh
 
 ## Tooling (Bun TypeScript)
 
-| Script                      | Purpose                                                           |
-| --------------------------- | ----------------------------------------------------------------- |
-| `bun tools/transpile.ts`    | `src/` → `dist/opencode` + `dist/cursor` + `dist/agents/skills`   |
-| `bun tools/build-cli.ts`    | portable `dist/bin/sddkit-state` (+ `--compile` for mac binaries) |
-| `bun tools/gen-manifest.ts` | `manifest.txt` from `dist/`                                       |
-| `bun tools/check.ts`        | hygiene                                                           |
+| Script                      | Purpose                                                               |
+| --------------------------- | --------------------------------------------------------------------- |
+| `bun tools/transpile.ts`    | `src/` → `dist/{opencode,cursor,claude,codex}` + `dist/agents/skills` |
+| `bun tools/build-cli.ts`    | portable `dist/bin/sddkit-state` (+ `--compile` for mac binaries)     |
+| `bun tools/gen-manifest.ts` | `manifest.txt` from `dist/`                                           |
+| `bun tools/check.ts`        | hygiene                                                               |
 
 `bun run build` runs transpile + build-cli + gen-manifest.
 

@@ -28,6 +28,14 @@ assert_eq() {
 # Ensure dist + manifest exist
 (cd "$REPO_ROOT" && bun run build >/dev/null)
 
+assert_file_exists "${REPO_ROOT}/dist/claude/agents/spec.md" "transpile emits claude spec agent"
+assert_file_exists "${REPO_ROOT}/dist/codex/agents/spec.toml" "transpile emits codex spec agent"
+if grep -q 'spawn_agent' "${REPO_ROOT}/dist/agents/skills/sddkit/SKILL.md"; then
+  ok "sddkit skill documents Codex spawn_agent"
+else
+  bad "sddkit skill missing Codex spawn_agent delegation"
+fi
+
 UPSTREAM="${WORK}/upstream"
 mkdir -p "$UPSTREAM"
 cp "${REPO_ROOT}/manifest.txt" "$UPSTREAM/"

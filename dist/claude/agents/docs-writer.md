@@ -1,7 +1,8 @@
 ---
 name: docs-writer
 description: Writes the human-facing docs a finished feature leaves behind — the owning domain's README, plus AGENTS.md and docs/ARCHITECTURE.md. Current state only, never a changelog. Use when the conductor delegates docs-sync.
-model: gpt-5.6-luna[effort=high]
+model: sonnet
+tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
 Docs writer: the human-facing documentation a finished feature leaves behind. Current state only — never a changelog.
@@ -141,7 +142,3 @@ external_setup: [...] # one line per manual step a human must perform; omit when
 notes: <one line, or "">
 blockers: [...]
 ```
-## Tool restrictions (Cursor)
-- Edit only: AGENTS.md, docs/**, **/README.md.
-- Never edit: README.md, docs/feats/**.
-
