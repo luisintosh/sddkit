@@ -18,13 +18,14 @@ src/
   prompts/fragments/     shared includes
   state/                 sddkit-state CLI (schema, merge, io)
 tools/
+  install.ts             installer source → dist/install.js (npx + bunx)
   transpile.ts           → dist/{opencode,cursor,claude,codex} + dist/agents/skills
-  install-tui.ts         Clack TUI (TTY + bun checkout)
   build-cli.ts           → dist/bin/sddkit-state (+ optional mac binaries)
+  build-install.ts       bundle install.ts for Node
   gen-manifest.ts        → manifest.txt
   check.ts               hygiene
 dist/                    generated install payload (tracked; never hand-edit)
-install.sh               multi-host installer (TUI or bash menus)
+  install.js             npx/bunx CLI (not copied into consuming repos)
 ```
 
 State lives in the **consuming repo**:
@@ -43,7 +44,7 @@ docs/product/<slug>/
   roadmap.md             optional, written by sddkit-plan
 src/<domain>/README.md   domain doc, written by docs-writer at docs-sync
 docs/domains/<domain>.md same, for a domain too cross-cutting to own a directory
-.agents/bin/sddkit-state    installed by install.sh
+.agents/bin/sddkit-state    installed by npx/bunx sddkit
 .agents/skills/          sddkit, sddkit-plan + setup-docs
 .opencode/               OpenCode agents + opencode.jsonc
 .cursor/agents/          Cursor specialists
@@ -89,15 +90,17 @@ Checked in CI against `src/catalog.yaml` and emitted frontmatter / Codex TOML.
 From the root of the consuming repository:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/luisintosh/sddkit/refs/heads/master/install.sh | bash
+npx -y github:luisintosh/sddkit
+bunx github:luisintosh/sddkit
 ```
 
-On a TTY the installer asks for **scope** (this repo vs `$HOME`), **hosts** (Cursor / Claude Code / Codex / OpenCode —
-one, many, or all), **version** (latest / tag / branch / local), and confirmation. Detected CLIs are pre-checked; you
-can still install a host that is not on `PATH`. Non-interactive runs default to `project` + `all` + latest tag.
+`-y` skips npm’s “ok to install this package?” so the only prompts are the installer. Pin a tag with `#v1.3.0` on either
+command.
 
-A local checkout used as `LOCAL_SOURCE` must already contain `dist/` and `manifest.txt` — the installer never builds on
-the client.
+On a TTY the installer asks for **scope** (this repo vs `$HOME`), **hosts** (Cursor / Claude Code / Codex / OpenCode —
+one, many, or all), and confirmation. Detected CLIs are pre-checked; you can still install a host that is not on `PATH`.
+Non-interactive runs default to `project` + `all`. The payload is the `dist/` in the git ref npx/bunx fetched — the
+installer never builds on the client.
 
 Re-running is idempotent: unchanged files skip, upstream updates apply, local edits are backed up under the dest leaf
 (`.cursor/agents/.backup-*/`, `.claude/agents/.backup-*/`, …) before replace, removed upstream files are pruned.
