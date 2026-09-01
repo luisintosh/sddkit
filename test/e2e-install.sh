@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Tier 1 e2e for install.sh — LOCAL_SOURCE, no network.
+# Tier 1 e2e for dist/install.js — LOCAL_SOURCE, no network.
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+INSTALL_JS="${REPO_ROOT}/dist/install.js"
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
@@ -36,10 +37,11 @@ else
   bad "sddkit skill missing Codex spawn_agent delegation"
 fi
 
+assert_file_exists "${REPO_ROOT}/dist/install.js" "build emits npx/bunx installer"
+
 UPSTREAM="${WORK}/upstream"
 mkdir -p "$UPSTREAM"
 cp "${REPO_ROOT}/manifest.txt" "$UPSTREAM/"
-cp "${REPO_ROOT}/install.sh" "$UPSTREAM/"
 cp -R "${REPO_ROOT}/dist" "$UPSTREAM/dist"
 
 TARGET="${WORK}/consumer-repo"
@@ -49,9 +51,9 @@ echo "# consumer" > "${TARGET}/AGENTS.md"
 
 # 1. dry-run + fresh install (all)
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all \
-  bash "${REPO_ROOT}/install.sh" --dry-run >/dev/null
+  node "$INSTALL_JS" --dry-run >/dev/null
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all \
-  bash "${REPO_ROOT}/install.sh" >/dev/null
+  node "$INSTALL_JS" >/dev/null
 
 assert_file_exists "${TARGET}/.opencode/agents/sddkit.md" "opencode sddkit agent installed"
 assert_file_exists "${TARGET}/.opencode/agents/sddkit-plan.md" "opencode sddkit-plan agent installed"
@@ -80,7 +82,7 @@ assert_file_exists "${TARGET}/.codex/agents/.harness-manifest" "codex harness-ma
 assert_file_exists "${TARGET}/.agents/.harness-manifest" "agents harness-manifest recorded"
 
 # 2. no-op reinstall
-reinstall_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all bash "${REPO_ROOT}/install.sh" --dry-run 2>&1)"
+reinstall_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" --dry-run 2>&1)"
 if grep -q "unchanged" <<<"$reinstall_output" && ! grep -q "+ install" <<<"$reinstall_output"; then
   ok "no-op reinstall reports unchanged"
 else
@@ -96,7 +98,7 @@ fi
 before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit.md" | awk '{print $1}')"
 echo "LOCAL EDIT" >> "${TARGET}/.opencode/agents/sddkit.md"
 
-modify_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all bash "${REPO_ROOT}/install.sh" 2>&1)"
+modify_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" 2>&1)"
 if grep -q "modified opencode/agents/sddkit.md" <<<"$modify_output"; then
   ok "reports locally-modified opencode agent"
 else
@@ -113,7 +115,7 @@ assert_eq "$after_hash" "$before_hash" "locally-modified file restored to upstre
 rm "${UPSTREAM}/dist/opencode/agents/qa.md"
 HARNESS_ROOT="$UPSTREAM" bun "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
 
-prune_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all bash "${REPO_ROOT}/install.sh" 2>&1)"
+prune_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" 2>&1)"
 if grep -q "prune    opencode/agents/qa.md" <<<"$prune_output"; then
   ok "reports prune of opencode/agents/qa.md"
 else
@@ -124,7 +126,7 @@ assert_file_absent "${TARGET}/.opencode/agents/qa.md" "qa.md removed after upstr
 # 5. doctor
 BARE="${WORK}/no-git-no-agents"
 mkdir -p "$BARE"
-if TARGET_DIR="$BARE" bash "${REPO_ROOT}/install.sh" --doctor >/dev/null 2>&1; then
+if TARGET_DIR="$BARE" node "$INSTALL_JS" --doctor >/dev/null 2>&1; then
   ok "--doctor exits 0 even with warnings"
 else
   bad "--doctor should never fail"
@@ -137,7 +139,7 @@ echo "TAMPERED" >> "${TAMPERED}/dist/opencode/agents/spec.md"
 
 before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/spec.md" | awk '{print $1}')"
 set +e
-LOCAL_SOURCE="$TAMPERED" TARGET_DIR="$TARGET" INSTALL_TARGET=opencode bash "${REPO_ROOT}/install.sh" >/dev/null 2>&1
+LOCAL_SOURCE="$TAMPERED" TARGET_DIR="$TARGET" INSTALL_TARGET=opencode node "$INSTALL_JS" >/dev/null 2>&1
 rc=$?
 set -e
 if [[ $rc -ne 0 ]]; then ok "checksum mismatch exits non-zero"; else bad "checksum mismatch should abort"; fi
@@ -145,7 +147,7 @@ after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/spec.md" | awk '{print $
 assert_eq "$after_hash" "$before_hash" "no partial write after checksum mismatch"
 
 # 7. doctor mentions bun / sddkit-state
-doctor_output="$(TARGET_DIR="$TARGET" bash "${REPO_ROOT}/install.sh" --doctor 2>&1)"
+doctor_output="$(TARGET_DIR="$TARGET" node "$INSTALL_JS" --doctor 2>&1)"
 if grep -q 'sddkit-state' <<<"$doctor_output"; then ok "doctor reports sddkit-state"; else bad "doctor sddkit-state: $doctor_output"; fi
 if grep -q 'rtk' <<<"$doctor_output"; then
   bad "doctor should not mention rtk install (suggestion is post-install only)"
@@ -161,7 +163,7 @@ mkdir -p "$TARGET2"
 rm -rf "${UPSTREAM}/dist"
 cp -R "${REPO_ROOT}/dist" "${UPSTREAM}/dist"
 cp "${REPO_ROOT}/manifest.txt" "$UPSTREAM/"
-LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor bash "${REPO_ROOT}/install.sh" >/dev/null
+LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor node "$INSTALL_JS" >/dev/null
 assert_file_exists "${TARGET2}/.cursor/agents/tester.md" "cursor-only installs .cursor"
 assert_file_absent "${TARGET2}/.opencode/agents/sddkit.md" "cursor-only skips .opencode"
 assert_file_absent "${TARGET2}/.claude/agents/spec.md" "cursor-only skips .claude"
@@ -173,7 +175,7 @@ assert_file_exists "${TARGET2}/.agents/skills/sddkit/SKILL.md" "cursor-only inst
 mkdir -p "${TARGET2}/bin" "${TARGET2}/.cursor/skills/sddkit"
 echo leftover > "${TARGET2}/bin/sddkit-state"
 echo leftover > "${TARGET2}/.cursor/skills/sddkit/SKILL.md"
-LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor bash "${REPO_ROOT}/install.sh" >/dev/null
+LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor node "$INSTALL_JS" >/dev/null
 assert_file_absent "${TARGET2}/bin/sddkit-state" "reinstall prunes leftover ./bin/sddkit-state"
 assert_file_absent "${TARGET2}/.cursor/skills/sddkit/SKILL.md" "reinstall prunes leftover .cursor/skills/sddkit"
 
@@ -193,7 +195,7 @@ else
 fi
 
 # 10. post-install next-step hints
-hints="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=opencode bash "${REPO_ROOT}/install.sh" 2>&1)"
+hints="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=opencode node "$INSTALL_JS" 2>&1)"
 if grep -q '/setup-docs' <<<"$hints"; then ok "suggests /setup-docs"; else bad "missing /setup-docs hint"; fi
 if grep -qE 'brew install gh|gh is on PATH|cli.github.com' <<<"$hints"; then
   ok "suggests gh CLI"
@@ -206,7 +208,7 @@ EMPTY_SOURCE="${WORK}/empty-source"
 mkdir -p "$EMPTY_SOURCE"
 set +e
 LOCAL_SOURCE="$EMPTY_SOURCE" TARGET_DIR="$TARGET" INSTALL_TARGET=all \
-  bash "${REPO_ROOT}/install.sh" >/dev/null 2>&1
+  node "$INSTALL_JS" >/dev/null 2>&1
 empty_rc=$?
 set -e
 if [[ $empty_rc -ne 0 ]]; then
@@ -230,7 +232,7 @@ printf '%s' "# user config" > "${FAKE_HOME}/.codex/config.toml"
 GLOBAL_TARGET="${WORK}/global-consumer"
 mkdir -p "$GLOBAL_TARGET"
 HOME="$FAKE_HOME" INSTALL_SCOPE=global INSTALL_TARGET=all \
-  LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$GLOBAL_TARGET" bash "${REPO_ROOT}/install.sh" >/dev/null
+  LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$GLOBAL_TARGET" node "$INSTALL_JS" >/dev/null
 
 assert_file_exists "${FAKE_HOME}/.agents/skills/sddkit/SKILL.md" "global skills land in ~/.agents"
 assert_file_exists "${FAKE_HOME}/.agents/bin/sddkit-state" "global sddkit-state lands in ~/.agents/bin"
@@ -257,9 +259,16 @@ fi
 rm "${UPSTREAM}/dist/cursor/agents/qa.md"
 HARNESS_ROOT="$UPSTREAM" bun "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
 HOME="$FAKE_HOME" INSTALL_SCOPE=global INSTALL_TARGET=cursor \
-  LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$GLOBAL_TARGET" bash "${REPO_ROOT}/install.sh" >/dev/null
+  LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$GLOBAL_TARGET" node "$INSTALL_JS" >/dev/null
 assert_file_absent "${FAKE_HOME}/.cursor/agents/qa.md" "global prune removes upstream-deleted cursor agent"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global prune keeps planted non-sddkit agent"
+
+# bunx-equivalent: same dist/install.js under bun
+if TARGET_DIR="$TARGET" bun "$INSTALL_JS" --doctor >/dev/null 2>&1; then
+  ok "bun dist/install.js --doctor exits 0"
+else
+  bad "bun dist/install.js --doctor should exit 0"
+fi
 
 echo ""
 echo "${pass} passed, ${fail} failed"

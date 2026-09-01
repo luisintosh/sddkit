@@ -3,12 +3,24 @@
   "private": true,
   "type": "module",
   "description": "Spec-driven development harness for OpenCode, Cursor, Claude Code, and Codex — prompts, transpile, sddkit-state CLI.",
+  "bin": {
+    "sddkit": "./dist/install.js"
+  },
+  "files": [
+    "dist",
+    "manifest.txt",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "test": "bun test src/state/",
     "transpile": "bun tools/transpile.ts",
     "build:cli": "bun tools/build-cli.ts",
+    "build:install": "bun tools/build-install.ts",
     "gen-manifest": "bun tools/gen-manifest.ts",
-    "build": "bun tools/transpile.ts && bun tools/build-cli.ts && bun tools/gen-manifest.ts",
+    "build": "bun tools/transpile.ts && bun tools/build-cli.ts && bun tools/gen-manifest.ts && bun tools/build-install.ts",
     "check": "bun tools/check.ts",
     "release": "bun tools/release.ts",
     "lint": "biome lint .",

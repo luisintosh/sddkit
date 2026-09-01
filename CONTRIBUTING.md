@@ -6,6 +6,7 @@
 | ------------------------------------ | ---------------------------- |
 | `src/prompts/**`, `src/catalog.yaml` | `bun run build`              |
 | `src/state/**`                       | `bun run build` + `bun test` |
+| `tools/install.ts`                   | `bun run build`              |
 
 `dist/` and `manifest.txt` are **generated and tracked** so clients install without a build. Never hand-edit them. After
 any `src/` change run `bun run build` before commit; CI fails if they drift.
@@ -18,6 +19,7 @@ Requires a prior `bun run build`. Validates:
 - Emitted dist frontmatter / Codex TOML matches catalog profiles
 - README profile × host matrix and agent → profile table match catalog
 - `manifest.txt` hashes match `dist/`
+- `dist/install.js` is present and matches a rebuild of `tools/install.ts`
 
 ## Before committing
 
@@ -32,21 +34,22 @@ bash test/e2e-install.sh
 
 ## Tooling (Bun TypeScript)
 
-| Script                      | Purpose                                                               |
-| --------------------------- | --------------------------------------------------------------------- |
-| `bun tools/transpile.ts`    | `src/` → `dist/{opencode,cursor,claude,codex}` + `dist/agents/skills` |
-| `bun tools/install-tui.ts`  | Clack TUI used by `install.sh` when stdin is a TTY                    |
-| `bun tools/build-cli.ts`    | portable `dist/bin/sddkit-state` (+ `--compile` for mac binaries)     |
-| `bun tools/gen-manifest.ts` | `manifest.txt` from `dist/`                                           |
-| `bun tools/check.ts`        | hygiene                                                               |
-| `bun run release`           | tag HEAD, push, publish a GitHub Release (latest tag for install.sh)  |
+| Script                       | Purpose                                                               |
+| ---------------------------- | --------------------------------------------------------------------- |
+| `bun tools/transpile.ts`     | `src/` → `dist/{opencode,cursor,claude,codex}` + `dist/agents/skills` |
+| `bun tools/install.ts`       | installer source (Clack + copy); emitted as `dist/install.js`         |
+| `bun tools/build-cli.ts`     | portable `dist/bin/sddkit-state` (+ `--compile` for mac binaries)     |
+| `bun tools/build-install.ts` | `tools/install.ts` → `dist/install.js` (`--target node` for npx/bunx) |
+| `bun tools/gen-manifest.ts`  | `manifest.txt` from `dist/`                                           |
+| `bun tools/check.ts`         | hygiene                                                               |
+| `bun run release`            | tag HEAD, push, publish a GitHub Release                              |
 
-`bun run build` runs transpile + build-cli + gen-manifest.
+`bun run build` runs transpile + build-cli + gen-manifest + build-install.
 
 ## Releasing
 
-Tags HEAD (the latest commit), pushes the branch and tag, and publishes a GitHub Release so `install.sh` can resolve the
-newest `vX.Y.Z` from the GitHub tags API.
+Tags HEAD (the latest commit), pushes the branch and tag, and publishes a GitHub Release. Installers pin a ref with
+`npx -y github:luisintosh/sddkit#vX.Y.Z` or `bunx github:luisintosh/sddkit#vX.Y.Z` (default branch is `master`).
 
 ```bash
 bun run release            # patch bump from the latest tag (v1.2.0 → v1.2.1)
@@ -57,11 +60,7 @@ bun run release -- v1.3.0  # explicit version
 
 Publishing a GitHub Release runs CI’s `release-assets` job, which uploads:
 
-- `sddkit-dist.tar.gz` (`dist/` + `manifest.txt`) — preferred by `install.sh` for tags
+- `sddkit-dist.tar.gz` (`dist/` + `manifest.txt`)
 - `sddkit-state-darwin-arm64` / `sddkit-state-darwin-x64`
 
-If the release asset is missing, the installer downloads the source tarball and uses the committed `dist/` — it never
-runs `bun run build` on the client.
-
 - Annotated tags; don’t move published tags — cut a new patch instead.
-- Default interactive install resolves the latest tag, then falls back to `master`.

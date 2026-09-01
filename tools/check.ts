@@ -5,12 +5,15 @@
  *   2. dist/ frontmatter matches catalog models
  *   3. README profile × host matrix matches catalog
  *   4. manifest.txt matches dist/ hashes
+ *   5. dist/install.js (npx/bunx CLI) is present and not stale
  */
 import { createHash } from "node:crypto"
 import type { Dirent } from "node:fs"
-import { readFile, readdir, stat } from "node:fs/promises"
+import { readFile, readdir, rm, stat } from "node:fs/promises"
+import * as os from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { $ } from "bun"
 import { parse as parseYaml } from "yaml"
 import {
   formatClaudeModel,
@@ -409,6 +412,32 @@ if (manifestRaw !== undefined) {
     }
     for (const rel of actualSet.keys()) {
       if (!expectedSet.has(rel)) fail(`manifest.txt: lists ${rel}, which shouldn't be installed`)
+    }
+    if (actualSet.has("install.js")) fail("manifest.txt: lists install.js, which shouldn't be installed")
+  }
+}
+
+{
+  const dest = path.join(root, "dist", "install.js")
+  let current: string | undefined
+  try {
+    current = await readFile(dest, "utf8")
+  } catch {
+    fail("dist/install.js missing — run bun run build")
+  }
+  if (current !== undefined) {
+    if (!current.startsWith("#!/usr/bin/env node\n")) {
+      fail("dist/install.js missing node shebang — run bun run build")
+    }
+    const tmp = path.join(os.tmpdir(), `sddkit-install-check-${process.pid}.js`)
+    try {
+      await $`bun ${path.join(root, "tools", "build-install.ts")} --outfile ${tmp}`.quiet()
+      const expected = await readFile(tmp, "utf8")
+      if (current !== expected) fail("dist/install.js stale — run bun run build")
+    } catch {
+      fail("dist/install.js rebuild failed — run bun run build")
+    } finally {
+      await rm(tmp, { force: true })
     }
   }
 }

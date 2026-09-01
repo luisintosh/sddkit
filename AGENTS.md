@@ -5,9 +5,9 @@ file.
 
 ## What this is
 
-sddkit ships no runtime app. It ships agent prompts plus a small state CLI that `install.sh` installs into a _consuming_
-repo or `$HOME` (`.opencode/`, `.cursor/agents/`, `.claude/`, `.codex/agents/`, `.agents/skills/`,
-`.agents/bin/sddkit-state`). Nothing here runs against this repo's own code.
+sddkit ships no runtime app. It ships agent prompts plus a small state CLI that `npx`/`bunx github:luisintosh/sddkit`
+installs into a _consuming_ repo or `$HOME` (`.opencode/`, `.cursor/agents/`, `.claude/`, `.codex/agents/`,
+`.agents/skills/`, `.agents/bin/sddkit-state`). Nothing here runs against this repo's own code.
 
 ## Generation model
 

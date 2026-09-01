@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Tag HEAD and publish a GitHub Release so install.sh can resolve the latest tag.
+ * Tag HEAD and publish a GitHub Release (npx/bunx pin a git ref; default is master).
  *
  *   bun run release              # patch bump from the latest vX.Y.Z
  *   bun run release -- --minor
@@ -86,7 +86,7 @@ async function main() {
   await $`git push origin HEAD`
   await $`git push origin ${tag}`
   await $`gh release create ${tag} --title ${tag} --generate-notes --verify-tag`
-  console.error(`release: published ${tag} — install.sh will pick this up as the latest tag`)
+  console.error(`release: published ${tag} — pin with npx/bunx github:luisintosh/sddkit#${tag}`)
 }
 
 await main()
