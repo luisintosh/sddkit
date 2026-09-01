@@ -60,6 +60,7 @@ describe("validateState", () => {
       expect(result.data.qa.cycles).toBe(0)
       expect(result.data.pending_gate).toBe("")
       expect(result.data.artifacts).toEqual({ spec: "", contracts: [], plan: "", docs: [] })
+      expect(result.data.tools).toEqual({ repo: "gh", tracker: "gh" })
       expect(result.data.roadmap).toEqual({ issue: 0, epic: 0, feature_id: "", path: "" })
     }
   })
@@ -237,6 +238,14 @@ describe("runInit / runPatch", () => {
     await runPatch(root, "account-export", { upgraded_slices: ["S2"], slice_phase: "red" })
     const after = await readState(root, "account-export")
     expect(after?.upgraded_slices).toEqual(["S2"])
+  })
+
+  test("a partial tools patch preserves sibling keys", async () => {
+    await runInit(root, "account-export")
+    await runPatch(root, "account-export", { tools: { repo: "glab", tracker: "gh" } })
+    await runPatch(root, "account-export", { tools: { repo: "tea" } })
+    const after = await readState(root, "account-export")
+    expect(after?.tools).toEqual({ repo: "tea", tracker: "gh" })
   })
 
   test("a partial roadmap patch preserves sibling keys", async () => {

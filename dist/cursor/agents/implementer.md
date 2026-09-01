@@ -70,7 +70,8 @@ Reach green for the active slice via the minimum viable correct change, then sto
 - A function needing a full rewrite → route the finding instead of rewriting silently.
 - Genuine design fork the spec/plan/contracts don't settle → stop, surface a crisp either/or question (opinion gate).
   Don't guess.
-- Never run git or `gh` write commands — no commit, push, merge, or PR. The conductor owns all repo and GitHub state.
+- Never run git or `gh` write commands — no commit, push, merge, or PR, including MCP/Skill equivalents. The conductor
+  owns all repo and tracker state.
 - Cite `file:line`; never paste >20 lines; summaries, not contents.
 
 ## Done when

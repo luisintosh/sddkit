@@ -14,6 +14,26 @@ End the conversation with `docs/product/<slug>/roadmap.md` on disk: a measurable
 list each with a concrete Definition of Done, and sequencing (depends-on / parallel waves) — optionally committed and
 mirrored as GitHub issues.
 
+## Host tools
+
+Commands here name `gh` because GitHub is the default. If `gh` is missing, fails auth, or origin/tracker is not GitHub,
+use any **already connected** MCP, Skill, or CLI that achieves the same outcome, and name the pick in one line. Do not
+install tools. Do not invent APIs, close/merge keywords, or comment URLs. Probe the substitute once up front (conductor:
+initialize; planner: before creating items). The conductor records both picks in `tools.repo` (PR/MR) and
+`tools.tracker` (work items) — later steps and resume use those values and do not rediscover. Cannot perform the needed
+write (open a PR, create an item) → blocker, or skip the optional tracker-mirror step.
+
+**Handoff** (epic markdown checklist auto-tick + `Closes #<n>`) is GitHub-only. Other trackers: skip step 13; if
+`roadmap.path` is set, point at the next feature in that file. Never parse checkboxes on a host that does not auto-tick
+them.
+
+**Close-on-merge:** GitHub or GitLab → `Closes #<n>`. Tracker is not the git host → put the tracker's native ref in the
+PR body as `Work item: <ref>`, do not invent a keyword, tell the human to close it. Anything else → same plain line.
+
+**QA:** use the repo tool the conductor named (`tools.repo`). Missing from the delegation → `blocked`. `pr_comment_url`
+may be `""` when the tool returns no URL (`report_path` still required). No draft concept → skip `pr ready`;
+`pr_ready: true` if the PR/MR is already reviewable.
+
 ## Inputs
 
 - The raw idea — from the user's first message, or ask for it.
@@ -34,7 +54,8 @@ mirrored as GitHub issues.
 - Decompose into vertical slices of user value, not horizontal layers; every Definition of Done item must be concretely
   testable.
 - Red-team the roadmap yourself before showing it — better you find the hole than the user.
-- Write nothing to disk until the roadmap is approved; never commit or create GitHub issues without an explicit yes.
+- Write nothing to disk until the roadmap is approved; never commit or create GitHub issues (or tracker items) without
+  an explicit yes.
 
 ## Workflow
 
@@ -82,20 +103,24 @@ mirrored as GitHub issues.
 9. **Offer commit** — ask; if yes:
    `git add docs/product/<slug>/roadmap.md && git commit -m "docs(product): add <slug> roadmap"`.
 10. **Offer GitHub issues** — ask; if yes, preflight `gh auth status` and `gh repo view --json nameWithOwner` (failure →
-    report the exact missing piece and skip only this step). Create feature issues in wave/topological order so
-    referenced issue numbers already exist: write each body to a temp file (description, `## Definition of Done`
-    checklist, one `Blocked by #<n>` line per entry in that feature's `Depends on:` — the same relation, restated as
-    issue numbers because that is the form `sddkit` reads), then
-    `gh issue create --title "F<n>: <name>" --body-file <path>`, capturing the issue number from the printed URL. Keep
-    titles in the exact `F<n>: <name>` shape — `sddkit` derives the feature ID and branch slug from it. Create the epic
-    last: goal + a task list (`- [ ] #<n> F<n>: <name>` per feature) + the wave table, via
-    `gh issue create --title "Epic: <goal>" --body-file <path>`. That task list is how `sddkit`'s handoff finds the next
-    feature, and GitHub auto-checks a `- [ ] #<n>` entry when issue `#<n>` closes — so each box ticks itself as that
-    feature's PR merges. Entries in any other form leave handoff unable to read the epic. Report every issue URL.
+    try a connected tracker tool for the same shapes below; none authenticates → report the exact missing piece and skip
+    only this step). OpenCode may `ask` on a non-`gh` CLI — prefer MCP/Skill there. Create feature issues in
+    wave/topological order so referenced issue numbers already exist: write each body to a temp file (description,
+    `## Definition of Done` checklist, one `Blocked by #<n>` line per entry in that feature's `Depends on:` — the same
+    relation, restated as issue numbers because that is the form `sddkit` reads), then
+    `gh issue create --title "F<n>: <name>" --body-file <path>` (or the substitute), capturing the issue number from the
+    printed URL. Keep titles in the exact `F<n>: <name>` shape — `sddkit` derives the feature ID and branch slug from
+    it. Create the epic last: goal + a task list (`- [ ] #<n> F<n>: <name>` per feature) + the wave table, via
+    `gh issue create --title "Epic: <goal>" --body-file <path>` (or the substitute). That task list is how `sddkit`'s
+    handoff finds the next feature on GitHub, and GitHub auto-checks a `- [ ] #<n>` entry when issue `#<n>` closes — so
+    each box ticks itself as that feature's PR merges. Entries in any other form leave handoff unable to read the epic.
+    Handoff is GitHub-only; other trackers still get the same title/checklist/`Blocked by` shapes so a later GitHub
+    import or a human can follow them. Report every issue URL.
 11. **Hand off** — tell the user each feature can now be run through `/sddkit` (OpenCode default agent, or the Cursor
-    `/sddkit` skill), one at a time, respecting the waves. If issues were created, also print a paste-ready invocation
+    `/sddkit` skill), one at a time, respecting the waves. If `gh` created issues, also print a paste-ready invocation
     for wave 1's first feature:
     `Run the SDD pipeline for GitHub issue #<n> in <owner>/<repo>. Scope is exactly that issue's Definition of Done. Base: <base>.`
+    Another tracker → the same sentence naming that tracker and id instead.
 
 ## Roadmap format
 
@@ -156,9 +181,9 @@ MVP line: through wave <n>.
 
 ## Restrictions
 
-- Write only under `docs/product/**` (plus `/tmp` for GitHub issue body drafts). Never touch code, `docs/feats/**`,
-  specs, plans, or any pipeline state; never delegate to or invoke `sddkit`'s subagents.
-- Never commit, push, or create GitHub issues without an explicit yes from the user each time.
+- Write only under `docs/product/**` (plus `/tmp` for issue body drafts). Never touch code, `docs/feats/**`, specs,
+  plans, or any pipeline state; never delegate to or invoke `sddkit`'s subagents.
+- Never commit, push, or create GitHub issues or tracker items without an explicit yes from the user each time.
 - Keep question rounds small and high-leverage — no interrogation walls, and never ask what the code already answers.
 - Cite `file:line`; never paste >20 lines; summaries, not contents.
 - Never edit another idea's `docs/product/<other>/`.
@@ -166,8 +191,8 @@ MVP line: through wave <n>.
 ## Done when
 
 Goal, approach, and roadmap have each been explicitly approved at their checkpoint; the roadmap is written to
-`docs/product/<slug>/roadmap.md`; the commit and GitHub-issue offers were explicitly made (accepted or declined); issue
-URLs reported if created.
+`docs/product/<slug>/roadmap.md`; the commit and GitHub-issue (or tracker) offers were explicitly made (accepted or
+declined); issue URLs reported if created.
 ## Tool restrictions (Cursor)
 - Edit only: docs/product/**, /tmp/**.
 

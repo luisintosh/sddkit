@@ -20,16 +20,38 @@ scenarios as possible, and validate those with concrete evidence + a one-line `m
 covered by a selected journey is listed separately as covered at verify by its tagged test(s) — an inherited result QA
 does not re-establish. The report is posted to the PR.
 
+## Host tools
+
+Commands here name `gh` because GitHub is the default. If `gh` is missing, fails auth, or origin/tracker is not GitHub,
+use any **already connected** MCP, Skill, or CLI that achieves the same outcome, and name the pick in one line. Do not
+install tools. Do not invent APIs, close/merge keywords, or comment URLs. Probe the substitute once up front (conductor:
+initialize; planner: before creating items). The conductor records both picks in `tools.repo` (PR/MR) and
+`tools.tracker` (work items) — later steps and resume use those values and do not rediscover. Cannot perform the needed
+write (open a PR, create an item) → blocker, or skip the optional tracker-mirror step.
+
+**Handoff** (epic markdown checklist auto-tick + `Closes #<n>`) is GitHub-only. Other trackers: skip step 13; if
+`roadmap.path` is set, point at the next feature in that file. Never parse checkboxes on a host that does not auto-tick
+them.
+
+**Close-on-merge:** GitHub or GitLab → `Closes #<n>`. Tracker is not the git host → put the tracker's native ref in the
+PR body as `Work item: <ref>`, do not invent a keyword, tell the human to close it. Anything else → same plain line.
+
+**QA:** use the repo tool the conductor named (`tools.repo`). Missing from the delegation → `blocked`. `pr_comment_url`
+may be `""` when the tool returns no URL (`report_path` still required). No draft concept → skip `pr ready`;
+`pr_ready: true` if the PR/MR is already reviewable.
+
 ## Inputs (from the conductor)
 
 - PR URL
+- Repo tool (`tools.repo` from the conductor; required — missing → `blocked`)
 - `verification.status` + `verification.commands` from the verify stage — what the covered-at-verify scenarios inherit
 - `docs/feats/<feature>/spec.md`, `contracts/*.feature`
 - `AGENTS.md` (run/dev-server + test commands), `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`
 
 ## Responsibilities
 
-- Get the diff: `gh pr diff <url>`.
+- Get the diff with `tools.repo` (`gh pr diff <url>` when that tool is `gh`; otherwise the equivalent on the named
+  tool). Missing `tools.repo` → `blocked`.
 - Group the feature's `@S<n>` scenarios into candidate end-to-end journeys — a journey is a realistic user/system path
   that strings multiple scenarios together (e.g. create → edit → delete, or happy path + its adjacent error state). Rank
   journeys by how many scenarios and how much of the changed surface they exercise; select at most 3.
@@ -53,7 +75,9 @@ does not re-establish. The report is posted to the PR.
   scenario's line). Nothing to anchor to → `file: ""`, `line: 0`.
 - On a re-delegation to check a fix (QA cycle 2), validate only the previously failed journey(s) — don't re-run the full
   set.
-- Post the full report as one PR comment (`gh pr comment <url> --body-file ...`); on `clean`, `gh pr ready <url>`.
+- Post the full report as one PR comment with `tools.repo` (`gh pr comment <url> --body-file ...` when that tool is
+  `gh`); on `clean`, mark ready (`gh pr ready <url>` when `gh`). Host-tools: empty `pr_comment_url` if the tool returns
+  no URL; skip `pr ready` when the host has no drafts.
 - The target is always one feature's PR. A delegation that names anything else (an epic, a whole roadmap, a bare branch)
   is out of scope → `blocked`, saying what you'd need instead.
 
@@ -73,14 +97,15 @@ secret) → `blocked` with manual instructions.
 
 ## Workflow
 
-1. Get the diff via `gh pr diff <url>`.
+1. Get the diff with `tools.repo` (`gh pr diff <url>` when that tool is `gh`). Missing `tools.repo` → `blocked`.
 2. Group scenarios into candidate journeys, select at most 3 → per-journey validation plan at `/tmp/qa-<slug>/plan.md`.
 3. Run validations for the selected journeys; capture evidence under `/tmp/qa-<slug>/`.
 4. Per journey record: journey name, `@S<n>` IDs it covers, `validation`, `evidence` per step, `manual_repro`, `notes`.
    Per scenario not covered by a journey: `S<n>`, `contract:file:line`, `covered at verify`, the tagged test command.
 5. Assemble `/tmp/qa-<slug>/report.md`: per-journey blocks + a separately headed covered-at-verify list + totals +
    blockers.
-6. Post the report as a PR comment, record the URL; `clean` → `gh pr ready`.
+6. Post the report as a PR comment with `tools.repo`, record the URL; `clean` → mark ready (`gh pr ready` when `gh`; or
+   skip ready / empty URL per host-tools).
 7. Return the reply block.
 
 ## Restrictions

@@ -69,8 +69,8 @@ contracts.
 - Keep the plan minimal and reversible; flag human-decision items rather than guessing.
 - Never broaden scope beyond the approved spec/contracts.
 - `docs/CONSTITUTION.md` conflict → record it as a blocker; don't design around it silently.
-- Read-only git only (`log`, `diff`, `show`, `status`). Never commit, push, merge, or run `gh` write commands — the
-  conductor owns repo and GitHub state.
+- Read-only git only (`log`, `diff`, `show`, `status`). Never commit, push, merge, or run `gh` write commands —
+  including MCP/Skill equivalents. The conductor owns repo and tracker state.
 - Cite `file:line`; never paste >20 lines; summaries, not contents.
 - Never edit another feature's `docs/feats/<other>/`.
 

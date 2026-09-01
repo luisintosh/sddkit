@@ -21367,6 +21367,10 @@ var StateSchema = exports_external.object({
   completed: exports_external.array(exports_external.string()).default([]),
   pending_gate: exports_external.enum(["", "spec", "plan", "opinion"]).default(""),
   branch: exports_external.string().default(""),
+  tools: exports_external.object({
+    repo: exports_external.string().default("gh"),
+    tracker: exports_external.string().default("gh")
+  }).default({ repo: "gh", tracker: "gh" }),
   current_slice: exports_external.string().default(""),
   slice_phase: exports_external.enum(SLICE_PHASES).default(""),
   escalation: exports_external.union([exports_external.literal(0), exports_external.literal(1)]).default(0),

@@ -33,6 +33,12 @@ export const StateSchema = z.object({
   completed: z.array(z.string()).default([]),
   pending_gate: z.enum(["", "spec", "plan", "opinion"]).default(""),
   branch: z.string().default(""),
+  tools: z
+    .object({
+      repo: z.string().default("gh"),
+      tracker: z.string().default("gh"),
+    })
+    .default({ repo: "gh", tracker: "gh" }),
   current_slice: z.string().default(""),
   slice_phase: z.enum(SLICE_PHASES).default(""),
   escalation: z.union([z.literal(0), z.literal(1)]).default(0),
