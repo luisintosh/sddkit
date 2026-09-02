@@ -25,12 +25,32 @@ Invoke specialists by catalog name (`spec`, `architect`, `plan-reviewer`, `teste
 - **Codex:** `spawn_agent` with role name equal to the specialist `name` (the TOML `name` field).
 - **OpenCode:** delegate to the named subagent.
 
+## Host tools
+
+Commands here name `gh` because GitHub is the default. If `gh` is missing, fails auth, or origin/tracker is not GitHub,
+use any **already connected** MCP, Skill, or CLI that achieves the same outcome, and name the pick in one line. Do not
+install tools. Do not invent APIs, close/merge keywords, or comment URLs. Probe the substitute once up front (conductor:
+initialize; planner: before creating items). The conductor records both picks in `tools.repo` (PR/MR) and
+`tools.tracker` (work items) — later steps and resume use those values and do not rediscover. Cannot perform the needed
+write (open a PR, create an item) → blocker, or skip the optional tracker-mirror step.
+
+**Handoff** (epic markdown checklist auto-tick + `Closes #<n>`) is GitHub-only. Other trackers: skip step 13; if
+`roadmap.path` is set, point at the next feature in that file. Never parse checkboxes on a host that does not auto-tick
+them.
+
+**Close-on-merge:** GitHub or GitLab → `Closes #<n>`. Tracker is not the git host → put the tracker's native ref in the
+PR body as `Work item: <ref>`, do not invent a keyword, tell the human to close it. Anything else → same plain line.
+
+**QA:** use the repo tool the conductor named (`tools.repo`). Missing from the delegation → `blocked`. `pr_comment_url`
+may be `""` when the tool returns no URL (`report_path` still required). No draft concept → skip `pr ready`;
+`pr_ready: true` if the PR/MR is already reviewable.
+
 ## Goal
 
 Carry one feature from request to done on its own branch, ending in a PR with the QA report posted as a PR comment —
 human-in-the-loop at gates, resumable from on-disk state. The PR is opened as a draft and un-drafted by `qa`
 (`gh pr ready`) only once QA is clean, so the end state is a review-ready, unmerged PR. When linked to a GitHub issue,
-hand off the roadmap's next feature on completion.
+hand off the roadmap's next feature on completion. Other trackers skip handoff.
 
 ## State discipline
 
@@ -59,14 +79,18 @@ hand off the roadmap's next feature on completion.
 ## Workflow
 
 1. **initialize** — preflight before anything else: confirm a git repo, `gh` on PATH, `gh auth status` succeeds, and the
-   remote resolves (`git remote get-url origin`, `gh repo view --json nameWithOwner,defaultBranchRef`). Any failure →
-   record the exact missing piece as a blocker and stop.
+   remote resolves (`git remote get-url origin`, `gh repo view --json nameWithOwner,defaultBranchRef`). If `gh` is
+   missing, fails auth, or origin is not GitHub, probe substitutes once (host-tools) — a **repo** tool that can resolve
+   the default branch now and open a draft PR later, and a **tracker** tool if a work item is named (they need not be
+   the same). Name each pick in one line. Any remaining failure → record the exact missing piece as a blocker and stop.
 
    **Resolve the slug before touching git.** Invocation names a GitHub issue →
-   `gh issue view <n> --json number,title,body,state` (failure here is a blocker, same as preflight); parse
-   `F<n>: <name>` and `Blocked by #<m>` from the title/body and derive the slug from `<name>` — never from the raw
-   request, so the same issue always resumes the same branch. No issue named → slugify the request, or use the slug the
-   invocation specifies.
+   `gh issue view <n> --json number,title,body,state` (or this step's tracker pick; failure here is a blocker, same as
+   preflight); parse `F<n>: <name>` and `Blocked by #<m>` from the title/body and derive the slug from `<name>` — never
+   from the raw request, so the same issue always resumes the same branch. Invocation names a work item on another
+   tracker → fetch title/body/state with this step's tracker pick; same `F<n>: <name>` parse; store the id in
+   `roadmap.feature_id` and leave `issue`/`epic` at `0` (handoff is GitHub-only). No issue named → slugify the request,
+   or use the slug the invocation specifies.
 
    Create branch `feat/<slug>` from the resolved base (`defaultBranchRef`), not from HEAD — a branch cut off an
    unrelated HEAD drags foreign commits into the PR diff. If it already exists with a matching
@@ -76,13 +100,14 @@ hand off the roadmap's next feature on completion.
 
    **Resume short-circuits the rest of this step.** `docs/feats/<slug>/state.yaml` already exists → check it out,
    `sddkit-state show <slug>`, and jump straight to the step its `stage`/`pending_gate` names (per the resume rule
-   above). Do not run `init` — it refuses to clobber an existing state file and aborts the run. Announce what you're
-   resuming (slug, stage) in one line and continue.
+   above). Read `tools.repo` and `tools.tracker` from that show; either missing or empty → blocker, stop (do not guess
+   `gh`, do not re-probe). Do not run `init` — it refuses to clobber an existing state file and aborts the run. Announce
+   what you're resuming (slug, stage) in one line and continue.
 
-   **Triage floor**, fresh runs only — skip entirely on resume, and skip when the invocation names a GitHub issue (an
-   issue's Definition of Done is already pipeline-scoped work). Classify the request: does it change or add observable
-   behavior? A confined change with no behavior branch — a typo, a comment, a version bump, a single-line config value,
-   a pure rename — is below the floor; anything else proceeds.
+   **Triage floor**, fresh runs only — skip entirely on resume, and skip when the invocation names a GitHub issue or
+   another tracker's work item (its Definition of Done is already pipeline-scoped work). Classify the request: does it
+   change or add observable behavior? A confined change with no behavior branch — a typo, a comment, a version bump, a
+   single-line config value, a pure rename — is below the floor; anything else proceeds.
    - A human is there to answer → state the classification and that the full pipeline (spec, plan, TDD slices, verify,
      docs-sync, PR, QA) is more than the change needs; ask whether to run it anyway or leave this as a direct edit
      outside the pipeline. Wait for the answer before scaffolding state. Declined → stop; the human handles it
@@ -94,13 +119,14 @@ hand off the roadmap's next feature on completion.
    stops at the spec and plan gates for human review; nothing auto-approves them, so a run with nobody there parks at
    the spec gate.
 
-   Then `sddkit-state init <slug>`, and patch `branch`. Issue-linked runs also patch
-   `roadmap: {issue, epic, feature_id, path}` — resolve the epic (the `Epic:`-titled issue whose task list references
-   `#<n>`); no such issue → `epic: 0`, which disables handoff (step 13), so never guess one. `path` is best-effort from
-   `docs/product/*/roadmap.md`, `""` if no match, never block on it. A `Blocked by` issue still `OPEN` → name it and
-   confirm before continuing; unattended, journal it and proceed. (`Blocked by #<n>` on an issue is the same relation
-   the roadmap writes as `Depends on:` — the planner converts feature IDs to issue numbers when it files them.) No issue
-   named → `roadmap` stays zeroed.
+   Then `sddkit-state init <slug>`, and patch `branch` plus `tools: {repo, tracker}` — always write both, even when both
+   are `gh`. Issue-linked runs also patch `roadmap: {issue, epic, feature_id, path}` — resolve the epic via
+   `tools.tracker` (the `Epic:`-titled issue whose task list references `#<n>`); no such issue → `epic: 0`, which
+   disables handoff (step 13), so never guess one. `path` is best-effort from `docs/product/*/roadmap.md`, `""` if no
+   match, never block on it. A `Blocked by` issue still `OPEN` → name it and confirm before continuing (read via
+   `tools.tracker`); unattended, journal it and proceed. (`Blocked by #<n>` on an issue is the same relation the roadmap
+   writes as `Depends on:` — the planner converts feature IDs to issue numbers when it files them.) Other tracker: patch
+   `feature_id` and `path` only; leave `issue`/`epic` at `0`. No issue named → `roadmap` stays zeroed.
 
 2. **specify** — `stage: specify`. Delegate `spec` to write `spec.md` and spec-derived acceptance contracts
    (`contracts/*.feature`, scenarios tagged `@S<n>`) together. Patch `artifacts.spec` + `artifacts.contracts` from its
@@ -215,18 +241,19 @@ hand off the roadmap's next feature on completion.
     changes only when the feature established a durable principle, which is rare enough to be deliberate. Commit those
     docs with a Conventional Commit. Add `docs_sync` to `completed`.
 
-11. **pr** — `stage: pr`. `git push -u origin <branch>`, `gh pr create --draft` against the resolved base branch, patch
-    `pr.url`. If the invocation names a GitHub issue, include `Closes #<n>` in the PR body so the merge closes it. Read
-    the `## Configuration` section of each path in `artifacts.docs`; anything there beyond `None.` is repeated in the
-    body under `## Setup required`, naming the README it came from. That is work only the human can do, and the PR is
-    where they will look for it — and reading it back from the committed READMEs is what makes it survive a resume that
-    lands here with step 10's reply long gone. Failure → blocker, stop. Add `pr` to `completed`.
+11. **pr** — `stage: pr`. `git push -u origin <branch>`, then open a draft PR with `tools.repo` (command
+    `gh pr create --draft` when that tool is `gh`) against the resolved base branch, patch `pr.url`. GitHub issue-linked
+    → `Closes #<n>` in the body; otherwise the host-tools close-on-merge rule. Read the `## Configuration` section of
+    each path in `artifacts.docs`; anything there beyond `None.` is repeated in the body under `## Setup required`,
+    naming the README it came from. That is work only the human can do, and the PR is where they will look for it — and
+    reading it back from the committed READMEs is what makes it survive a resume that lands here with step 10's reply
+    long gone. Failure → blocker, stop. Add `pr` to `completed`.
 
-12. **qa** — `stage: qa`. Delegate `qa`, passing the PR URL and the verify stage's `verification.status` +
-    `verification.commands` — scenarios no journey covers inherit their result from those, and `qa` cannot read state
-    itself. `qa` selects at most 3 top-of-pyramid end-to-end journeys that together exercise as many `@S<n>` scenarios
-    as possible, validates those with evidence, and records the rest as covered at verify. Translate its reply into a
-    `qa.*` patch.
+12. **qa** — `stage: qa`. Delegate `qa`, passing the PR URL, `tools.repo`, and the verify stage's
+    `verification.status` + `verification.commands` — scenarios no journey covers inherit their result from those, and
+    `qa` cannot read state itself. `qa` selects at most 3 top-of-pyramid end-to-end journeys that together exercise as
+    many `@S<n>` scenarios as possible, validates those with evidence, and records the rest as covered at verify.
+    Translate its reply into a `qa.*` patch.
     - `findings` → patch `qa.cycles` +1 first. Already at 2 → record the findings as blockers and pause; the budget is
       spent. Otherwise the pipeline re-enters at **specify**: delegate `spec` with the finding to update
       `spec.md`/contracts with a scoped delta; then delegate `architect` to update `plan.md` (including the Slices
@@ -240,16 +267,19 @@ hand off the roadmap's next feature on completion.
       edit and only the affected slices — never the full step 2–8 sequence.
 
     - `blocked` / retries exhausted → blockers, pause.
-    - `clean` → `qa` has already posted the report as a PR comment and marked the PR ready. Present a short summary and
-      the comment URL in chat, patch `qa.report_path`. Repeat step 11's `## Setup required` lines in that summary if
-      there were any — the human has to perform those before the feature works anywhere but their machine. Add `qa` to
-      `completed`; `stage: complete`.
+    - `clean` → `qa` has already posted the report as a PR comment (URL may be empty) and marked the PR ready when the
+      host has drafts. Present a short summary and the comment URL in chat, patch `qa.report_path`. Repeat step 11's
+      `## Setup required` lines in that summary if there were any — the human has to perform those before the feature
+      works anywhere but their machine. Add `qa` to `completed`; `stage: complete`.
 
-13. **handoff** — skip entirely if `roadmap.epic` is `0`. Read the epic's task list (`gh issue view <epic> --json body`)
-    and take the first unchecked entry that isn't this feature. Nothing in this pipeline ticks those boxes: the epic
-    body lists features as `- [ ] #<n> …`, and GitHub auto-checks such an entry when issue `#<n>` closes — which is why
-    step 11 puts `Closes #<n>` in the PR body. So "unchecked" means "its feature PR hasn't merged yet", and this
-    feature's own entry stays unchecked until a human merges.
+13. **handoff** — GitHub-only (`tools.repo` and `tools.tracker` are `gh` or a GitHub MCP, and `roadmap.issue` ≠ `0`).
+    Empty is not GitHub. Otherwise skip: if `roadmap.path` is set, point at the next feature in that roadmap file; stop.
+    Also skip if `roadmap.epic` is `0`. Read the epic's task list with `tools.tracker`
+    (`gh issue view <epic> --json body` when that tool is `gh`) and take the first unchecked entry that isn't this
+    feature. Nothing in this pipeline ticks those boxes: the epic body lists features as `- [ ] #<n> …`, and GitHub
+    auto-checks such an entry when issue `#<n>` closes — which is why step 11 puts `Closes #<n>` in the PR body. So
+    "unchecked" means "its feature PR hasn't merged yet", and this feature's own entry stays unchecked until a human
+    merges.
     - None left → tell the user every feature in the epic is done or in flight; stop.
     - Found, and its `Blocked by` issues aren't all `CLOSED` → tell the user to merge this feature's PR first (it closes
       the blocker via `Closes #<n>`).
@@ -302,7 +332,8 @@ patch — translate every reply; never pass one through verbatim.
 
 ## Done when
 
-`stage: complete` — with `pr.url` and `qa.pr_comment_url` recorded; roadmap-linked runs additionally print the handoff.
+`stage: complete` — with `pr.url` recorded (`qa.pr_comment_url` too when the tool returned one); GitHub-issue-linked
+runs additionally print the handoff.
 ## Tool restrictions (Cursor)
 - Never edit: docs/feats/**/state.yaml, **/journal.ndjson, .opencode/**.
 

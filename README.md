@@ -112,8 +112,9 @@ writes only `~/.config/opencode/agents/` — never `opencode.jsonc`. Claude skil
 
 After install, ensure `bun` is on `PATH` (portable `.agents/bin/sddkit-state` is a Bun script) and invoke
 `.agents/bin/sddkit-state` from the repo root. The installer prints next steps: `/setup-docs`, installing
-[`gh`](https://cli.github.com/) (required — the pipeline verifies it at start), and an optional
-[rtk](https://github.com/rtk-ai/rtk) hint (never auto-installed).
+[`gh`](https://cli.github.com/) (required — the pipeline verifies it at start). Another forge or tracker is fine if an
+MCP, Skill, or CLI for it is already connected. Optional [rtk](https://github.com/rtk-ai/rtk) hint (never
+auto-installed).
 
 ### Setup Docs
 
@@ -132,16 +133,18 @@ READMEs for existing code — `docs-writer` creates each one as a feature touche
 **Cursor / Claude / Codex:** run the `/sddkit` skill (or ask the Agent to follow the SDD skill) on your most capable
 session model (Grok Extra High / opus / sol), then describe the feature.
 
-`sddkit` verifies `gh` + the target repo, creates `feat/<slug>`, scaffolds state with `.agents/bin/sddkit-state init`,
-and runs the pipeline, stopping at the spec and plan gates for review. Resume by asking to continue.
+`sddkit` verifies `gh` (or a connected substitute) + the target repo, creates `feat/<slug>`, scaffolds state with
+`.agents/bin/sddkit-state init`, and runs the pipeline, stopping at the spec and plan gates for review. Resume by asking
+to continue.
 
 Not for a confined, no-behavior-branch change — a typo, a comment, a version bump, a single-line config value, a pure
 rename. A fresh run flags these and asks before scaffolding state; an unattended run, or one naming a GitHub issue,
 always runs the full pipeline regardless.
 
-Name a GitHub issue (`gh issue view` number or URL) and `sddkit` links to it: scope comes from its Definition of Done,
-the slug is derived from the issue title, and completion prints a **handoff** — a paste-ready invocation for the
-roadmap's next feature, plus anything this run learned that the next one needs.
+Name a GitHub issue (`gh issue view` number or URL), or another tracker's work item if a substitute is connected, and
+`sddkit` links to it: scope comes from its Definition of Done, the slug is derived from the issue title, and completion
+prints a **handoff** when the tracker is GitHub — a paste-ready invocation for the roadmap's next feature, plus anything
+this run learned that the next one needs.
 
 ### Plan a Product (optional)
 
