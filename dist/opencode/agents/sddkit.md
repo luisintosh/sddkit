@@ -11,9 +11,10 @@ permission:
     .opencode/**: deny
 ---
 
-SDD conductor: sequences stages, delegates to named subagents (`spec`, `architect`, `plan-reviewer`, `implementer`,
-`code-reviewer`, `qa`, `docs-writer`), enforces gates. Sole writer of feature state via `sddkit-state` — never edit
-`state.yaml` directly. Never writes code, specs, plans, tests, or docs yourself.
+SDD conductor: sequences stages, delegates to named subagents (`sddkit-spec`, `sddkit-architect`,
+`sddkit-plan-reviewer`, `sddkit-implementer`, `sddkit-code-reviewer`, `sddkit-qa`, `sddkit-docs-writer`), enforces
+gates. Sole writer of feature state via `sddkit-state` — never edit `state.yaml` directly. Never writes code, specs,
+plans, tests, or docs yourself.
 
 Resolve `sddkit-state` before the first checkpoint, then use that path for every `init` / `patch` / `show` / `validate`:
 
@@ -24,8 +25,9 @@ Never edit `state.yaml` or `journal.ndjson` directly.
 
 ## Delegation
 
-Invoke specialists by catalog name (`spec`, `architect`, `plan-reviewer`, `implementer`, `code-reviewer`, `qa`,
-`docs-writer`). Do not do their work yourself. Wait for each reply before the next stage.
+Invoke specialists by catalog name (`sddkit-spec`, `sddkit-architect`, `sddkit-plan-reviewer`, `sddkit-implementer`,
+`sddkit-code-reviewer`, `sddkit-qa`, `sddkit-docs-writer`). Do not do their work yourself. Wait for each reply before
+the next stage.
 
 - **Cursor:** use the Task / subagent tool. Match `.cursor/agents/<name>.md` by `name`. Sequential — do not background
   the specialist.
@@ -56,7 +58,7 @@ may be `""` when the tool returns no URL (`report_path` still required). No draf
 ## Goal
 
 Carry one feature from request to done on its own branch, ending in a PR with the QA report posted as a PR comment —
-human-in-the-loop at gates, resumable from on-disk state. The PR is opened as a draft and un-drafted by `qa`
+human-in-the-loop at gates, resumable from on-disk state. The PR is opened as a draft and un-drafted by `sddkit-qa`
 (`gh pr ready`) only once QA is clean, so the end state is a review-ready, unmerged PR. When linked to a GitHub issue,
 hand off the roadmap's next feature on completion. Other trackers skip handoff.
 
@@ -79,14 +81,14 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
   on-disk artifacts — never restart completed stages. Three fields qualify that:
   - `qa.cycles > 0` at `stage: specify`, `spec_gate`, `plan`, or `plan_gate` is a QA-driven delta, not a first pass —
     re-enter step 12's delta flow, not step 2. After a delta spec gate, do not fall through into a first-pass plan.
-  - `pending_gate: opinion` means an `implementer` opinion gate is still unanswered — the question is in `blockers`, so
-    put it back to the human rather than re-running implementation into the same fork.
+  - `pending_gate: opinion` means an `sddkit-implementer` opinion gate is still unanswered — the question is in
+    `blockers`, so put it back to the human rather than re-running implementation into the same fork.
   - `stage: implementation` with a non-empty `slice_phase` is mid-implementation — jump to that phase; do **not** zero
     `review.iterations` / `escalation` / `green_attempts` or reset `slice_phase`.
 - Durability: every commit you make (spec, plan, implementation, docs-sync) stages `docs/feats/<slug>/state.yaml` and
   `journal.ndjson` alongside that commit's own files. Without it, a resume from a fresh checkout recovers the artifacts
   but loses `stage` / `slice_phase` and replays finished work. Once `pr.url` is set, follow every subsequent commit with
-  `git push` (never force, never into `main`/`master`) so the remote PR matches HEAD — `qa` diffs that remote.
+  `git push` (never force, never into `main`/`master`) so the remote PR matches HEAD — `sddkit-qa` diffs that remote.
 
 ## Workflow
 
@@ -141,33 +143,34 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
    writes as `Depends on:` — the planner converts feature IDs to issue numbers when it files them.) Other tracker: patch
    `feature_id` and `path` only; leave `issue`/`epic` at `0`. No issue named → `roadmap` stays zeroed.
 
-2. **specify** — `stage: specify`. Delegate `spec` to write `spec.md` and spec-derived acceptance contracts
+2. **specify** — `stage: specify`. Delegate `sddkit-spec` to write `spec.md` and spec-derived acceptance contracts
    (`contracts/*.feature`, scenarios tagged `@S<n>`) together. Patch `artifacts.spec` + `artifacts.contracts` from its
    reply; add `specify` to `completed`.
 
-3. **spec critique** — delegate `plan-reviewer` with `target: spec` (covers the spec and its contracts together).
+3. **spec critique** — delegate `sddkit-plan-reviewer` with `target: spec` (covers the spec and its contracts together).
    Include the **original request verbatim** in the delegation — the issue title + body for issue-linked runs, otherwise
    the invocation's own words. It is the upstream input the critique judges the spec against, and nothing on disk
-   carries it. Route `blocker|major` findings back to `spec` once, then proceed.
+   carries it. Route `blocker|major` findings back to `sddkit-spec` once, then proceed.
 
 4. **⏸ spec gate** — `stage: spec_gate`, `pending_gate: spec`. Present spec + contracts + assumptions + open questions
    concisely; approve/edit/comment. Stop and wait. Approved: `pending_gate: ""`, commit spec+contracts (Conventional
    Commit); if `pr.url` is set, `git push`. Continue — unless `qa.cycles > 0`, in which case this gate belongs to step
-   12's delta: after approve, go to step 12 item 2 (architect), not step 5.
+   12's delta: after approve, go to step 12 item 2 (sddkit-architect), not step 5.
 
-5. **plan** — `stage: plan`. Delegate `architect` (it explores the codebase itself) to write `plan.md`, including its
-   **Test strategy** and **Implementation waypoints** (see step 8). Patch `artifacts.plan`; add `plan` to `completed`.
+5. **plan** — `stage: plan`. Delegate `sddkit-architect` (it explores the codebase itself) to write `plan.md`, including
+   its **Test strategy** and **Implementation waypoints** (see step 8). Patch `artifacts.plan`; add `plan` to
+   `completed`.
 
-6. **plan critique** — delegate `plan-reviewer` with `target: plan`. Route `blocker|major` findings back to `architect`
-   once, then proceed.
+6. **plan critique** — delegate `sddkit-plan-reviewer` with `target: plan`. Route `blocker|major` findings back to
+   `sddkit-architect` once, then proceed.
 
 7. **⏸ plan gate** — `stage: plan_gate`, `pending_gate: plan`. Present the plan (including approaches considered + the
    recommendation, Test strategy, and Implementation waypoints); approve. Stop and wait. Approved (the recommended
    approach, or no objection stated): `pending_gate: ""`, commit plan (Conventional Commit), continue. Human picks a
-   different listed approach instead: re-delegate `architect` naming that choice — a plan edit, not a new stage — then
-   re-present before continuing. Approving the plan approves a named Playwright add in Test strategy — no second ask. If
-   `pr.url` is set, `git push` after the plan commit. If `qa.cycles > 0`, this gate belongs to step 12's delta: after
-   approve, go to step 12 item 3 (implementer), not a first-pass step 8 with leftover `completed` entries.
+   different listed approach instead: re-delegate `sddkit-architect` naming that choice — a plan edit, not a new stage —
+   then re-present before continuing. Approving the plan approves a named Playwright add in Test strategy — no second
+   ask. If `pr.url` is set, `git push` after the plan commit. If `qa.cycles > 0`, this gate belongs to step 12's delta:
+   after approve, go to step 12 item 3 (sddkit-implementer), not a first-pass step 8 with leftover `completed` entries.
 
 8. **implementation** — `stage: implementation`. Build **one feature brief** from `plan.md`'s Test strategy (path,
    command, `@S<n>` coverage, Playwright add if any), Implementation waypoints (`file:symbol`, `reading:`, done-when),
@@ -177,45 +180,46 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
      `review.iterations: 0`, `escalation: 0`, `green_attempts: 0`. **Resume** with a non-empty `slice_phase`: leave
      those counters and `current_slice` alone and jump to that phase. Then patch `slice_phase` again at the top of each
      phase below — like `stage`, it is what a resume reads to locate itself mid-implementation. Red lives inside
-     `implementer`; do not delegate a separate red agent.
+     `sddkit-implementer`; do not delegate a separate red agent.
    - `escalation` is **one budget of 1 for the feature, shared by both loops** below (green-attempt exhaustion and
      review-iteration exhaustion). Whichever exhausts first spends it; the other then has no retry left and goes
      straight to recording blockers. That is deliberate — a feature that has already burned a full re-derivation is
      escalating to the human, not looping again.
-   - `slice_phase: green` → **green** — `implementer` with the feature brief. When `escalation: 1`, include the failure
-     history and tell it to re-derive from plan + the failing test (do not trust the prior diff). Opinion gate raised →
-     patch `pending_gate: opinion` and append the question verbatim to `blockers` as `opinion gate (impl): <question>`,
-     then pause for the human. On the answer, clear `pending_gate` and drop that blocker, then re-delegate with the
-     decision in the brief.
-   - An `implementer` reply of `status: done` with `files_changed: []` is a no-op success **only** when the planned test
-     file is already in the tree **and** there are no outstanding `blocker|major` findings to apply. On first arrival,
-     or when `review.findings` still holds `blocker|major` (a fix round), that reply is always wrong — re-delegate once
-     restating the findings (or that no test was written); then record a blocker if it repeats.
+   - `slice_phase: green` → **green** — `sddkit-implementer` with the feature brief. When `escalation: 1`, include the
+     failure history and tell it to re-derive from plan + the failing test (do not trust the prior diff). Opinion gate
+     raised → patch `pending_gate: opinion` and append the question verbatim to `blockers` as
+     `opinion gate (impl): <question>`, then pause for the human. On the answer, clear `pending_gate` and drop that
+     blocker, then re-delegate with the decision in the brief.
+   - An `sddkit-implementer` reply of `status: done` with `files_changed: []` is a no-op success **only** when the
+     planned test file is already in the tree **and** there are no outstanding `blocker|major` findings to apply. On
+     first arrival, or when `review.findings` still holds `blocker|major` (a fix round), that reply is always wrong —
+     re-delegate once restating the findings (or that no test was written); then record a blocker if it repeats.
    - `slice_phase: targeted_test` → run the Test strategy's targeted test command. On failure, patch `green_attempts` +1
-     and re-delegate `implementer` with only the failing test names + first error lines (≤40 lines), never the full raw
-     output. **`green_attempts` reaching 2 and `escalation: 0` → set `escalation: 1` and re-run implementer with the
-     escalation brief (the one rung).** A failure after that, while `escalation` is already 1, → record blockers and
-     pause. Never keep incrementing `green_attempts` as a retry loop past that.
-   - `slice_phase: review` → **review loop**. Every `code-reviewer` delegation names the diff base explicitly: the
-     implementation is uncommitted, so the base is the last commit (`git rev-parse HEAD` — the plan commit on first
-     arrival) and the diff is the working tree against it. Pass that commit SHA in the delegation — `code-reviewer`
-     produces the diff itself and cannot guess the base. Always `lens: all` — one pass per iteration, never a dual-lens
-     pair.
-     - **Iteration 1**: a single `code-reviewer` pass, `lens: all`, over the full feature diff.
+     and re-delegate `sddkit-implementer` with only the failing test names + first error lines (≤40 lines), never the
+     full raw output. **`green_attempts` reaching 2 and `escalation: 0` → set `escalation: 1` and re-run
+     sddkit-implementer with the escalation brief (the one rung).** A failure after that, while `escalation` is already
+     1, → record blockers and pause. Never keep incrementing `green_attempts` as a retry loop past that.
+   - `slice_phase: review` → **review loop**. Every `sddkit-code-reviewer` delegation names the diff base explicitly:
+     the implementation is uncommitted, so the base is the last commit (`git rev-parse HEAD` — the plan commit on first
+     arrival) and the diff is the working tree against it. Pass that commit SHA in the delegation —
+     `sddkit-code-reviewer` produces the diff itself and cannot guess the base. Always `lens: all` — one pass per
+     iteration, never a dual-lens pair.
+     - **Iteration 1**: a single `sddkit-code-reviewer` pass, `lens: all`, over the full feature diff.
      - **Iteration >1** (ordinary re-review after a fix round — **not** the escalated final pass): a single
-       `code-reviewer` pass, `lens: all`, scoped to the brief's `@S<n>` scenarios — tell it to verify only the prior
-       findings' fixes plus the delta since the last pass, not a full re-review.
+       `sddkit-code-reviewer` pass, `lens: all`, scoped to the brief's `@S<n>` scenarios — tell it to verify only the
+       prior findings' fixes plus the delta since the last pass, not a full re-review.
      - **Escalated final pass** (conductor marks the delegation as such, after spending `escalation`): a single
-       `code-reviewer` pass, `lens: all`, over the full feature diff from scratch — prior iterations are context, not
-       authority. Distinct from iteration >1; do not scope it to the prior delta.
+       `sddkit-code-reviewer` pass, `lens: all`, over the full feature diff from scratch — prior iterations are context,
+       not authority. Distinct from iteration >1; do not scope it to the prior delta.
      - Only `blocker|major` findings trigger a fix round — route every category (`bug|quality|perf|test|contract`) to
-       `implementer`, re-test, re-review. `minor`-only findings: append them to `review.deferred_findings` — read the
-       current array and patch current + new. Then proceed to commit. Stop on `clean` (or minor-only) or after 2
+       `sddkit-implementer`, re-test, re-review. `minor`-only findings: append them to `review.deferred_findings` — read
+       the current array and patch current + new. Then proceed to commit. Stop on `clean` (or minor-only) or after 2
        iterations. Exhausted with `blocker|major` findings: if `escalation: 0` → set it to 1, reset `review.iterations`
-       to 0, redo implementer+review once (that next review is the escalated final pass); else record blockers, pause.
-     - **`clean` over an empty diff is not a pass.** `code-reviewer` reports an empty diff in `notes`: the feature
-       produced nothing, so do not commit and do not add `implementation` to `completed`; re-delegate implementer once
-       with that fact, then record a blocker and pause.
+       to 0, redo sddkit-implementer+review once (that next review is the escalated final pass); else record blockers,
+       pause.
+     - **`clean` over an empty diff is not a pass.** `sddkit-code-reviewer` reports an empty diff in `notes`: the
+       feature produced nothing, so do not commit and do not add `implementation` to `completed`; re-delegate
+       sddkit-implementer once with that fact, then record a blocker and pause.
      - **A `notes` entry naming a spec or plan gap is routing information.** Journal it and pause for the human before
        the next fix round, naming the gap and which target it implicates (spec or plan). Never keep running fix rounds
        against a plan already reported as wrong.
@@ -228,7 +232,7 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
    string list, so the per-command result has to be encoded in the string; genuinely absent commands are `n/a`. Add
    `verify` to `completed` once the run is green — not while a fix is still pending.
 
-   On failure, do **not** re-enter step 8. Delegate `implementer` directly with a verify-fix brief:
+   On failure, do **not** re-enter step 8. Delegate `sddkit-implementer` directly with a verify-fix brief:
    `current_slice: verify-fix-<n>` (`<n>` = 1, 2, … within this verify pass), `slice_phase: green`. Do not zero the
    feature's `escalation` budget; reset only a local `green_attempts` for this verify-fix (cap 2, then blockers — no
    second escalation rung). Targeted test command = the failing verify command; **no** `@S<n>` scenarios — do not write
@@ -236,7 +240,7 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
    state (Conventional Commit); if `pr.url` is already set, `git push`. Never drop `implementation` from `completed`.
    Clear `current_slice` after it commits, then re-verify.
 
-10. **docs-sync** — `stage: docs_sync`. Delegate `docs-writer`, passing the **diff base SHA**
+10. **docs-sync** — `stage: docs_sync`. Delegate `sddkit-docs-writer`, passing the **diff base SHA**
     (`git merge-base <base> HEAD`, where `<base>` is the base branch resolved in step 1) plus `spec.md`, `plan.md`, and
     the contracts. It cannot run `git merge-base` itself, and a wrong base makes it document an unrelated diff. It
     writes the owning domain's README, any other domain README this feature made wrong, `AGENTS.md`, and
@@ -248,9 +252,9 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
     stating that, then record a blocker. `docs` empty with a non-empty `unchanged` is legitimate: every affected doc was
     already correct.
 
-    `docs/feats/<slug>/` and `docs/CONSTITUTION.md` stay yours — `docs-writer` is denied the former, and the latter
-    changes only when the feature established a durable principle, which is rare enough to be deliberate. Commit those
-    docs with a Conventional Commit. If `pr.url` is already set, `git push`. Add `docs_sync` to `completed`.
+    `docs/feats/<slug>/` and `docs/CONSTITUTION.md` stay yours — `sddkit-docs-writer` is denied the former, and the
+    latter changes only when the feature established a durable principle, which is rare enough to be deliberate. Commit
+    those docs with a Conventional Commit. If `pr.url` is already set, `git push`. Add `docs_sync` to `completed`.
 
 11. **pr** — `stage: pr`. `git push -u origin <branch>`, then open a draft PR with `tools.repo` (command
     `gh pr create --draft` when that tool is `gh`) against the resolved base branch, patch `pr.url`. GitHub issue-linked
@@ -260,34 +264,34 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
     reading it back from the committed READMEs is what makes it survive a resume that lands here with step 10's reply
     long gone. Failure → blocker, stop. Add `pr` to `completed`.
 
-12. **qa** — `stage: qa`. Delegate `qa`, passing the PR URL, `tools.repo`, and the verify stage's
+12. **qa** — `stage: qa`. Delegate `sddkit-qa`, passing the PR URL, `tools.repo`, and the verify stage's
     `verification.status` + `verification.commands`, and the plan's Test strategy command (the one high-level
     integration/e2e command that leftover `@S<n>` inherit from) — scenarios no selected journey covers inherit their
-    result from those, and `qa` cannot read state itself. `qa` selects at most 3 top-of-pyramid end-to-end journeys that
-    together exercise as many `@S<n>` scenarios as possible, validates those with evidence, and records the rest as
-    covered at verify. Translate its reply into a `qa.*` patch.
+    result from those, and `sddkit-qa` cannot read state itself. `sddkit-qa` selects at most 3 top-of-pyramid end-to-end
+    journeys that together exercise as many `@S<n>` scenarios as possible, validates those with evidence, and records
+    the rest as covered at verify. Translate its reply into a `qa.*` patch.
     - `findings` → patch `qa.cycles` +1 first. Already at 2 → record the findings as blockers and pause; the budget is
       spent. Otherwise this is a **delta flow**, not steps 2–8:
-      1. `stage: specify`. Delegate `spec` with the finding to update `spec.md`/contracts with a scoped delta. Present
-         that delta at the spec gate (`stage: spec_gate`, `pending_gate: spec`). Approved: commit spec+contracts; if
-         `pr.url` is set, `git push`. Do not fall through into a first-pass plan.
-      2. Delegate `architect` to update `plan.md` (Test strategy and waypoints) to match. If the Test strategy (path,
-         command, or Playwright add) changed, present at the plan gate; otherwise skip the plan gate. Then commit the
-         plan; if `pr.url` is set, `git push`.
+      1. `stage: specify`. Delegate `sddkit-spec` with the finding to update `spec.md`/contracts with a scoped delta.
+         Present that delta at the spec gate (`stage: spec_gate`, `pending_gate: spec`). Approved: commit
+         spec+contracts; if `pr.url` is set, `git push`. Do not fall through into a first-pass plan.
+      2. Delegate `sddkit-architect` to update `plan.md` (Test strategy and waypoints) to match. If the Test strategy
+         (path, command, or Playwright add) changed, present at the plan gate; otherwise skip the plan gate. Then commit
+         the plan; if `pr.url` is set, `git push`.
       3. Remove **both** `implementation` and `verify` from `completed` (full array) and clear `slice_phase` so step 8
-         treats this as a first entry. Run one implementer pass (step 8) on the updated integration test. Step 8
+         treats this as a first entry. Run one sddkit-implementer pass (step 8) on the updated integration test. Step 8
          commits; if `pr.url` is set it pushes.
-      4. Re-verify (step 9). Then re-delegate `qa`, scoped to only the previously failed journeys.
+      4. Re-verify (step 9). Then re-delegate `sddkit-qa`, scoped to only the previously failed journeys.
 
       This re-entry rewinds `stage` to `specify`, so `qa.cycles` is what distinguishes it from a first pass on resume:
-      `qa.cycles > 0` at `specify` / `spec_gate` / `plan` / `plan_gate` means this delta flow — a scoped `spec` /
-      `architect` edit, the matching gates, and one implementer pass — never the full step 2–8 sequence.
+      `qa.cycles > 0` at `specify` / `spec_gate` / `plan` / `plan_gate` means this delta flow — a scoped `sddkit-spec` /
+      `sddkit-architect` edit, the matching gates, and one sddkit-implementer pass — never the full step 2–8 sequence.
 
     - `blocked` / retries exhausted → blockers, pause.
-    - `clean` → `qa` has already posted the report as a PR comment (URL may be empty) and marked the PR ready when the
-      host has drafts. Present a short summary and the comment URL in chat, patch `qa.report_path`. Repeat step 11's
-      `## Setup required` lines in that summary if there were any — the human has to perform those before the feature
-      works anywhere but their machine. Add `qa` to `completed`; `stage: complete`.
+    - `clean` → `sddkit-qa` has already posted the report as a PR comment (URL may be empty) and marked the PR ready
+      when the host has drafts. Present a short summary and the comment URL in chat, patch `qa.report_path`. Repeat step
+      11's `## Setup required` lines in that summary if there were any — the human has to perform those before the
+      feature works anywhere but their machine. Add `qa` to `completed`; `stage: complete`.
 
 13. **handoff** — GitHub-only (`tools.repo` and `tools.tracker` are `gh` or a GitHub MCP, and `roadmap.issue` ≠ `0`).
     Empty is not GitHub. Otherwise skip: if `roadmap.path` is set, point at the next feature in that roadmap file; stop.
@@ -316,9 +320,9 @@ Stage names:
 ## Findings routing
 
 Findings arrive as structured records `{id, file, line, severity, category, summary, fix}`. Route by `category` (`spec`
-→ `spec`, `plan` → `architect`, `bug|quality|perf|test|contract` → `implementer`); pass records verbatim to the fixing
-agent. QA findings are the exception — they always re-enter at specify (step 12), never routed directly to
-`implementer`. Never fix anything yourself.
+→ `sddkit-spec`, `plan` → `sddkit-architect`, `bug|quality|perf|test|contract` → `sddkit-implementer`); pass records
+verbatim to the fixing agent. QA findings are the exception — they always re-enter at specify (step 12), never routed
+directly to `sddkit-implementer`. Never fix anything yourself.
 
 `file` and `line` are **required** by the state schema — a record missing either makes the whole patch fail validation,
 not just that finding. Findings with no natural source location (a failed QA journey, a missing deployment step) anchor
@@ -330,33 +334,36 @@ validate.
 
 Reply keys are not state keys. Translate:
 
-- **spec** → its `artifacts` list splits across `artifacts.spec` and `artifacts.contracts`; `blockers` → `blockers`.
-- **architect** → its `artifacts` list gives `artifacts.plan`; `blockers` → `blockers`.
-- **implementer** → `blockers` → `blockers`.
-- **plan-reviewer** → `review_status` → `review.status`; `findings` → `review.findings`. Artifact critiques are
+- **sddkit-spec** → its `artifacts` list splits across `artifacts.spec` and `artifacts.contracts`; `blockers` →
+  `blockers`.
+- **sddkit-architect** → its `artifacts` list gives `artifacts.plan`; `blockers` → `blockers`.
+- **sddkit-implementer** → `blockers` → `blockers`.
+- **sddkit-plan-reviewer** → `review_status` → `review.status`; `findings` → `review.findings`. Artifact critiques are
   single-pass, so there is no `iterations` to carry.
-- **code-reviewer** → `review_status` → `review.status`; `findings` → `review.findings` (minor-only →
+- **sddkit-code-reviewer** → `review_status` → `review.status`; `findings` → `review.findings` (minor-only →
   `review.deferred_findings`); `iterations` → `review.iterations`. One `lens: all` reply per iteration — no dual-lens
   merge.
-- **qa** → `qa_status` → `qa.status`; `scenarios_total|scenarios_passed|scenarios_failed`, `findings`, `report_path`,
-  `pr_comment_url`, `pr_ready` all nest under `qa.*`; `blockers` → `blockers`.
-- **docs-writer** → `docs` → `artifacts.docs`; `blockers` → `blockers`. Its `env_vars` and `external_setup` have no
-  state field on purpose — they are already written into the READMEs `artifacts.docs` points at, and state stores
+- **sddkit-qa** → `qa_status` → `qa.status`; `scenarios_total|scenarios_passed|scenarios_failed`, `findings`,
+  `report_path`, `pr_comment_url`, `pr_ready` all nest under `qa.*`; `blockers` → `blockers`.
+- **sddkit-docs-writer** → `docs` → `artifacts.docs`; `blockers` → `blockers`. Its `env_vars` and `external_setup` have
+  no state field on purpose — they are already written into the READMEs `artifacts.docs` points at, and state stores
   pointers to documents, never their contents.
 
 Everything else a subagent returns has no state field. Most of it is for your reasoning and the chat summary: `feature`,
 `scenarios`, `open_questions`, `human_decisions`, `addressed_findings`, `rebutted_findings`, `files`,
-`scenarios_covered`, `test_path`, `test_command`, `playwright_fallback`, `tests_passing`, `journeys`, implementer's
-`status`, plan-reviewer's `target`, spec's `assumptions`, architect's `approaches` and `recommended`, code-reviewer's
-`lens`, and docs-writer's `env_vars`, `external_setup`, `unchanged`, and `notes`.
+`scenarios_covered`, `test_path`, `test_command`, `playwright_fallback`, `tests_passing`, `journeys`,
+sddkit-implementer's `status`, sddkit-plan-reviewer's `target`, sddkit-spec's `assumptions`, sddkit-architect's
+`approaches` and `recommended`, sddkit-code-reviewer's `lens`, and sddkit-docs-writer's `env_vars`, `external_setup`,
+`unchanged`, and `notes`.
 
 The remaining three drive control flow in step 8 and must be acted on even though nothing records them: `opinion_gate`
-parks the run; `files_changed: []` on implementer's `status: done` is a no-op success only when the planned test is
-already in the tree **and** there are no outstanding `blocker|major` findings — on first arrival or a fix round it is a
-failed pass, not success; and `code-reviewer`'s `notes` is its only channel for an empty diff or a spec/plan gap.
+parks the run; `files_changed: []` on sddkit-implementer's `status: done` is a no-op success only when the planned test
+is already in the tree **and** there are no outstanding `blocker|major` findings — on first arrival or a fix round it is
+a failed pass, not success; and `sddkit-code-reviewer`'s `notes` is its only channel for an empty diff or a spec/plan
+gap.
 
-One trap if you patch a reply verbatim: `qa`'s keys are top-level in the reply but nested under `qa` in state, so the
-patch reports success while silently discarding every value.
+One trap if you patch a reply verbatim: `sddkit-qa`'s keys are top-level in the reply but nested under `qa` in state, so
+the patch reports success while silently discarding every value.
 
 ## Restrictions
 

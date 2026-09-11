@@ -29,8 +29,8 @@ assert_eq() {
 # Ensure dist + manifest exist
 (cd "$REPO_ROOT" && bun run build >/dev/null)
 
-assert_file_exists "${REPO_ROOT}/dist/claude/agents/spec.md" "transpile emits claude spec agent"
-assert_file_exists "${REPO_ROOT}/dist/codex/agents/spec.toml" "transpile emits codex spec agent"
+assert_file_exists "${REPO_ROOT}/dist/claude/agents/sddkit-spec.md" "transpile emits claude spec agent"
+assert_file_exists "${REPO_ROOT}/dist/codex/agents/sddkit-spec.toml" "transpile emits codex spec agent"
 if grep -q 'spawn_agent' "${REPO_ROOT}/dist/agents/skills/sddkit/SKILL.md"; then
   ok "sddkit skill documents Codex spawn_agent"
 else
@@ -59,10 +59,10 @@ assert_file_exists "${TARGET}/.opencode/agents/sddkit.md" "opencode sddkit agent
 assert_file_exists "${TARGET}/.opencode/agents/sddkit-plan.md" "opencode sddkit-plan agent installed"
 assert_file_exists "${TARGET}/.opencode/opencode.jsonc" "opencode.jsonc installed"
 assert_file_absent "${TARGET}/.opencode/plugins/sdd-guard.ts" "plugin not installed"
-assert_file_exists "${TARGET}/.cursor/agents/implementer.md" "cursor implementer installed"
-assert_file_exists "${TARGET}/.claude/agents/spec.md" "claude spec agent installed"
+assert_file_exists "${TARGET}/.cursor/agents/sddkit-implementer.md" "cursor implementer installed"
+assert_file_exists "${TARGET}/.claude/agents/sddkit-spec.md" "claude spec agent installed"
 assert_file_exists "${TARGET}/.claude/skills/sddkit/SKILL.md" "claude skills copy installed"
-assert_file_exists "${TARGET}/.codex/agents/spec.toml" "codex spec agent installed"
+assert_file_exists "${TARGET}/.codex/agents/sddkit-spec.toml" "codex spec agent installed"
 if [[ -L "${TARGET}/.claude/skills/sddkit/SKILL.md" ]]; then
   bad "claude skills must be a copy, not a symlink"
 else
@@ -112,16 +112,16 @@ after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit.md" | awk '{print
 assert_eq "$after_hash" "$before_hash" "locally-modified file restored to upstream"
 
 # 4. prune upstream file
-rm "${UPSTREAM}/dist/opencode/agents/qa.md"
+rm "${UPSTREAM}/dist/opencode/agents/sddkit-qa.md"
 HARNESS_ROOT="$UPSTREAM" bun "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
 
 prune_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" 2>&1)"
-if grep -q "delete    opencode/agents/qa.md" <<<"$prune_output"; then
-  ok "reports delete of opencode/agents/qa.md"
+if grep -q "delete    opencode/agents/sddkit-qa.md" <<<"$prune_output"; then
+  ok "reports delete of opencode/agents/sddkit-qa.md"
 else
   bad "should report delete: $prune_output"
 fi
-assert_file_absent "${TARGET}/.opencode/agents/qa.md" "qa.md removed after upstream deletion"
+assert_file_absent "${TARGET}/.opencode/agents/sddkit-qa.md" "sddkit-qa.md removed after upstream deletion"
 
 # 5. doctor
 BARE="${WORK}/no-git-no-agents"
@@ -135,15 +135,15 @@ fi
 # 6. checksum mismatch aborts
 TAMPERED="${WORK}/tampered-upstream"
 cp -R "$UPSTREAM" "$TAMPERED"
-echo "TAMPERED" >> "${TAMPERED}/dist/opencode/agents/spec.md"
+echo "TAMPERED" >> "${TAMPERED}/dist/opencode/agents/sddkit-spec.md"
 
-before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/spec.md" | awk '{print $1}')"
+before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit-spec.md" | awk '{print $1}')"
 set +e
 LOCAL_SOURCE="$TAMPERED" TARGET_DIR="$TARGET" INSTALL_TARGET=opencode node "$INSTALL_JS" >/dev/null 2>&1
 rc=$?
 set -e
 if [[ $rc -ne 0 ]]; then ok "checksum mismatch exits non-zero"; else bad "checksum mismatch should abort"; fi
-after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/spec.md" | awk '{print $1}')"
+after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit-spec.md" | awk '{print $1}')"
 assert_eq "$after_hash" "$before_hash" "no partial write after checksum mismatch"
 
 # 7. doctor mentions sddkit-state
@@ -164,10 +164,10 @@ rm -rf "${UPSTREAM}/dist"
 cp -R "${REPO_ROOT}/dist" "${UPSTREAM}/dist"
 cp "${REPO_ROOT}/manifest.txt" "$UPSTREAM/"
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor node "$INSTALL_JS" >/dev/null
-assert_file_exists "${TARGET2}/.cursor/agents/spec.md" "cursor-only installs .cursor"
+assert_file_exists "${TARGET2}/.cursor/agents/sddkit-spec.md" "cursor-only installs .cursor"
 assert_file_absent "${TARGET2}/.opencode/agents/sddkit.md" "cursor-only skips .opencode"
-assert_file_absent "${TARGET2}/.claude/agents/spec.md" "cursor-only skips .claude"
-assert_file_absent "${TARGET2}/.codex/agents/spec.toml" "cursor-only skips .codex"
+assert_file_absent "${TARGET2}/.claude/agents/sddkit-spec.md" "cursor-only skips .claude"
+assert_file_absent "${TARGET2}/.codex/agents/sddkit-spec.toml" "cursor-only skips .codex"
 assert_file_exists "${TARGET2}/.agents/bin/sddkit-state.mjs" "cursor-only still installs sddkit-state"
 assert_file_exists "${TARGET2}/.agents/skills/sddkit/SKILL.md" "cursor-only installs shared skills"
 
@@ -242,13 +242,13 @@ HOME="$FAKE_HOME" INSTALL_SCOPE=global INSTALL_TARGET=all \
 
 assert_file_exists "${FAKE_HOME}/.agents/skills/sddkit/SKILL.md" "global skills land in ~/.agents"
 assert_file_exists "${FAKE_HOME}/.agents/bin/sddkit-state.mjs" "global sddkit-state lands in ~/.agents/bin"
-assert_file_exists "${FAKE_HOME}/.cursor/agents/implementer.md" "global cursor agents leaf"
+assert_file_exists "${FAKE_HOME}/.cursor/agents/sddkit-implementer.md" "global cursor agents leaf"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global install keeps planted cursor agent"
-assert_file_exists "${FAKE_HOME}/.claude/agents/spec.md" "global claude agents leaf"
+assert_file_exists "${FAKE_HOME}/.claude/agents/sddkit-spec.md" "global claude agents leaf"
 assert_file_exists "${FAKE_HOME}/.claude/skills/sddkit/SKILL.md" "global claude skills copy"
-assert_file_exists "${FAKE_HOME}/.codex/agents/spec.toml" "global codex agents leaf"
+assert_file_exists "${FAKE_HOME}/.codex/agents/sddkit-spec.toml" "global codex agents leaf"
 assert_file_exists "${FAKE_HOME}/.config/opencode/agents/sddkit.md" "global opencode agents only"
-assert_file_absent "${GLOBAL_TARGET}/.claude/agents/spec.md" "global install does not write claude into TARGET_DIR"
+assert_file_absent "${GLOBAL_TARGET}/.claude/agents/sddkit-spec.md" "global install does not write claude into TARGET_DIR"
 assert_file_absent "${GLOBAL_TARGET}/.agents/skills/sddkit/SKILL.md" "global install does not write skills into TARGET_DIR"
 assert_eq "$(cat "${FAKE_HOME}/.config/opencode/opencode.jsonc")" '{"keep":"opencode"}' \
   "global install does not clobber opencode.jsonc"
@@ -262,11 +262,11 @@ else
   ok "global claude skills are a copy"
 fi
 
-rm "${UPSTREAM}/dist/cursor/agents/qa.md"
+rm "${UPSTREAM}/dist/cursor/agents/sddkit-qa.md"
 HARNESS_ROOT="$UPSTREAM" bun "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
 HOME="$FAKE_HOME" INSTALL_SCOPE=global INSTALL_TARGET=cursor \
   LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$GLOBAL_TARGET" node "$INSTALL_JS" >/dev/null
-assert_file_absent "${FAKE_HOME}/.cursor/agents/qa.md" "global prune removes upstream-deleted cursor agent"
+assert_file_absent "${FAKE_HOME}/.cursor/agents/sddkit-qa.md" "global prune removes upstream-deleted cursor agent"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global prune keeps planted non-sddkit agent"
 
 # bunx-equivalent: same dist/install.js under bun

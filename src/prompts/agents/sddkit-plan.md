@@ -53,10 +53,10 @@ mirrored as GitHub issues.
    description; Definition of Done as a concrete, testable checkbox list; `Depends on:` `[]` or a list of feature IDs;
    effort tag `S|M|L`; risk tag `low|standard`. Effort and risk are sequencing aids for the human reading the roadmap —
    what to batch, what to schedule early — and are not pipeline inputs: `sddkit` scopes each run from the issue's
-   Definition of Done, and its `architect` plans one high-level integration/e2e test for the feature. Size them for a
-   human planner, not for a machine. Derive waves from the dependency graph (a wave = every feature whose dependencies
-   are all in earlier waves — same-wave features are parallelizable). Mark the MVP line: the earliest wave boundary that
-   already satisfies the success criteria.
+   Definition of Done, and its `sddkit-architect` plans one high-level integration/e2e test for the feature. Size them
+   for a human planner, not for a machine. Derive waves from the dependency graph (a wave = every feature whose
+   dependencies are all in earlier waves — same-wave features are parallelizable). Mark the MVP line: the earliest wave
+   boundary that already satisfies the success criteria.
 6. **Red-team** — before presenting, attack your own draft across these angles; fix what the critique finds, and carry
    anything unresolved into Risks or Open questions:
    - **Graph & scope:** hidden dependencies; DoD items that aren't actually testable; features that are horizontal

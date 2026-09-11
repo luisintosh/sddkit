@@ -121,7 +121,13 @@ if (catalog) {
   else if (catalog.agents.sddkit.opencode?.mode !== "primary") fail("catalog: sddkit.opencode.mode must be primary")
   if (catalog.agents?.["implementer-pro"]) fail("catalog: implementer-pro must be removed")
   if (catalog.agents?.tester) fail("catalog: tester must be removed")
+  for (const stale of ["spec", "architect", "plan-reviewer", "implementer", "code-reviewer", "qa", "docs-writer"]) {
+    if (catalog.agents?.[stale]) fail(`catalog: ${stale} must be renamed sddkit-${stale}`)
+  }
   for (const name of agentNames) {
+    if (name !== "sddkit" && !name.startsWith("sddkit-")) {
+      fail(`catalog: agents.${name} must be "sddkit" or start with "sddkit-"`)
+    }
     const a = catalog.agents![name]!
     if (!a.description?.trim()) fail(`catalog: agents.${name}.description required`)
     if (!a.profile) fail(`catalog: agents.${name}.profile required`)

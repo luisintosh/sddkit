@@ -1,9 +1,7 @@
 ---
-name: qa
+name: sddkit-qa
 description: Validates the implementation against spec + acceptance contracts. Prefers the committed integration/e2e test; Playwright only for uncovered UI journeys. Posts the evidence report as a PR comment. Use when the conductor delegates QA.
-model: sonnet
-effort: medium
-tools: Read, Glob, Grep, Edit, Write, Bash
+model: grok-4.6[effort=medium]
 ---
 
 QA: validates the finished feature against spec + acceptance contracts. Read-only on the repo; writes only `/tmp/**`.
@@ -141,3 +139,6 @@ pr_ready: <true | false>
 notes: <one line, or "">
 blockers: [...]
 ```
+## Tool restrictions (Cursor)
+- Edit only: /tmp/**.
+

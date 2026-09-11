@@ -62,7 +62,7 @@ agents:
     cursor:
       skill: true
 
-  spec:
+  sddkit-spec:
     profile: think
     description: >-
       Writes feature specifications (the what & why) and spec-derived acceptance contracts. Use when the conductor
@@ -79,7 +79,7 @@ agents:
         bash: deny
     cursor: {}
 
-  architect:
+  sddkit-architect:
     profile: think
     description: >-
       Plans implementation strategy and writes feature plans (SDD plan stage). Owns codebase exploration. Use when the
@@ -97,7 +97,7 @@ agents:
         bash: allow
     cursor: {}
 
-  plan-reviewer:
+  sddkit-plan-reviewer:
     profile: review
     description: >-
       Independent, READ-ONLY critique of the spec or the plan before its gate. Emits structured spec/plan findings;
@@ -118,7 +118,7 @@ agents:
     cursor:
       readonly: true
 
-  implementer:
+  sddkit-implementer:
     profile: execute
     description: >-
       Macro-TDD. Writes the planned failing integration/e2e test, then the full implementation, in one pass. Never
@@ -137,7 +137,7 @@ agents:
           ".opencode/**": deny
     cursor: {}
 
-  code-reviewer:
+  sddkit-code-reviewer:
     profile: critique
     description: >-
       Independent, READ-ONLY review of the feature implementation diff against its acceptance contracts. Emits
@@ -158,7 +158,7 @@ agents:
     cursor:
       readonly: true
 
-  qa:
+  sddkit-qa:
     profile: validate
     description: >-
       Validates the implementation against spec + acceptance contracts. Prefers the committed integration/e2e test;
@@ -175,7 +175,7 @@ agents:
         bash: allow
     cursor: {}
 
-  docs-writer:
+  sddkit-docs-writer:
     profile: write
     description: >-
       Writes the human-facing docs a finished feature leaves behind — the owning domain's README, plus AGENTS.md and

@@ -21,8 +21,8 @@ Verify, don't guess: where possible confirm each command exists in the project m
 
 Record the domain-doc convention in docs/ARCHITECTURE.md, one line: a domain's `README.md` lives in the directory that
 owns it, and `docs/domains/<domain>.md` covers a domain too cross-cutting to have one. Do **not** write those domain
-docs now — the pipeline's `docs-writer` creates each one as a feature touches that domain, from a diff it can actually
-read. Guessing them from an unfamiliar tree produces exactly the filler these documents exist to avoid.
+docs now — the pipeline's `sddkit-docs-writer` creates each one as a feature touches that domain, from a diff it can
+actually read. Guessing them from an unfamiliar tree produces exactly the filler these documents exist to avoid.
 
 Write everything you create to these rules:
 
