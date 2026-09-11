@@ -1627,11 +1627,12 @@ function backupStamp() {
   const p2 = (n3) => String(n3).padStart(2, "0");
   return `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`;
 }
+var STATE_BIN = "sddkit-state.mjs";
 function findPackageRoot() {
   let dir = path.dirname(fileURLToPath(import.meta.url));
   for (let i2 = 0;i2 < 8; i2++) {
     const manifest = path.join(dir, "manifest.txt");
-    const distBin = path.join(dir, "dist", "bin", "sddkit-state");
+    const distBin = path.join(dir, "dist", "bin", STATE_BIN);
     if (fsSync.existsSync(manifest) && fsSync.existsSync(distBin))
       return dir;
     const parent = path.dirname(dir);
@@ -1642,7 +1643,7 @@ function findPackageRoot() {
   die("could not find sddkit payload (manifest.txt + dist/) — run bun run build in the toolkit checkout");
 }
 function requirePayload(src) {
-  const ok = fsSync.existsSync(path.join(src, "manifest.txt")) && fsSync.existsSync(path.join(src, "dist")) && fsSync.existsSync(path.join(src, "dist", "bin", "sddkit-state"));
+  const ok = fsSync.existsSync(path.join(src, "manifest.txt")) && fsSync.existsSync(path.join(src, "dist")) && fsSync.existsSync(path.join(src, "dist", "bin", STATE_BIN));
   if (!ok) {
     die(`${src} is missing dist/ + manifest.txt — clients copy a committed payload (run bun run build in the toolkit checkout)`);
   }
@@ -1737,8 +1738,8 @@ function ghStatus() {
   return r2.status === 0 ? "ok" : "logged-out";
 }
 function stateBinInUse(targetDir, home) {
-  const project = path.join(targetDir, ".agents", "bin", "sddkit-state");
-  const global = path.join(home, ".agents", "bin", "sddkit-state");
+  const project = path.join(targetDir, ".agents", "bin", STATE_BIN);
+  const global = path.join(home, ".agents", "bin", STATE_BIN);
   if (fsSync.existsSync(project))
     return project;
   if (fsSync.existsSync(global))
@@ -1867,35 +1868,36 @@ async function installTree(opts) {
   }
 }
 async function installBin(opts) {
-  const dest = opts.scope === "global" ? path.join(opts.home, ".agents", "bin", "sddkit-state") : path.join(opts.targetDir, ".agents", "bin", "sddkit-state");
-  const src = path.join(opts.stageDir, "bin", "sddkit-state");
-  const wantHash = opts.newManifest.get("bin/sddkit-state");
+  const destDir = opts.scope === "global" ? path.join(opts.home, ".agents", "bin") : path.join(opts.targetDir, ".agents", "bin");
+  const dest = path.join(destDir, STATE_BIN);
+  const src = path.join(opts.stageDir, "bin", STATE_BIN);
+  const wantHash = opts.newManifest.get(`bin/${STATE_BIN}`);
   if (!wantHash)
-    die("manifest missing bin/sddkit-state");
+    die(`manifest missing bin/${STATE_BIN}`);
   if (fsSync.existsSync(dest) && await sha256File(dest) === wantHash) {
-    log("  .agents/bin/sddkit-state unchanged");
+    log(`  .agents/bin/${STATE_BIN} unchanged`);
   } else {
     if (fsSync.existsSync(dest))
-      log("  ~ update   .agents/bin/sddkit-state");
+      log(`  ~ update   .agents/bin/${STATE_BIN}`);
     else
-      log("  + install  .agents/bin/sddkit-state");
+      log(`  + install  .agents/bin/${STATE_BIN}`);
     if (!opts.dryRun) {
-      await fs.mkdir(path.dirname(dest), { recursive: true });
+      await fs.mkdir(destDir, { recursive: true });
       await fs.copyFile(src, dest);
       await fs.chmod(dest, 493);
     }
   }
+  const leftovers = [path.join(destDir, "sddkit-state"), path.join(destDir, "sddkit-state.js")];
   if (opts.scope === "project") {
-    for (const leftover of [
-      path.join(opts.targetDir, "bin", "sddkit-state"),
-      path.join(opts.targetDir, "bin", "sdd-state")
-    ]) {
-      if (!fsSync.existsSync(leftover))
-        continue;
-      if (!opts.dryRun)
-        await fs.rm(leftover);
-      log(`  - prune    ${leftover.slice(opts.targetDir.length + 1)} (moved to .agents/bin/sddkit-state)`);
-    }
+    leftovers.push(path.join(opts.targetDir, "bin", "sddkit-state"), path.join(opts.targetDir, "bin", "sdd-state"));
+  }
+  for (const leftover of leftovers) {
+    if (!fsSync.existsSync(leftover))
+      continue;
+    if (!opts.dryRun)
+      await fs.rm(leftover);
+    const rel = leftover.startsWith(`${opts.targetDir}${path.sep}`) ? leftover.slice(opts.targetDir.length + 1) : leftover;
+    log(`  - prune    ${rel} (moved to .agents/bin/${STATE_BIN})`);
   }
 }
 async function pruneLegacyCursorSkills(scope, targetDir, home, dryRun) {
@@ -1941,10 +1943,10 @@ function doctor(targetDir, home) {
     log(`  [ok]   sddkit-state: ${stateBin}`);
   else
     log("  [warn] sddkit-state missing — re-run the installer");
-  if (onPath("bun"))
-    log("  [ok]   bun is on PATH (needed to run the portable sddkit-state script)");
+  if (onPath("node"))
+    log("  [ok]   node is on PATH (needed to run sddkit-state)");
   else
-    log("  [warn] bun not found — install from https://bun.sh to run sddkit-state");
+    log("  [warn] node not found — install Node.js 20+ to run sddkit-state");
   const gh = ghStatus();
   if (gh === "ok")
     log("  [ok]   gh installed and authenticated");
@@ -2113,7 +2115,7 @@ async function main() {
       return;
     }
     log("");
-    log("Done. Invoke .agents/bin/sddkit-state (or $HOME/.agents/bin/sddkit-state) so the conductor can checkpoint state.");
+    log("Done. Invoke .agents/bin/sddkit-state.mjs (or $HOME/.agents/bin/sddkit-state.mjs) so the conductor can checkpoint state.");
     log("");
     suggestNextSteps();
     doctor(targetDir, home);

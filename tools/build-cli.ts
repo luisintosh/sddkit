@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Build portable bun bundle + optional mac compiled binaries into dist/bin/.
+ * Build portable Node ESM bundle into dist/bin/sddkit-state.mjs.
  */
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
@@ -10,23 +10,16 @@ import { fileURLToPath } from "node:url"
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const outDir = path.join(root, "dist", "bin")
 const entry = path.join(root, "src", "state", "cli.ts")
+const outJs = path.join(outDir, "sddkit-state.mjs")
 
 await fs.mkdir(outDir, { recursive: true })
 
-// Portable JS runnable via `bun dist/bin/sddkit-state.js` (and shebang wrapper).
-const tmpJs = path.join(outDir, "sddkit-state.js")
-await $`bun build ${entry} --outfile ${tmpJs} --target=bun`
-const js = await fs.readFile(tmpJs, "utf8")
-const withShebang = js.startsWith("#!") ? js : `#!/usr/bin/env bun\n${js}`
-await fs.writeFile(path.join(outDir, "sddkit-state"), withShebang, { mode: 0o755 })
-await fs.chmod(path.join(outDir, "sddkit-state"), 0o755)
-await fs.rm(tmpJs, { force: true })
+await $`bun build ${entry} --outfile ${outJs} --target node --minify`
+const js = await fs.readFile(outJs, "utf8")
+const body = js.replace(/^#!.*\n/, "")
+await fs.writeFile(outJs, `#!/usr/bin/env node\n${body}`, { mode: 0o755 })
+await fs.chmod(outJs, 0o755)
+await fs.rm(path.join(outDir, "sddkit-state"), { force: true })
+await fs.rm(path.join(outDir, "sddkit-state.js"), { force: true })
 
-const compile = process.argv.includes("--compile")
-if (compile) {
-  await $`bun build ${entry} --compile --outfile ${path.join(outDir, "sddkit-state-darwin-arm64")} --target=bun-darwin-arm64`
-  await $`bun build ${entry} --compile --outfile ${path.join(outDir, "sddkit-state-darwin-x64")} --target=bun-darwin-x64`
-  console.log("build-cli: wrote portable sddkit-state + darwin arm64/x64 binaries")
-} else {
-  console.log("build-cli: wrote portable dist/bin/sddkit-state (pass --compile for mac binaries)")
-}
+console.log("build-cli: wrote portable dist/bin/sddkit-state.mjs")
