@@ -27,21 +27,21 @@ hosts:
   claude:
     profiles:
       conduct: { id: inherit }
-      think: { id: opus }
-      execute: { id: sonnet }
-      review: { id: opus }
-      critique: { id: opus }
-      validate: { id: sonnet }
-      write: { id: sonnet }
+      think: { id: sonnet, effort: xhigh }
+      execute: { id: sonnet, effort: high }
+      review: { id: sonnet, effort: high }
+      critique: { id: opus, effort: high }
+      validate: { id: sonnet, effort: medium }
+      write: { id: sonnet, effort: medium }
   codex:
     profiles:
       conduct: { id: inherit }
-      think: { id: gpt-5.6-sol }
-      execute: { id: gpt-5.6-luna, effort: high }
+      think: { id: gpt-5.6-terra, effort: xhigh }
+      execute: { id: gpt-5.6-terra, effort: high }
       review: { id: gpt-5.6-terra, effort: high }
-      critique: { id: gpt-5.6-terra, effort: high }
-      validate: { id: gpt-5.6-luna, effort: high }
-      write: { id: gpt-5.6-luna, effort: high }
+      critique: { id: gpt-5.6-sol, effort: high }
+      validate: { id: gpt-5.6-terra, effort: high }
+      write: { id: gpt-5.6-luna, effort: medium }
 
 agents:
   sddkit:

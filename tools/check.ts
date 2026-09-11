@@ -16,6 +16,7 @@ import { fileURLToPath } from "node:url"
 import { $ } from "bun"
 import { parse as parseYaml } from "yaml"
 import {
+  formatClaudeDisplay,
   formatClaudeModel,
   formatCodexDisplay,
   formatCodexModel,
@@ -152,16 +153,19 @@ if (catalog) {
   if (goldenCursorExecute !== GOLDEN_MODELS.cursor.execute) {
     fail(`catalog: cursor execute formatted as ${goldenCursorExecute} != golden ${GOLDEN_MODELS.cursor.execute}`)
   }
-  const goldenClaudeThink = formatClaudeModel(resolveRef(catalog, "claude", "think")!)
+  const goldenClaudeThink = formatClaudeDisplay(resolveRef(catalog, "claude", "think")!)
   if (goldenClaudeThink !== GOLDEN_MODELS.claude.think) {
     fail(`catalog: claude think formatted as ${goldenClaudeThink} != golden ${GOLDEN_MODELS.claude.think}`)
   }
-  const goldenClaudeExecute = formatClaudeModel(resolveRef(catalog, "claude", "execute")!)
+  const goldenClaudeExecute = formatClaudeDisplay(resolveRef(catalog, "claude", "execute")!)
   if (goldenClaudeExecute !== GOLDEN_MODELS.claude.execute) {
     fail(`catalog: claude execute formatted as ${goldenClaudeExecute} != golden ${GOLDEN_MODELS.claude.execute}`)
   }
   const goldenCodexThink = formatCodexModel(resolveRef(catalog, "codex", "think")!)
-  if (goldenCodexThink.model !== GOLDEN_MODELS.codex.think.model || goldenCodexThink.reasoning) {
+  if (
+    goldenCodexThink.model !== GOLDEN_MODELS.codex.think.model ||
+    goldenCodexThink.reasoning !== GOLDEN_MODELS.codex.think.reasoning
+  ) {
     fail(`catalog: codex think formatted as ${JSON.stringify(goldenCodexThink)} != golden`)
   }
   const goldenCodexExecute = formatCodexModel(resolveRef(catalog, "codex", "execute")!)
@@ -265,10 +269,14 @@ if (catalog) {
         if (!m) {
           fail(`dist/claude/agents/${name}.md: missing frontmatter`)
         } else {
-          const fm = parseYaml(m[1]!) as { model?: string }
-          const wantModel = formatClaudeModel(resolveRef(catalog, "claude", agent.profile!)!)
+          const fm = parseYaml(m[1]!) as { model?: string; effort?: string }
+          const want = resolveRef(catalog, "claude", agent.profile!)!
+          const wantModel = formatClaudeModel(want)
           if (fm.model !== wantModel) {
             fail(`dist drift: claude ${name} model ${fm.model} != catalog ${wantModel} — run bun run build`)
+          }
+          if ((fm.effort ?? undefined) !== want.effort) {
+            fail(`dist drift: claude ${name} effort ${fm.effort} != catalog ${want.effort} — run bun run build`)
           }
         }
       } catch {
@@ -328,7 +336,7 @@ if (catalog) {
       }
       const wantOc = formatOpenCodeModel(resolveRef(catalog, "opencode", profile)!)
       const wantCu = formatCursorModel(resolveRef(catalog, "cursor", profile)!)
-      const wantCl = formatClaudeModel(resolveRef(catalog, "claude", profile)!)
+      const wantCl = formatClaudeDisplay(resolveRef(catalog, "claude", profile)!)
       const wantCx = formatCodexDisplay(resolveRef(catalog, "codex", profile)!)
       if (row.opencode !== wantOc) fail(`README.md: ${profile} OpenCode ${row.opencode} != catalog ${wantOc}`)
       if (row.cursor !== wantCu) fail(`README.md: ${profile} Cursor ${row.cursor} != catalog ${wantCu}`)

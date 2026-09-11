@@ -2,6 +2,7 @@
 name: qa
 description: Validates the implementation against spec + acceptance contracts. Prefers the committed integration/e2e test; Playwright only for uncovered UI journeys. Posts the evidence report as a PR comment. Use when the conductor delegates QA.
 model: sonnet
+effort: medium
 tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 

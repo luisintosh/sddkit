@@ -2,6 +2,7 @@
 name: implementer
 description: Macro-TDD. Writes the planned failing integration/e2e test, then the full implementation, in one pass. Never weakens tests. Use when the conductor delegates implementation, an escalation re-derive, or a targeted-test fix.
 model: sonnet
+effort: high
 tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 

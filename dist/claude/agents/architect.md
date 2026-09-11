@@ -1,7 +1,8 @@
 ---
 name: architect
 description: Plans implementation strategy and writes feature plans (SDD plan stage). Owns codebase exploration. Use when the conductor delegates plan, or when a feature plan, its Test strategy, or Implementation waypoints must be written or revised.
-model: opus
+model: sonnet
+effort: xhigh
 tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
