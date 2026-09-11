@@ -96,15 +96,16 @@ bunx github:luisintosh/sddkit
 `-y` skips npm’s “ok to install this package?” so the only prompts are the installer. Pin a tag with `#v1.3.0` on either
 command.
 
-On a TTY the installer asks for **scope** (this repo vs `$HOME`), **hosts** (Cursor / Claude Code / Codex / OpenCode —
-one, many, or all), and confirmation. Detected CLIs are pre-checked; you can still install a host that is not on `PATH`.
-Non-interactive runs default to `project` + `all`. The payload is the `dist/` in the git ref npx/bunx fetched — the
-installer never builds on the client.
+On a TTY the installer asks for **scope** (this repo vs `$HOME`) and **hosts** (Cursor / Claude Code / Codex / OpenCode
+— one, many, or all), then prints the file plan and asks to apply. Detected CLIs are pre-checked; you can still install
+a host that is not on `PATH`. Non-interactive runs default to `project` + `all`. The payload is the `dist/` in the git
+ref npx/bunx fetched — the installer never builds on the client.
 
-Re-running is idempotent: unchanged files skip, upstream updates apply, local edits are backed up under the dest leaf
-(`.cursor/agents/.backup-*/`, `.claude/agents/.backup-*/`, …) before replace, removed upstream files are pruned.
+Re-running is idempotent: unchanged files skip. The installer prints every create, update, overwrite, and delete, then
+applies after confirmation on a TTY (`--yes`, `CI`, and non-TTY runs apply after printing the plan). Local edits are
+overwritten — this toolkit repo is the version store. Removed upstream files are deleted.
 
-Flags: `--dry-run`, `--doctor`.
+Flags: `--dry-run`, `--doctor`, `--yes`.
 
 Env (CI / scripts): `INSTALL_SCOPE=project|global`, `INSTALL_TARGET=all|cursor,claude,codex,opencode`. Global OpenCode
 writes only `~/.config/opencode/agents/` — never `opencode.jsonc`. Claude skills are a **copy** of `.agents/skills/`.
