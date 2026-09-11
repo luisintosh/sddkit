@@ -12,7 +12,6 @@ hosts:
       think: { id: openai/gpt-5.6-sol }
       execute: { id: openai/gpt-5.6-luna }
       review: { id: opencode-go/kimi-k3 }
-      test: { id: opencode-go/kimi-k2.7-code }
       critique: { id: opencode-go/kimi-k2.7-code }
       validate: { id: opencode-go/deepseek-v4-pro }
       write: { id: opencode-go/kimi-k3 }
@@ -22,7 +21,6 @@ hosts:
       think: { id: grok-4.6, effort: xhigh }
       execute: { id: gpt-5.6-luna, effort: high }
       review: { id: gpt-5.6-terra, effort: high }
-      test: { id: composer-2.5 }
       critique: { id: gpt-5.6-terra, effort: high }
       validate: { id: grok-4.6, effort: medium }
       write: { id: gpt-5.6-luna, effort: high }
@@ -32,7 +30,6 @@ hosts:
       think: { id: opus }
       execute: { id: sonnet }
       review: { id: opus }
-      test: { id: sonnet }
       critique: { id: opus }
       validate: { id: sonnet }
       write: { id: sonnet }
@@ -42,7 +39,6 @@ hosts:
       think: { id: gpt-5.6-sol }
       execute: { id: gpt-5.6-luna, effort: high }
       review: { id: gpt-5.6-terra, effort: high }
-      test: { id: gpt-5.6-luna, effort: high }
       critique: { id: gpt-5.6-terra, effort: high }
       validate: { id: gpt-5.6-luna, effort: high }
       write: { id: gpt-5.6-luna, effort: high }
@@ -87,7 +83,8 @@ agents:
     profile: think
     description: >-
       Plans implementation strategy and writes feature plans (SDD plan stage). Owns codebase exploration. Use when the
-      conductor delegates plan, or when a feature plan and its Slices section must be written or revised.
+      conductor delegates plan, or when a feature plan, its Test strategy, or Implementation waypoints must be written
+      or revised.
     opencode:
       mode: subagent
       temperature: 0.3
@@ -121,57 +118,21 @@ agents:
     cursor:
       readonly: true
 
-  tester:
-    profile: test
-    description: >-
-      TDD red phase. Writes failing tests from acceptance contracts. Edits test-only locations — never implementation,
-      never the contracts. Use when the conductor delegates the red phase of a slice.
-    opencode:
-      mode: subagent
-      temperature: 0.2
-      steps: 40
-      permission:
-        edit:
-          "*": deny
-          "**/*.test.*": allow
-          "**/*.spec.*": allow
-          "**/*_test.*": allow
-          "**/test_*.*": allow
-          "**/__tests__/**": allow
-          "**/tests/**": allow
-          "**/test/**": allow
-          "**/spec/**": allow
-          "e2e/**": allow
-          "**/*.feature": allow
-          # Must stay last: acceptance contracts are .feature files, and only
-          # the trailing position keeps this deny ahead of the allow above.
-          "docs/feats/**": deny
-    cursor: {}
-
   implementer:
     profile: execute
     description: >-
-      TDD green phase. Writes the minimal implementation to make failing tests pass. Never edits test files. Use when
-      the conductor delegates green, an escalation re-derive, or a targeted-test fix.
+      Macro-TDD. Writes the planned failing integration/e2e test, then the full implementation, in one pass. Never
+      weakens tests. Use when the conductor delegates implementation, an escalation re-derive, or a targeted-test fix.
     opencode:
       mode: subagent
       temperature: 0.2
-      steps: 40
+      steps: 60
       permission:
         edit:
           "*": allow
-          "**/*.test.*": deny
-          "**/*.spec.*": deny
-          "**/*_test.*": deny
-          "**/test_*.*": deny
-          "**/__tests__/**": deny
-          "**/tests/**": deny
-          "**/test/**": deny
-          "**/spec/**": deny
-          "e2e/**": deny
-          # Frozen inputs to a slice: spec, plan, contracts.
+          # Frozen inputs: spec, plan, contracts. Cucumber e2e *.feature lives
+          # outside docs/feats/** and stays writable.
           "docs/feats/**": deny
-          "**/*.feature": deny
           "**/journal.ndjson": deny
           ".opencode/**": deny
     cursor: {}
@@ -179,8 +140,8 @@ agents:
   code-reviewer:
     profile: critique
     description: >-
-      Independent, READ-ONLY review of the active slice's diff against its acceptance contracts. Emits structured
-      findings; never edits. Use when the conductor delegates slice review (contract, health, or all lenses).
+      Independent, READ-ONLY review of the feature implementation diff against its acceptance contracts. Emits
+      structured findings; never edits. Use when the conductor delegates implementation review.
     opencode:
       mode: subagent
       temperature: 0.1
@@ -200,8 +161,9 @@ agents:
   qa:
     profile: validate
     description: >-
-      Validates the implementation against spec + acceptance contracts. Playwright for UI; non-UI validation menu
-      otherwise. Posts the evidence report as a PR comment. Use when the conductor delegates QA.
+      Validates the implementation against spec + acceptance contracts. Prefers the committed integration/e2e test;
+      Playwright only for uncovered UI journeys. Posts the evidence report as a PR comment. Use when the conductor
+      delegates QA.
     opencode:
       mode: subagent
       temperature: 0.1

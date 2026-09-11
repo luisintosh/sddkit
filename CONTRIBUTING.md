@@ -15,7 +15,7 @@ any `src/` change run `bun run build` before commit; CI fails if they drift.
 
 Requires a prior `bun run build`. Validates:
 
-- `src/catalog.yaml` shape (no `implementer-pro`, every host × profile present)
+- `src/catalog.yaml` shape (no `implementer-pro` or `tester`, every host × profile present)
 - Emitted dist frontmatter / Codex TOML matches catalog profiles
 - README profile × host matrix and agent → profile table match catalog
 - `manifest.txt` hashes match `dist/`

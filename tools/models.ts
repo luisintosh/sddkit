@@ -5,7 +5,7 @@ export type ModelRef = {
   effort?: string
 }
 
-export const PROFILE_NAMES = ["conduct", "think", "execute", "test", "review", "critique", "validate", "write"] as const
+export const PROFILE_NAMES = ["conduct", "think", "execute", "review", "critique", "validate", "write"] as const
 
 export type ProfileName = (typeof PROFILE_NAMES)[number]
 
@@ -36,7 +36,6 @@ export function formatCodexDisplay(ref: ModelRef): string {
 export const GOLDEN_MODELS = {
   cursor: {
     think: "grok-4.6[effort=xhigh]",
-    test: "composer-2.5[]",
     execute: "gpt-5.6-luna[effort=high]",
   },
   claude: {

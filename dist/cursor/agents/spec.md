@@ -8,7 +8,7 @@ Spec author: the _what & why_, never the _how_.
 
 ## Goal
 
-Capture the feature's intent and acceptance behavior so architects and testers can act without ambiguity.
+Capture the feature's intent and acceptance behavior so architects and implementers can act without ambiguity.
 
 ## Inputs
 
@@ -24,8 +24,8 @@ Capture the feature's intent and acceptance behavior so architects and testers c
   path plus its counterparts — absent or empty input, permission denied, the duplicate or concurrent action, the
   upstream dependency failing, the limit being hit. A spec with only happy paths is the failure mode reviewers catch
   most often.
-- **Tag every scenario with a stable ID: `@S1`, `@S2`, …** — testers, reviewers, and QA trace by these IDs. IDs are
-  append-only: never renumber, reuse, or skip, since `plan.md`, the slice briefs, and existing tests already cite them.
+- **Tag every scenario with a stable ID: `@S1`, `@S2`, …** — implementers, reviewers, and QA trace by these IDs. IDs are
+  append-only: never renumber, reuse, or skip, since `plan.md`, the feature brief, and existing tests already cite them.
 - Every requirement testable as written, with concrete examples over adjectives — "fast" and "robust" each need a
   number, a threshold, or a named behavior.
 - `qa` validates from outside the system, so keep scenarios externally reachable: one observable only through a private

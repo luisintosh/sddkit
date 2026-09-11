@@ -2,8 +2,9 @@
 
 A thin harness for **spec-driven development (SDD)** on [OpenCode](https://opencode.ai), [Cursor](https://cursor.com),
 [Claude Code](https://code.claude.com), and [Codex](https://developers.openai.com/codex): an approved spec, tagged
-acceptance contracts (`@S<n>`), TDD with the consuming repo's test stack, a multi-agent pipeline with a one-rung
-escalation loop, and a file-based **`state.yaml` checkpoint** written only through `.agents/bin/sddkit-state`.
+acceptance contracts (`@S<n>`), macro-TDD (one high-level integration/e2e test, then one implementation pass) with the
+consuming repo's test stack, a multi-agent pipeline with a one-rung escalation loop, and a file-based **`state.yaml`
+checkpoint** written only through `.agents/bin/sddkit-state`.
 
 Prompts live once under `src/prompts/`; `bun run build` transpiles them into OpenCode, Cursor, Claude Code, Codex, and
 shared skill formats under `dist/` (tracked so install does not need a client-side build).
@@ -64,7 +65,6 @@ or Codex sol.
 | `conduct`  | `opencode-go/qwen3.7-plus`    | `inherit`                    | `inherit` | `inherit`             |
 | `think`    | `openai/gpt-5.6-sol`          | `grok-4.6[effort=xhigh]`     | `opus`    | `gpt-5.6-sol`         |
 | `execute`  | `openai/gpt-5.6-luna`         | `gpt-5.6-luna[effort=high]`  | `sonnet`  | `gpt-5.6-luna[high]`  |
-| `test`     | `opencode-go/kimi-k2.7-code`  | `composer-2.5[]`             | `sonnet`  | `gpt-5.6-luna[high]`  |
 | `review`   | `opencode-go/kimi-k3`         | `gpt-5.6-terra[effort=high]` | `opus`    | `gpt-5.6-terra[high]` |
 | `critique` | `opencode-go/kimi-k2.7-code`  | `gpt-5.6-terra[effort=high]` | `opus`    | `gpt-5.6-terra[high]` |
 | `validate` | `opencode-go/deepseek-v4-pro` | `grok-4.6[effort=medium]`    | `sonnet`  | `gpt-5.6-luna[high]`  |
@@ -76,7 +76,6 @@ or Codex sol.
 | `spec`          | `think`    |
 | `architect`     | `think`    |
 | `plan-reviewer` | `review`   |
-| `tester`        | `test`     |
 | `implementer`   | `execute`  |
 | `code-reviewer` | `critique` |
 | `qa`            | `validate` |
@@ -170,17 +169,16 @@ context; the handoff carries forward only what the next run actually needs.
 
 ```
 initialize → specify (spec + contracts) → spec critique → ⏸spec gate
-  → plan (incl. Slices) → plan critique → ⏸plan gate
-  → implementation slices → verify → docs-sync → pr → qa → complete → handoff
+  → plan (Test strategy + waypoints) → plan critique → ⏸plan gate
+  → implementer (failing integration/e2e test, then full impl) → targeted test
+  → code-reviewer (lens: all) → commit → verify → docs-sync → pr → qa → complete → handoff
 ```
 
-```
-standard: red(tester) → green(implementer) → targeted test → review loop → commit
-low:                    green(implementer) → targeted test → single review → commit
-```
+Architect picks the repo's highest existing test layer, or Playwright when the feature is UI-observable and no
+e2e/integration runner exists. `implementer` writes that one failing test and the implementation in a single pass.
 
-**Escalation:** if green fails twice or review exhausts with `blocker`/`major`, set `escalation: 1` and re-run the same
-`implementer` with failure history (re-derive from plan+tests). One rung; then pause for a human.
+**Escalation:** if the targeted test fails twice or review exhausts with `blocker`/`major`, set `escalation: 1` and
+re-run `implementer` with failure history (re-derive from plan+tests). One rung; then pause for a human.
 
 **Docs:** `docs-sync` delegates to `docs-writer`, which writes the touched domain's `README.md` — co-located with the
 code, or `docs/domains/<domain>.md` when the domain is cross-cutting — to a fixed skeleton (purpose, how it works,
