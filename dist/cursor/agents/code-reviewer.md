@@ -1,7 +1,7 @@
 ---
 name: code-reviewer
 description: Independent, READ-ONLY review of the feature implementation diff against its acceptance contracts. Emits structured findings; never edits. Use when the conductor delegates implementation review.
-model: gpt-5.6-terra[effort=high]
+model: claude-sonnet-5[effort=high]
 readonly: true
 ---
 

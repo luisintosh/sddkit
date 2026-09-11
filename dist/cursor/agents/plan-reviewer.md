@@ -1,7 +1,7 @@
 ---
 name: plan-reviewer
 description: Independent, READ-ONLY critique of the spec or the plan before its gate. Emits structured spec/plan findings; never edits. Use when the conductor delegates a spec or plan critique.
-model: gpt-5.6-terra[effort=high]
+model: grok-4.6[effort=high]
 readonly: true
 ---
 

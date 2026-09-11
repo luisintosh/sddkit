@@ -36,7 +36,7 @@ export function formatCodexDisplay(ref: ModelRef): string {
 export const GOLDEN_MODELS = {
   cursor: {
     think: "grok-4.6[effort=xhigh]",
-    execute: "gpt-5.6-luna[effort=high]",
+    execute: "grok-4.6[effort=high]",
   },
   claude: {
     think: "opus",
