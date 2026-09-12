@@ -4,7 +4,7 @@ A thin harness for **spec-driven development (SDD)** on [OpenCode](https://openc
 [Claude Code](https://code.claude.com), and [Codex](https://developers.openai.com/codex): an approved spec, tagged
 acceptance contracts (`@S<n>`), macro-TDD (one high-level integration/e2e test, then one implementation pass) with the
 consuming repo's test stack, a multi-agent pipeline with a one-rung escalation loop, and a file-based **`state.yaml`
-checkpoint** written only through `.agents/bin/sddkit-state`.
+checkpoint** written only through `.agents/bin/sddkit-state.mjs`.
 
 Prompts live once under `src/prompts/`; `bun run build` transpiles them into OpenCode, Cursor, Claude Code, Codex, and
 shared skill formats under `dist/` (tracked so install does not need a client-side build).
@@ -21,7 +21,7 @@ src/
 tools/
   install.ts             installer source → dist/install.js (npx + bunx)
   transpile.ts           → dist/{opencode,cursor,claude,codex} + dist/agents/skills
-  build-cli.ts           → dist/bin/sddkit-state (+ optional mac binaries)
+  build-cli.ts           → dist/bin/sddkit-state.mjs
   build-install.ts       bundle install.ts for Node
   gen-manifest.ts        → manifest.txt
   check.ts               hygiene
@@ -36,7 +36,7 @@ AGENTS.md
 docs/ARCHITECTURE.md
 docs/CONSTITUTION.md
 docs/feats/<feature>/
-  state.yaml             checkpoint — sole writer: .agents/bin/sddkit-state (via conductor)
+  state.yaml             checkpoint — sole writer: .agents/bin/sddkit-state.mjs (via conductor)
   journal.ndjson         append-only audit trail
   spec.md
   contracts/*.feature
@@ -45,7 +45,7 @@ docs/product/<slug>/
   roadmap.md             optional, written by sddkit-plan
 src/<domain>/README.md   domain doc, written by docs-writer at docs-sync
 docs/domains/<domain>.md same, for a domain too cross-cutting to own a directory
-.agents/bin/sddkit-state    installed by npx/bunx sddkit
+.agents/bin/sddkit-state.mjs    installed by npx/bunx sddkit
 .agents/skills/          sddkit, sddkit-plan + setup-docs
 .opencode/               OpenCode agents + opencode.jsonc
 .cursor/agents/          Cursor specialists
@@ -109,8 +109,9 @@ Flags: `--dry-run`, `--doctor`.
 Env (CI / scripts): `INSTALL_SCOPE=project|global`, `INSTALL_TARGET=all|cursor,claude,codex,opencode`. Global OpenCode
 writes only `~/.config/opencode/agents/` — never `opencode.jsonc`. Claude skills are a **copy** of `.agents/skills/`.
 
-After install, ensure `bun` is on `PATH` (portable `.agents/bin/sddkit-state` is a Bun script) and invoke
-`.agents/bin/sddkit-state` from the repo root. The installer prints next steps: `/setup-docs`, installing
+After install, invoke `.agents/bin/sddkit-state.mjs` from the repo root. It is a Node ESM bundle; the `.mjs` extension
+keeps that even when the consuming repo's `package.json` is CommonJS. Node 20+ is already required for `npx`. The
+installer prints next steps: `/setup-docs`, installing
 [`gh`](https://cli.github.com/) (required — the pipeline verifies it at start). Another forge or tracker is fine if an
 MCP, Skill, or CLI for it is already connected. Optional [rtk](https://github.com/rtk-ai/rtk) hint (never
 auto-installed).
@@ -133,7 +134,7 @@ READMEs for existing code — `docs-writer` creates each one as a feature touche
 session model (Grok Extra High / opus / sol), then describe the feature.
 
 `sddkit` verifies `gh` (or a connected substitute) + the target repo, creates `feat/<slug>`, scaffolds state with
-`.agents/bin/sddkit-state init`, and runs the pipeline, stopping at the spec and plan gates for review. Resume by asking
+`.agents/bin/sddkit-state.mjs init`, and runs the pipeline, stopping at the spec and plan gates for review. Resume by asking
 to continue.
 
 Not for a confined, no-behavior-branch change — a typo, a comment, a version bump, a single-line config value, a pure
@@ -191,10 +192,10 @@ since that part is work only a human can do.
 `docs/feats/<feature>/state.yaml` is written only via:
 
 ```bash
-.agents/bin/sddkit-state init <feature>
-.agents/bin/sddkit-state patch <feature> --yaml 'stage: specify'
-.agents/bin/sddkit-state show <feature>
-.agents/bin/sddkit-state validate <feature>
+.agents/bin/sddkit-state.mjs init <feature>
+.agents/bin/sddkit-state.mjs patch <feature> --yaml 'stage: specify'
+.agents/bin/sddkit-state.mjs show <feature>
+.agents/bin/sddkit-state.mjs validate <feature>
 ```
 
 The conductor applies subagent reply YAML through `patch`. OpenCode also denies direct edits to `state.yaml` /

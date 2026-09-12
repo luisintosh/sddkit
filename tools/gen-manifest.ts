@@ -35,7 +35,7 @@ async function sha256(filePath: string): Promise<string> {
 }
 
 const distRoots = ["opencode", "cursor", "claude", "codex", "agents"].map((d) => path.join(root, "dist", d))
-const bin = path.join(root, "dist", "bin", "sddkit-state")
+const bin = path.join(root, "dist", "bin", "sddkit-state.mjs")
 
 try {
   for (const d of distRoots) await fs.stat(d)

@@ -69,18 +69,12 @@ jobs:
         with:
           bun-version: latest
       - run: bun install
-      - name: Build payload + mac binaries
+      - name: Build payload
         run: |
           bun run build
-          bun tools/build-cli.ts --compile
           tar -czf sddkit-dist.tar.gz dist manifest.txt
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.event.release.tag_name }}
-        run: |
-          gh release upload "$TAG" \
-            sddkit-dist.tar.gz \
-            dist/bin/sddkit-state-darwin-arm64 \
-            dist/bin/sddkit-state-darwin-x64 \
-            --clobber
+        run: gh release upload "$TAG" sddkit-dist.tar.gz --clobber

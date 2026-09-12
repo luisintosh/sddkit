@@ -38,7 +38,7 @@ bash test/e2e-install.sh
 | ---------------------------- | --------------------------------------------------------------------- |
 | `bun tools/transpile.ts`     | `src/` → `dist/{opencode,cursor,claude,codex}` + `dist/agents/skills` |
 | `bun tools/install.ts`       | installer source (Clack + copy); emitted as `dist/install.js`         |
-| `bun tools/build-cli.ts`     | portable `dist/bin/sddkit-state` (+ `--compile` for mac binaries)     |
+| `bun tools/build-cli.ts`     | portable Node ESM `dist/bin/sddkit-state.mjs`                         |
 | `bun tools/build-install.ts` | `tools/install.ts` → `dist/install.js` (`--target node` for npx/bunx) |
 | `bun tools/gen-manifest.ts`  | `manifest.txt` from `dist/`                                           |
 | `bun tools/check.ts`         | hygiene                                                               |
@@ -58,9 +58,5 @@ bun run release -- --major
 bun run release -- v1.3.0  # explicit version
 ```
 
-Publishing a GitHub Release runs CI’s `release-assets` job, which uploads:
-
-- `sddkit-dist.tar.gz` (`dist/` + `manifest.txt`)
-- `sddkit-state-darwin-arm64` / `sddkit-state-darwin-x64`
-
-- Annotated tags; don’t move published tags — cut a new patch instead.
+Publishing a GitHub Release runs CI’s `release-assets` job, which uploads `sddkit-dist.tar.gz` (`dist/` + `manifest.txt`).
+Annotated tags; don’t move published tags — cut a new patch instead.

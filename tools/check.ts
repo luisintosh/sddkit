@@ -305,9 +305,20 @@ if (catalog) {
 }
 
 try {
-  await stat(path.join(root, "dist", "bin", "sddkit-state"))
+  const stateBin = await readFile(path.join(root, "dist", "bin", "sddkit-state.mjs"), "utf8")
+  if (!stateBin.startsWith("#!/usr/bin/env node\n")) {
+    fail("dist/bin/sddkit-state.mjs missing node shebang — run bun run build")
+  }
 } catch {
-  fail("dist/bin/sddkit-state missing — run bun run build")
+  fail("dist/bin/sddkit-state.mjs missing — run bun run build")
+}
+for (const stale of ["sddkit-state", "sddkit-state.js"]) {
+  try {
+    await stat(path.join(root, "dist", "bin", stale))
+    fail(`dist/bin/${stale} should be sddkit-state.mjs — run bun run build`)
+  } catch {
+    // leftover names must not be tracked
+  }
 }
 
 const readme = await readFile(path.join(root, "README.md"), "utf8")
@@ -375,7 +386,7 @@ async function expectedManifestEntries() {
     ...(await walkFiles(path.join(root, "dist", "claude"))),
     ...(await walkFiles(path.join(root, "dist", "codex"))),
     ...(await walkFiles(path.join(root, "dist", "agents"))),
-    path.join(root, "dist", "bin", "sddkit-state"),
+    path.join(root, "dist", "bin", "sddkit-state.mjs"),
   ]
   const entries: [string, string][] = []
   for (const abs of files.sort()) {

@@ -73,7 +73,7 @@ assert_file_exists "${TARGET}/.agents/skills/sddkit-plan/SKILL.md" "sddkit-plan 
 assert_file_exists "${TARGET}/.agents/skills/setup-docs/SKILL.md" "setup-docs skill installed under .agents"
 assert_file_exists "${TARGET}/.agents/skills/sddkit/references/reply-mapping.md" "sddkit reply-mapping reference installed"
 assert_file_absent "${TARGET}/.cursor/skills/sddkit/SKILL.md" "legacy .cursor/skills/sddkit not installed"
-assert_file_exists "${TARGET}/.agents/bin/sddkit-state" "sddkit-state installed under .agents/bin"
+assert_file_exists "${TARGET}/.agents/bin/sddkit-state.mjs" "sddkit-state installed under .agents/bin"
 assert_file_exists "${TARGET}/.opencode/.harness-manifest" "opencode harness-manifest recorded"
 assert_file_exists "${TARGET}/.cursor/agents/.harness-manifest" "cursor harness-manifest recorded under agents leaf"
 assert_file_exists "${TARGET}/.claude/agents/.harness-manifest" "claude agents harness-manifest recorded"
@@ -146,7 +146,7 @@ if [[ $rc -ne 0 ]]; then ok "checksum mismatch exits non-zero"; else bad "checks
 after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/spec.md" | awk '{print $1}')"
 assert_eq "$after_hash" "$before_hash" "no partial write after checksum mismatch"
 
-# 7. doctor mentions bun / sddkit-state
+# 7. doctor mentions sddkit-state
 doctor_output="$(TARGET_DIR="$TARGET" node "$INSTALL_JS" --doctor 2>&1)"
 if grep -q 'sddkit-state' <<<"$doctor_output"; then ok "doctor reports sddkit-state"; else bad "doctor sddkit-state: $doctor_output"; fi
 if grep -q 'rtk' <<<"$doctor_output"; then
@@ -164,34 +164,40 @@ rm -rf "${UPSTREAM}/dist"
 cp -R "${REPO_ROOT}/dist" "${UPSTREAM}/dist"
 cp "${REPO_ROOT}/manifest.txt" "$UPSTREAM/"
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor node "$INSTALL_JS" >/dev/null
-assert_file_exists "${TARGET2}/.cursor/agents/tester.md" "cursor-only installs .cursor"
+assert_file_exists "${TARGET2}/.cursor/agents/spec.md" "cursor-only installs .cursor"
 assert_file_absent "${TARGET2}/.opencode/agents/sddkit.md" "cursor-only skips .opencode"
 assert_file_absent "${TARGET2}/.claude/agents/spec.md" "cursor-only skips .claude"
 assert_file_absent "${TARGET2}/.codex/agents/spec.toml" "cursor-only skips .codex"
-assert_file_exists "${TARGET2}/.agents/bin/sddkit-state" "cursor-only still installs sddkit-state"
+assert_file_exists "${TARGET2}/.agents/bin/sddkit-state.mjs" "cursor-only still installs sddkit-state"
 assert_file_exists "${TARGET2}/.agents/skills/sddkit/SKILL.md" "cursor-only installs shared skills"
 
 # 8b. prune leftover ./bin and .cursor/skills
-mkdir -p "${TARGET2}/bin" "${TARGET2}/.cursor/skills/sddkit"
+mkdir -p "${TARGET2}/bin" "${TARGET2}/.cursor/skills/sddkit" "${TARGET2}/.agents/bin"
 echo leftover > "${TARGET2}/bin/sddkit-state"
+echo leftover > "${TARGET2}/.agents/bin/sddkit-state"
+echo leftover > "${TARGET2}/.agents/bin/sddkit-state.js"
 echo leftover > "${TARGET2}/.cursor/skills/sddkit/SKILL.md"
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor node "$INSTALL_JS" >/dev/null
 assert_file_absent "${TARGET2}/bin/sddkit-state" "reinstall prunes leftover ./bin/sddkit-state"
+assert_file_absent "${TARGET2}/.agents/bin/sddkit-state" "reinstall prunes extensionless sddkit-state"
+assert_file_absent "${TARGET2}/.agents/bin/sddkit-state.js" "reinstall prunes leftover sddkit-state.js"
+assert_file_exists "${TARGET2}/.agents/bin/sddkit-state.mjs" "mjs CLI remains after leftover prune"
 assert_file_absent "${TARGET2}/.cursor/skills/sddkit/SKILL.md" "reinstall prunes leftover .cursor/skills/sddkit"
 
-# 9. sddkit-state CLI smoke
-chmod +x "${TARGET}/.agents/bin/sddkit-state"
-if command -v bun >/dev/null 2>&1; then
-  (cd "$TARGET" && .agents/bin/sddkit-state init smoke-feat >/dev/null)
+# 9. sddkit-state CLI smoke (CJS nearest package.json must not break ESM .mjs)
+chmod +x "${TARGET}/.agents/bin/sddkit-state.mjs"
+if command -v node >/dev/null 2>&1; then
+  printf '%s\n' '{"name":"consumer","type":"commonjs"}' > "${TARGET}/package.json"
+  (cd "$TARGET" && .agents/bin/sddkit-state.mjs init smoke-feat >/dev/null)
   assert_file_exists "${TARGET}/docs/feats/smoke-feat/state.yaml" "sddkit-state init writes state.yaml"
-  (cd "$TARGET" && .agents/bin/sddkit-state patch smoke-feat --yaml 'stage: specify' >/dev/null)
+  (cd "$TARGET" && .agents/bin/sddkit-state.mjs patch smoke-feat --yaml 'stage: specify' >/dev/null)
   if grep -q 'stage: specify' "${TARGET}/docs/feats/smoke-feat/state.yaml"; then
     ok "sddkit-state patch updates stage"
   else
     bad "sddkit-state patch did not update stage"
   fi
 else
-  bad "bun required for sddkit-state smoke test"
+  bad "node required for sddkit-state smoke test"
 fi
 
 # 10. post-install next-step hints
@@ -235,7 +241,7 @@ HOME="$FAKE_HOME" INSTALL_SCOPE=global INSTALL_TARGET=all \
   LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$GLOBAL_TARGET" node "$INSTALL_JS" >/dev/null
 
 assert_file_exists "${FAKE_HOME}/.agents/skills/sddkit/SKILL.md" "global skills land in ~/.agents"
-assert_file_exists "${FAKE_HOME}/.agents/bin/sddkit-state" "global sddkit-state lands in ~/.agents/bin"
+assert_file_exists "${FAKE_HOME}/.agents/bin/sddkit-state.mjs" "global sddkit-state lands in ~/.agents/bin"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/implementer.md" "global cursor agents leaf"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global install keeps planted cursor agent"
 assert_file_exists "${FAKE_HOME}/.claude/agents/spec.md" "global claude agents leaf"
