@@ -82,9 +82,9 @@ agents:
   sddkit-architect:
     profile: think
     description: >-
-      Plans implementation strategy and writes feature plans (SDD plan stage). Owns codebase exploration. Use when the
-      conductor delegates plan, or when a feature plan, its Test strategy, or Implementation waypoints must be written
-      or revised.
+      Plans implementation strategy and writes feature plans (SDD plan stage). Owns codebase exploration and cheapest-
+      oracle journeys. Use when the conductor delegates plan, or when a feature plan, its Test strategy, or
+      Implementation waypoints must be written or revised.
     opencode:
       mode: subagent
       temperature: 0.3
@@ -121,8 +121,8 @@ agents:
   sddkit-implementer:
     profile: execute
     description: >-
-      Macro-TDD. Writes the planned failing integration/e2e test, then the full implementation, in one pass. Never
-      weakens tests. Use when the conductor delegates implementation, an escalation re-derive, or a targeted-test fix.
+      Writes the planned failing journey oracle, then the implementation, in one pass. Never weakens tests. Use when the
+      conductor delegates implementation, an escalation re-derive, or a targeted-test fix.
     opencode:
       mode: subagent
       temperature: 0.2
@@ -161,9 +161,8 @@ agents:
   sddkit-qa:
     profile: validate
     description: >-
-      Validates the implementation against spec + acceptance contracts. Prefers the committed integration/e2e test;
-      Playwright only for uncovered UI journeys. Posts the evidence report as a PR comment. Use when the conductor
-      delegates QA.
+      Validates the implementation against spec + acceptance contracts. Prefers the committed journey oracle; Playwright
+      only for uncovered UI e2e paths. Posts the evidence report as a PR comment. Use when the conductor delegates QA.
     opencode:
       mode: subagent
       temperature: 0.1

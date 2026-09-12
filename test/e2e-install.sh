@@ -196,6 +196,30 @@ if command -v node >/dev/null 2>&1; then
   else
     bad "sddkit-state patch did not update stage"
   fi
+  decide_out="$(cd "$TARGET" && .agents/bin/sddkit-state.mjs decide smoke-feat --event qa-route --yaml 'findings: [{category: bug}]')"
+  if grep -q 'route: impl' <<<"$decide_out"; then
+    ok "sddkit-state decide qa-route"
+  else
+    bad "sddkit-state decide qa-route: $decide_out"
+  fi
+  skip_spec="$(cd "$TARGET" && .agents/bin/sddkit-state.mjs decide smoke-feat --event skip-spec-gate --yaml $'specCritiqueClean: true\nopenQuestions: []')"
+  if grep -q 'skip: true' <<<"$skip_spec"; then
+    ok "sddkit-state decide skip-spec-gate"
+  else
+    bad "sddkit-state decide skip-spec-gate: $skip_spec"
+  fi
+  skip_plan="$(cd "$TARGET" && .agents/bin/sddkit-state.mjs decide smoke-feat --event skip-plan-critique --yaml $'specCritiqueClean: true\nonlyViableApproach: true\nplaywrightFallback: false\nhumanDecisions: []\nconstitutionBlocker: false\noracles: [boundary]')"
+  if grep -q 'skip: true' <<<"$skip_plan"; then
+    ok "sddkit-state decide skip-plan-critique"
+  else
+    bad "sddkit-state decide skip-plan-critique: $skip_plan"
+  fi
+  skip_review="$(cd "$TARGET" && .agents/bin/sddkit-state.mjs decide smoke-feat --event skip-review --yaml $'typecheck: pass\nlint: pass\ntargetedTest: pass\nescalation: 0\niteration: 1')"
+  if grep -q 'skip: true' <<<"$skip_review"; then
+    ok "sddkit-state decide skip-review"
+  else
+    bad "sddkit-state decide skip-review: $skip_review"
+  fi
 else
   bad "node required for sddkit-state smoke test"
 fi

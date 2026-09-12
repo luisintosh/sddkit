@@ -9,8 +9,8 @@ Reply keys are not state keys. Translate:
 - **sddkit-plan-reviewer** → `review_status` → `review.status`; `findings` → `review.findings`. Artifact critiques are
   single-pass, so there is no `iterations` to carry.
 - **sddkit-code-reviewer** → `review_status` → `review.status`; `findings` → `review.findings` (minor-only →
-  `review.deferred_findings`); `iterations` → `review.iterations`. One `lens: all` reply per iteration — no dual-lens
-  merge.
+  `review.deferred_findings`); `iterations` is an echo — you own the count (patch `review.iterations: 1` after Iteration
+  1; +1 after a fix round; do not copy a stale echo). One `lens: all` reply per iteration.
 - **sddkit-qa** → `qa_status` → `qa.status`; `scenarios_total|scenarios_passed|scenarios_failed`, `findings`,
   `report_path`, `pr_comment_url`, `pr_ready` all nest under `qa.*`; `blockers` → `blockers`.
 - **sddkit-docs-writer** → `docs` → `artifacts.docs`; `blockers` → `blockers`. Its `env_vars` and `external_setup` have
@@ -19,10 +19,10 @@ Reply keys are not state keys. Translate:
 
 Everything else a subagent returns has no state field. Most of it is for your reasoning and the chat summary: `feature`,
 `scenarios`, `open_questions`, `human_decisions`, `addressed_findings`, `rebutted_findings`, `files`,
-`scenarios_covered`, `test_path`, `test_command`, `playwright_fallback`, `tests_passing`, `journeys`,
-sddkit-implementer's `status`, sddkit-plan-reviewer's `target`, sddkit-spec's `assumptions`, sddkit-architect's
-`approaches` and `recommended`, sddkit-code-reviewer's `lens`, and sddkit-docs-writer's `env_vars`, `external_setup`,
-`unchanged`, and `notes`.
+`scenarios_covered`, `test_path`, `test_command`, `playwright_fallback`, architect `journeys` (J1 is `test_path` /
+`test_command`), `tests_passing`, QA `journeys`, sddkit-implementer's `status`, sddkit-plan-reviewer's `target`,
+sddkit-spec's `assumptions`, sddkit-architect's `approaches` and `recommended`, sddkit-code-reviewer's `lens`, and
+sddkit-docs-writer's `env_vars`, `external_setup`, `unchanged`, and `notes`.
 
 The remaining three drive control flow in step 8 and must be acted on even though nothing records them: `opinion_gate`
 parks the run; `files_changed: []` on sddkit-implementer's `status: done` is a no-op success only when the planned test

@@ -24,7 +24,7 @@ const STAGES = [
   "complete",
 ] as const
 
-const SLICE_PHASES = ["", "red", "green", "targeted_test", "review"] as const
+const SLICE_PHASES = ["", "green", "targeted_test", "review"] as const
 
 export const StateSchema = z.object({
   feature: z.string().min(1),
@@ -44,7 +44,6 @@ export const StateSchema = z.object({
   escalation: z.union([z.literal(0), z.literal(1)]).default(0),
   green_attempts: z.number().int().default(0),
   completed_slices: z.array(z.string()).default([]),
-  upgraded_slices: z.array(z.string()).default([]),
   last_agent: z.string().default(""),
   updated: z.string().min(1),
   blockers: z.array(z.string()).default([]),

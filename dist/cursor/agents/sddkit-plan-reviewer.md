@@ -70,31 +70,33 @@ straight into a fix round against a bounded iteration budget — one below 80 is
 ## Reviewing a plan
 
 - **Accuracy** — every `file:symbol` reuse claim and affected-file path resolves in the current tree; confirm with
-  Grep/Read rather than trusting the citation, which may name a symbol that has since moved or never existed. The Test
-  strategy's targeted test command must be one this repo can actually run per `AGENTS.md` — or a Playwright add the plan
-  names explicitly. Wrong runner, wrong path, or a missing script with no named add is a `blocker`.
-- **Edge cases** — every `@S<n>` in `contracts/*.feature` is claimed by the high-level test (or a justified second
-  test). Check that direction explicitly: a test mapping to scenarios proves nothing about a scenario the test never
-  mentions, and the orphans are usually the error and edge ones. The feature-level done-when and rollback hint must be
-  present.
-- **Audience fit** — the plan must carry what its consumer needs: `sddkit-implementer` needs the Test strategy (path,
-  command, `@S<n>` coverage), the `reading:` list, and concrete `file:symbol` targets; `sddkit-code-reviewer` needs an
-  observable done-when; the conductor needs the one test command to build the feature brief. A plan missing one of those
-  stalls that agent mid-pipeline.
-- **Actionability** — a competent implementer could write the failing test and the implementation without asking
+  Grep/Read rather than trusting the citation, which may name a symbol that has since moved or never existed. Each
+  journey command must be one this repo can actually run per `AGENTS.md` — or a Playwright add the plan names
+  explicitly. Wrong runner, wrong path, or a missing script with no named add is a `blocker`.
+- **Edge cases** — every `@S<n>` in `contracts/*.feature` is claimed by a journey. Check that direction explicitly: a
+  test mapping to scenarios proves nothing about a scenario the test never mentions, and the orphans are usually the
+  error and edge ones. Each journey's done-when and the feature-level rollback hint must be present.
+- **Audience fit** — the plan must carry what its consumer needs: `sddkit-implementer` needs each journey's path,
+  command, `oracle` kind, `@S<n>` coverage, `reading:` list, and concrete `file:symbol` targets; `sddkit-code-reviewer`
+  needs an observable done-when; the conductor needs the fenced `journeys:` YAML block (at most 3 journeys) to build
+  each brief on resume. A plan missing that block is a `blocker`. A plan missing one of the other fields stalls that
+  agent mid-pipeline.
+- **Actionability** — a competent implementer could write the failing oracle and the implementation without asking
   `sddkit-architect` a question. "TBD", "handle errors properly" are findings. Done-when lines must be observable, not
-  "works correctly". The acceptance bar must be one high-level integration/e2e test, not unit tests of internal helpers
-  — that substitution is a `blocker`. A second test without a one-line justification that the journey cannot reach a
-  scenario is a finding. Playwright as fallback is valid only for a UI-observable feature in a repo with no
-  e2e/integration runner, and the add (`@playwright/test`, config path, command) must be named; an unnamed add, or
-  Playwright proposed when a runner already exists, is a `blocker`.
-- **Consistency** — no `risk: low | standard` tags and no per-waypoint test commands (those drove the old slice loop).
-  Test commands agreeing with `AGENTS.md` or the named Playwright add; nothing outside the approved spec's scope;
-  conventions matching `docs/ARCHITECTURE.md`; `docs/CONSTITUTION.md` conflicts named rather than designed around.
-  `## Approaches considered` candidates are genuinely distinct with rationale grounded in cited code, not
-  interchangeable restatements of the same idea or generic pros/cons; the recommendation is the approach the rest of
-  `plan.md` actually implements — a mismatch between the two is a `blocker`, not a style note. A single-viable-approach
-  plan that says so in one line is fine; one presenting fabricated alternatives to check a box is a finding.
+  "works correctly". The acceptance bar is the cheapest sensor that can fail the observable Then — a public-boundary or
+  golden oracle when one exists — not a helper-level unit test (that substitution is a `blocker`) and not an e2e when a
+  cheaper rung can assert the Then (that substitution is a `blocker`). A second or third journey without a one-line
+  justification that the previous oracle cannot reach a scenario is a finding. More than 3 journeys is a finding.
+  Playwright as a planned Test strategy oracle is valid only when the feature is UI-only and nothing cheaper exists, and
+  the add (`@playwright/test`, config path, command) must be named; an unnamed add, or Playwright proposed when a
+  cheaper observable exists, is a `blocker`.
+- **Consistency** — no `risk: low | standard` tags and no per-waypoint test commands. Test commands agreeing with
+  `AGENTS.md` or the named Playwright add; nothing outside the approved spec's scope; conventions matching
+  `docs/ARCHITECTURE.md`; `docs/CONSTITUTION.md` conflicts named rather than designed around. `## Approaches considered`
+  candidates are genuinely distinct with rationale grounded in cited code, not interchangeable restatements of the same
+  idea or generic pros/cons; the recommendation is the approach the rest of `plan.md` actually implements — a mismatch
+  between the two is a `blocker`, not a style note. A single-viable-approach plan that says so in one line is fine; one
+  presenting fabricated alternatives to check a box is a finding.
 - **Maintenance** — new code where existing code would serve, a second implementation parallel to one already in the
   tree, or plan text restating what `AGENTS.md`/`docs/ARCHITECTURE.md` already own (two copies drift apart).
 
