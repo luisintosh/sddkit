@@ -119,6 +119,7 @@ if (catalog) {
   if (!catalog.agents?.sddkit) fail("catalog: missing agents.sddkit")
   else if (catalog.agents.sddkit.opencode?.mode !== "primary") fail("catalog: sddkit.opencode.mode must be primary")
   if (catalog.agents?.["implementer-pro"]) fail("catalog: implementer-pro must be removed")
+  if (catalog.agents?.tester) fail("catalog: tester must be removed")
   for (const name of agentNames) {
     const a = catalog.agents![name]!
     if (!a.description?.trim()) fail(`catalog: agents.${name}.description required`)
@@ -146,10 +147,6 @@ if (catalog) {
   const goldenCursorThink = formatCursorModel(resolveRef(catalog, "cursor", "think")!)
   if (goldenCursorThink !== GOLDEN_MODELS.cursor.think) {
     fail(`catalog: cursor think formatted as ${goldenCursorThink} != golden ${GOLDEN_MODELS.cursor.think}`)
-  }
-  const goldenCursorTest = formatCursorModel(resolveRef(catalog, "cursor", "test")!)
-  if (goldenCursorTest !== GOLDEN_MODELS.cursor.test) {
-    fail(`catalog: cursor test formatted as ${goldenCursorTest} != golden ${GOLDEN_MODELS.cursor.test}`)
   }
   const goldenCursorExecute = formatCursorModel(resolveRef(catalog, "cursor", "execute")!)
   if (goldenCursorExecute !== GOLDEN_MODELS.cursor.execute) {

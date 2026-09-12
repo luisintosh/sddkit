@@ -35,7 +35,7 @@ without asking you a follow-up.
 
 - Critique the artifact as written. Judge it against its upstream input, not against how you would have written it.
 - Emit findings with category `spec` or `plan` only — those are the two the conductor routes back to `spec` and
-  `architect`. A code-level concern belongs to the slice review, not here.
+  `architect`. A code-level concern belongs to the implementation review, not here.
 - **Both targets — no changelog.** The artifact is a current-state document. Flag any text narrating its own edit
   history ("updated X to Y per finding F2", "changed after review", "previously this used…"). The critique and QA-delta
   re-delegations that produce these reviews are exactly what accumulates that residue; the reader wants the artifact,
@@ -62,7 +62,7 @@ straight into a fix round against a bounded iteration budget — one below 80 is
 - **Edge cases** — each happy path has its error and boundary counterparts: absent or empty input, permission denied,
   the duplicate or concurrent action, the upstream dependency failing, the limit being hit. A spec with only happy paths
   is the most common failure here.
-- **Audience fit** — `architect` needs enough constraint to choose an approach without guessing; `tester` needs
+- **Audience fit** — `architect` needs enough constraint to choose an approach without guessing; `implementer` needs
   Given/When/Then concrete enough to assert on without inventing values; `qa` needs scenarios reachable from outside the
   system, since one observable only through a private internal cannot be validated end-to-end; the human at the gate
   needs the open questions and the recorded assumptions, not silent, unrecorded ones.
@@ -80,27 +80,31 @@ straight into a fix round against a bounded iteration budget — one below 80 is
 ## Reviewing a plan
 
 - **Accuracy** — every `file:symbol` reuse claim and affected-file path resolves in the current tree; confirm with
-  Grep/Read rather than trusting the citation, which may name a symbol that has since moved or never existed. Each
-  slice's targeted test command must be one this repo can actually run per `AGENTS.md` — wrong runner, wrong path, or a
-  missing script is a `blocker`. So is a slice tagged `risk: low` that actually changes behavior: mis-tiering skips the
-  red phase, where that behavior would have been pinned by a failing test first.
-- **Edge cases** — every `@S<n>` in `contracts/*.feature` is claimed by at least one slice. Check that direction
-  explicitly: a slice mapping to scenarios proves nothing about a scenario no slice mentions, and the orphans are
-  usually the error and edge ones. Every slice needs its rollback hint and done-when line.
-- **Audience fit** — each slice must carry what its consumer needs: `tester` and `implementer` need the `reading:` list
-  as a starting point — its absence costs them a rediscovery pass that the plan should have done once — `tester` also
-  needs the `@S<n>` list and the test command, `implementer` needs concrete `file:symbol` targets, `code-reviewer` needs
-  an observable done-when, and the conductor needs a stable slice ID plus the `risk:` tag to build the brief and drive
-  the loop. A slice missing one of those stalls that agent mid-pipeline.
-- **Actionability** — a competent implementer could start the slice without asking `architect` a question. "TBD",
-  "handle errors properly" are findings. Done-when lines must be observable, not "works correctly".
-- **Consistency** — slice IDs unique and stable; each `risk:` tag agreeing with its own one-line justification; test
-  commands agreeing with `AGENTS.md`; nothing outside the approved spec's scope; conventions matching
-  `docs/ARCHITECTURE.md`; `docs/CONSTITUTION.md` conflicts named rather than designed around. `## Approaches considered`
-  candidates are genuinely distinct with rationale grounded in cited code, not interchangeable restatements of the same
-  idea or generic pros/cons; the recommendation is the approach the rest of `plan.md` actually implements — a mismatch
-  between the two is a `blocker`, not a style note. A single-viable-approach plan that says so in one line is fine; one
-  presenting fabricated alternatives to check a box is a finding.
+  Grep/Read rather than trusting the citation, which may name a symbol that has since moved or never existed. The Test
+  strategy's targeted test command must be one this repo can actually run per `AGENTS.md` — or a Playwright add the plan
+  names explicitly. Wrong runner, wrong path, or a missing script with no named add is a `blocker`.
+- **Edge cases** — every `@S<n>` in `contracts/*.feature` is claimed by the high-level test (or a justified second
+  test). Check that direction explicitly: a test mapping to scenarios proves nothing about a scenario the test never
+  mentions, and the orphans are usually the error and edge ones. The feature-level done-when and rollback hint must be
+  present.
+- **Audience fit** — the plan must carry what its consumer needs: `implementer` needs the Test strategy (path, command,
+  `@S<n>` coverage), the `reading:` list, and concrete `file:symbol` targets; `code-reviewer` needs an observable
+  done-when; the conductor needs the one test command to build the feature brief. A plan missing one of those stalls
+  that agent mid-pipeline.
+- **Actionability** — a competent implementer could write the failing test and the implementation without asking
+  `architect` a question. "TBD", "handle errors properly" are findings. Done-when lines must be observable, not "works
+  correctly". The acceptance bar must be one high-level integration/e2e test, not unit tests of internal helpers — that
+  substitution is a `blocker`. A second test without a one-line justification that the journey cannot reach a scenario
+  is a finding. Playwright as fallback is valid only for a UI-observable feature in a repo with no e2e/integration
+  runner, and the add (`@playwright/test`, config path, command) must be named; an unnamed add, or Playwright proposed
+  when a runner already exists, is a `blocker`.
+- **Consistency** — no `risk: low | standard` tags and no per-waypoint test commands (those drove the old slice loop).
+  Test commands agreeing with `AGENTS.md` or the named Playwright add; nothing outside the approved spec's scope;
+  conventions matching `docs/ARCHITECTURE.md`; `docs/CONSTITUTION.md` conflicts named rather than designed around.
+  `## Approaches considered` candidates are genuinely distinct with rationale grounded in cited code, not
+  interchangeable restatements of the same idea or generic pros/cons; the recommendation is the approach the rest of
+  `plan.md` actually implements — a mismatch between the two is a `blocker`, not a style note. A single-viable-approach
+  plan that says so in one line is fine; one presenting fabricated alternatives to check a box is a finding.
 - **Maintenance** — new code where existing code would serve, a second implementation parallel to one already in the
   tree, or plan text restating what `AGENTS.md`/`docs/ARCHITECTURE.md` already own (two copies drift apart).
 
