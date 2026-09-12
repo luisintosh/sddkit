@@ -4,8 +4,9 @@
  *   1. catalog.yaml shape + prompt files
  *   2. dist/ frontmatter matches catalog models
  *   3. README profile × host matrix matches catalog
- *   4. manifest.txt matches dist/ hashes
- *   5. dist/install.js (npx/bunx CLI) is present and not stale
+ *   4. source prompt contracts (cheapest-oracle, skip-spec-gate, QA route, decide)
+ *   5. manifest.txt matches dist/ hashes
+ *   6. dist/install.js (npx/bunx CLI) is present and not stale
  */
 import { createHash } from "node:crypto"
 import type { Dirent } from "node:fs"
@@ -382,6 +383,37 @@ if (catalog) {
     for (const name of readmeAgents.keys()) {
       if (!catalog.agents![name]) fail(`README.md: agent table lists "${name}" not in catalog`)
     }
+  }
+}
+
+{
+  const conductor = await readFile(path.join(root, "src", "prompts", "agents", "sddkit.md"), "utf8")
+  const architect = await readFile(path.join(root, "src", "prompts", "agents", "sddkit-architect.md"), "utf8")
+  const contracts: [string, string, string][] = [
+    [architect, "cheapest sensor that can fail the observable", "architect cheapest-oracle menu"],
+    [architect, "at most 3 journeys", "architect journey cap"],
+    [architect, "fenced YAML block", "architect on-disk journeys"],
+    [conductor, "sddkit-state decide", "conductor sddkit-state decide"],
+    [conductor, "skip-spec-gate", "conductor skip-spec-gate rule"],
+    [conductor, "{specCritiqueClean: true, openQuestions: []}", "conductor skip-spec-gate yaml example"],
+    [
+      conductor,
+      "{typecheck: pass, lint: pass, targetedTest: pass, escalation: 0, iteration: 1}",
+      "conductor skip-review yaml example",
+    ],
+    [conductor, "skip-plan-critique", "conductor skip-plan-critique"],
+    [conductor, "oracles", "conductor skip-plan-critique oracles"],
+    [conductor, "skip-review", "conductor skip-review"],
+    [conductor, "iteration", "conductor skip-review iteration"],
+    [conductor, "qa-route", "conductor qa-route"],
+    [conductor, "this cycle's", "conductor qa-route yaml source"],
+    [conductor, "git reset --hard", "conductor clean-tree escalation"],
+    [conductor, "QA findings are not always specify", "conductor QA not-always-specify"],
+    [conductor, "never collapse a multi-journey", "conductor journey parse"],
+    [conductor, "qa.cycles > 0", "conductor QA spec-gate exception"],
+  ]
+  for (const [body, phrase, label] of contracts) {
+    if (!body.includes(phrase)) fail(`prompt contract missing ${label}: "${phrase}"`)
   }
 }
 

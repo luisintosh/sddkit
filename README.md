@@ -2,9 +2,9 @@
 
 A thin harness for **spec-driven development (SDD)** on [OpenCode](https://opencode.ai), [Cursor](https://cursor.com),
 [Claude Code](https://code.claude.com), and [Codex](https://developers.openai.com/codex): an approved spec, tagged
-acceptance contracts (`@S<n>`), macro-TDD (one high-level integration/e2e test, then one implementation pass) with the
-consuming repo's test stack, a multi-agent pipeline with a one-rung escalation loop, and a file-based **`state.yaml`
-checkpoint** written only through `.agents/bin/sddkit-state.mjs`.
+acceptance contracts (`@S<n>`), cheapest-oracle journeys (at most three, public-boundary or golden first) with the
+consuming repo's test stack, a multi-agent pipeline with a one-rung clean-tree escalation loop, and a file-based
+**`state.yaml` checkpoint** written only through `.agents/bin/sddkit-state.mjs`.
 
 Prompts live once under `src/prompts/`; `bun run build` transpiles them into OpenCode, Cursor, Claude Code, Codex, and
 shared skill formats under `dist/` (tracked so install does not need a client-side build).
@@ -169,18 +169,29 @@ context; the handoff carries forward only what the next run actually needs.
 ## Pipeline
 
 ```
-initialize → specify (spec + contracts) → spec critique → ⏸spec gate
-  → plan (Test strategy + waypoints) → plan critique → ⏸plan gate
-  → sddkit-implementer (failing integration/e2e test, then full impl) → targeted test
-  → sddkit-code-reviewer (lens: all) → commit → verify → docs-sync → pr → qa → complete → handoff
+initialize → specify (spec + contracts) → spec critique → ⏸spec gate (first pass; skipped when clean)
+  → plan (journeys + waypoints) → plan critique (skipped only when skip-plan-critique is true) → ⏸plan gate
+  → per journey: implementer (failing cheap oracle, then impl) → sensors + targeted test
+  → sddkit-code-reviewer (skipped on first green, non-escalation pass only) → commit
+  → verify → docs-sync → pr → qa → complete → handoff
 ```
 
-Architect picks the repo's highest existing test layer, or Playwright when the feature is UI-observable and no
-e2e/integration runner exists. `sddkit-implementer` writes that one failing test and the implementation in a single
-pass.
+Architect picks the cheapest sensor that can fail the observable `@S<n>` (public-boundary or golden before
+integration/e2e) and writes a fenced `journeys:` YAML block in `plan.md`. Playwright is QA-only unless the feature is
+UI-only. `sddkit-implementer` writes that journey's failing oracle and the implementation in a single pass. The
+conductor loops at most 3 journeys.
 
-**Escalation:** if the targeted test fails twice or review exhausts with `blocker`/`major`, set `escalation: 1` and
-re-run `sddkit-implementer` with failure history (re-derive from plan+tests). One rung; then pause for a human.
+Plan critique is skipped only when `skip-plan-critique` is true: every journey oracle is `boundary` or `golden`, the
+spec critique was clean, the recommended approach is the only viable one, Playwright is not the planned oracle,
+`human_decisions` is empty, and there is no constitution blocker. The plan gate is never skipped on a first pass. A QA
+spec delta skips it only when Test strategy is unchanged.
+
+**Escalation:** if the targeted test fails twice, `git reset --hard` to the journey base and re-run `sddkit-implementer`
+(optionally two worktrees; keep the smaller green diff). One rung; then pause for a human.
+
+**QA:** findings route by category (`sddkit-state decide --event qa-route`) — impl-only to a verify-fix, spec/plan-only
+to a spec delta (always presents the spec gate), mixed runs the spec delta and drops stale impl findings for the re-QA
+pass. They do not always re-enter specify.
 
 **Docs:** `docs-sync` delegates to `sddkit-docs-writer`, which writes the touched domain's `README.md` — co-located with
 the code, or `docs/domains/<domain>.md` when the domain is cross-cutting — to a fixed skeleton (purpose, how it works,
@@ -197,6 +208,7 @@ since that part is work only a human can do.
 .agents/bin/sddkit-state.mjs patch <feature> --yaml 'stage: specify'
 .agents/bin/sddkit-state.mjs show <feature>
 .agents/bin/sddkit-state.mjs validate <feature>
+.agents/bin/sddkit-state.mjs decide <feature> --event qa-route --yaml 'findings: [{category: bug}]'
 ```
 
 The conductor applies subagent reply YAML through `patch`. OpenCode also denies direct edits to `state.yaml` /
@@ -210,7 +222,8 @@ The conductor applies subagent reply YAML through `patch`. OpenCode also denies 
 ## Notes
 
 - No OpenCode plugin — state is the CLI only.
-- Everything runs in the current checkout (no worktree isolation).
+- Implementation runs in the current checkout. Escalation may add two temporary worktrees, keep the smaller green diff,
+  then remove them.
 - `sddkit` never merges its own PR — that's the human's call, every time. That rule lives in the prompts, not the
   permission config: `gh pr merge` is allowed at the config level, so branch protection is your hard backstop.
 - No permission is `ask`. An unattended `opencode run` has no responder for a bash/edit permission request, so a

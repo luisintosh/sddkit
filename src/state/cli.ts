@@ -2,6 +2,7 @@
 import * as fs from "node:fs/promises"
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml"
 import { runInit, runPatch } from "./checkpoint.ts"
+import { runDecide } from "./decisions.ts"
 import { readState } from "./io.ts"
 import { validateState } from "./schema.ts"
 
@@ -12,7 +13,8 @@ function usage(): never {
   sddkit-state patch <feature> --file <path>
   sddkit-state patch <feature>   # YAML patch on stdin
   sddkit-state show <feature>
-  sddkit-state validate <feature>`)
+  sddkit-state validate <feature>
+  sddkit-state decide <feature> --event qa-route|skip-spec-gate|skip-plan-critique|skip-review --yaml '...'`)
   process.exit(2)
 }
 
@@ -92,6 +94,14 @@ async function main(): Promise<void> {
           process.exit(1)
         }
         console.log(`valid (stage=${result.data.stage}, slice_phase=${result.data.slice_phase})`)
+        break
+      }
+      case "decide": {
+        const eventIdx = rest.indexOf("--event")
+        const event = eventIdx !== -1 ? rest[eventIdx + 1] : undefined
+        if (!event) throw new Error("sddkit-state: decide requires --event")
+        const input = await readPatch(rest)
+        process.stdout.write(runDecide(event, input))
         break
       }
       default:

@@ -19,8 +19,8 @@ to commit — as structured findings, highest severity first, each specific enou
   `git diff <base>` (the implementation is uncommitted, so this diffs the working tree against the last commit, usually
   the plan commit). No base named → say so in `notes` and review `git diff HEAD`; never silently review a different
   range.
-- The feature brief (the plan's Test strategy, Implementation waypoints, `@S<n>` scenario text, test command) — prefer
-  it over re-reading `contracts/*.feature`/`plan.md` in full; fall back to disk only if the brief is missing or
+- The journey brief (that journey's Test strategy oracle, Implementation waypoints, `@S<n>` scenario text, test command)
+  — prefer it over re-reading `contracts/*.feature`/`plan.md` in full; fall back to disk only if the brief is missing or
   ambiguous.
 - `docs/ARCHITECTURE.md` and `docs/CONSTITUTION.md` as needed — a feature diff is where a constitution rule actually
   gets violated.
@@ -31,11 +31,9 @@ to commit — as structured findings, highest severity first, each specific enou
 
 - Review only the delta, scoped to the brief's `@S<n>` scenarios. The diff includes the test files `sddkit-implementer`
   wrote — those are under review too, not evidence.
-- Contract coverage is the high-level integration/e2e test asserting each `@S<n>` — not a unit test per internal helper.
-  A helper-only unit test offered as the acceptance bar is a `test` finding.
-- A brief with **no** `@S<n>` scenarios is a verify-fix: the failing verify command named in the brief is the acceptance
-  bar, so judge the diff against clearing that failure minimally, and emit no `contract` findings for the absent
-  scenario mapping.
+- Contract coverage is the journey oracle asserting each brief `@S<n>` — a public-boundary, golden, integration, e2e, or
+  approved Playwright test, not a unit test per internal helper. A helper-only unit test offered as the acceptance bar
+  is a `test` finding. Do not reject an approved Playwright oracle.
 - Any change to `docs/feats/**` in the diff is a `blocker` — spec, plan, and contracts are frozen for the duration of
   implementation.
 - On a re-review (iteration >1, **not** the escalated final pass), verify only that the prior findings were actually
@@ -73,8 +71,7 @@ Read the whole diff. Emit findings from every bullet below.
 - **Correctness** — trace each changed path against its scenario's Given/When/Then, not against what the code looks like
   it intends: inverted conditions, off-by-one, an error branch that returns success.
 - **Contract coverage** — both directions. Every changed code path maps to one of the brief's `@S<n>` scenarios, and
-  every brief scenario is asserted by the high-level integration/e2e test. The second direction is the one that ships
-  untested.
+  every brief scenario is asserted by the journey oracle. The second direction is the one that ships untested.
 - **Silent failure** — swallowed exceptions, empty catch, a fallback or default that masks a failed call. Check this
   first on a green-phase diff: the fastest way to make a failing test pass is to stop propagating the error.
 
