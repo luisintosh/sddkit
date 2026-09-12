@@ -281,12 +281,14 @@ async function emitClaude(catalog: Catalog) {
   for (const [name, agent] of Object.entries(catalog.agents)) {
     if (agent.cursor?.skill) continue
     const body = await readPrompt(`agents/${name}.md`)
+    const ref = resolveModel(catalog, "claude", agent)
     const fm: Record<string, unknown> = {
       name,
       description: agent.description,
-      model: formatClaudeModel(resolveModel(catalog, "claude", agent)),
-      tools: claudeTools(agent),
+      model: formatClaudeModel(ref),
     }
+    if (ref.effort) fm.effort = ref.effort
+    fm.tools = claudeTools(agent)
     await writeFile(path.join(outRoot, "agents", `${name}.md`), yamlFrontmatter(fm) + body)
   }
 }

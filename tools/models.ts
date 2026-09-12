@@ -19,6 +19,11 @@ export function formatClaudeModel(ref: ModelRef): string {
   return ref.id
 }
 
+export function formatClaudeDisplay(ref: ModelRef): string {
+  if (ref.id === "inherit") return "inherit"
+  return ref.effort ? `${ref.id}[effort=${ref.effort}]` : ref.id
+}
+
 export function formatOpenCodeModel(ref: ModelRef): string {
   return ref.id
 }
@@ -39,11 +44,11 @@ export const GOLDEN_MODELS = {
     execute: "grok-4.6[effort=high]",
   },
   claude: {
-    think: "opus",
-    execute: "sonnet",
+    think: "sonnet[effort=xhigh]",
+    execute: "sonnet[effort=high]",
   },
   codex: {
-    think: { model: "gpt-5.6-sol" },
-    execute: { model: "gpt-5.6-luna", reasoning: "high" },
+    think: { model: "gpt-5.6-terra", reasoning: "xhigh" },
+    execute: { model: "gpt-5.6-terra", reasoning: "high" },
   },
 } as const

@@ -2,6 +2,7 @@
 name: docs-writer
 description: Writes the human-facing docs a finished feature leaves behind — the owning domain's README, plus AGENTS.md and docs/ARCHITECTURE.md. Current state only, never a changelog. Use when the conductor delegates docs-sync.
 model: sonnet
+effort: medium
 tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 

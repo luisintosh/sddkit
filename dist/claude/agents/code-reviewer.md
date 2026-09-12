@@ -2,6 +2,7 @@
 name: code-reviewer
 description: Independent, READ-ONLY review of the feature implementation diff against its acceptance contracts. Emits structured findings; never edits. Use when the conductor delegates implementation review.
 model: opus
+effort: high
 tools: Read, Glob, Grep, Bash
 ---
 
