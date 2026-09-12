@@ -19,11 +19,11 @@ hosts:
     profiles:
       conduct: { id: inherit }
       think: { id: grok-4.6, effort: xhigh }
-      execute: { id: gpt-5.6-luna, effort: high }
-      review: { id: gpt-5.6-terra, effort: high }
-      critique: { id: gpt-5.6-terra, effort: high }
+      execute: { id: grok-4.6, effort: high }
+      review: { id: grok-4.6, effort: high }
+      critique: { id: claude-sonnet-5, effort: high }
       validate: { id: grok-4.6, effort: medium }
-      write: { id: gpt-5.6-luna, effort: high }
+      write: { id: grok-4.6, effort: medium }
   claude:
     profiles:
       conduct: { id: inherit }

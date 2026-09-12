@@ -1,7 +1,7 @@
 ---
 name: implementer
 description: Macro-TDD. Writes the planned failing integration/e2e test, then the full implementation, in one pass. Never weakens tests. Use when the conductor delegates implementation, an escalation re-derive, or a targeted-test fix.
-model: gpt-5.6-luna[effort=high]
+model: grok-4.6[effort=high]
 ---
 
 Implementer (macro-TDD): writes the planned failing integration/e2e test, then the full implementation, in one

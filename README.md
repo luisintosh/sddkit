@@ -60,15 +60,15 @@ Models live in `src/catalog.yaml` as a host × profile matrix. Agents declare a 
 entry. Skills (`sddkit`, `sddkit-plan`) inherit the session model — run `/sddkit` on Grok 4.6 Extra High, Claude opus,
 or Codex sol.
 
-| profile    | OpenCode                      | Cursor                       | Claude    | Codex                 |
-| ---------- | ----------------------------- | ---------------------------- | --------- | --------------------- |
-| `conduct`  | `opencode-go/qwen3.7-plus`    | `inherit`                    | `inherit` | `inherit`             |
-| `think`    | `openai/gpt-5.6-sol`          | `grok-4.6[effort=xhigh]`     | `opus`    | `gpt-5.6-sol`         |
-| `execute`  | `openai/gpt-5.6-luna`         | `gpt-5.6-luna[effort=high]`  | `sonnet`  | `gpt-5.6-luna[high]`  |
-| `review`   | `opencode-go/kimi-k3`         | `gpt-5.6-terra[effort=high]` | `opus`    | `gpt-5.6-terra[high]` |
-| `critique` | `opencode-go/kimi-k2.7-code`  | `gpt-5.6-terra[effort=high]` | `opus`    | `gpt-5.6-terra[high]` |
-| `validate` | `opencode-go/deepseek-v4-pro` | `grok-4.6[effort=medium]`    | `sonnet`  | `gpt-5.6-luna[high]`  |
-| `write`    | `opencode-go/kimi-k3`         | `gpt-5.6-luna[effort=high]`  | `sonnet`  | `gpt-5.6-luna[high]`  |
+| profile    | OpenCode                      | Cursor                         | Claude    | Codex                 |
+| ---------- | ----------------------------- | ------------------------------ | --------- | --------------------- |
+| `conduct`  | `opencode-go/qwen3.7-plus`    | `inherit`                      | `inherit` | `inherit`             |
+| `think`    | `openai/gpt-5.6-sol`          | `grok-4.6[effort=xhigh]`       | `opus`    | `gpt-5.6-sol`         |
+| `execute`  | `openai/gpt-5.6-luna`         | `grok-4.6[effort=high]`        | `sonnet`  | `gpt-5.6-luna[high]`  |
+| `review`   | `opencode-go/kimi-k3`         | `grok-4.6[effort=high]`        | `opus`    | `gpt-5.6-terra[high]` |
+| `critique` | `opencode-go/kimi-k2.7-code`  | `claude-sonnet-5[effort=high]` | `opus`    | `gpt-5.6-terra[high]` |
+| `validate` | `opencode-go/deepseek-v4-pro` | `grok-4.6[effort=medium]`      | `sonnet`  | `gpt-5.6-luna[high]`  |
+| `write`    | `opencode-go/kimi-k3`         | `grok-4.6[effort=medium]`      | `sonnet`  | `gpt-5.6-luna[high]`  |
 
 | agent           | profile    |
 | --------------- | ---------- |
