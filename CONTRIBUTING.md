@@ -11,11 +11,16 @@
 `dist/` and `manifest.txt` are **generated and tracked** so clients install without a build. Never hand-edit them. After
 any `src/` change run `bun run build` before commit; CI fails if they drift.
 
+New catalog agents must be named `sddkit-<role>` so they cannot collide with host built-ins (Cursor's `code-reviewer`,
+and similarly generic IDs on Codex/Claude/OpenCode). The conductor (`sddkit`) and planner (`sddkit-plan`) already follow
+that rule.
+
 ## Hygiene (`bun run check`)
 
 Requires a prior `bun run build`. Validates:
 
-- `src/catalog.yaml` shape (no `implementer-pro` or `tester`, every host × profile present)
+- `src/catalog.yaml` shape (agents are `sddkit` or `sddkit-*`; no `implementer-pro` or `tester`; every host × profile
+  present)
 - Emitted dist frontmatter / Codex TOML matches catalog profiles
 - README profile × host matrix and agent → profile table match catalog
 - `manifest.txt` hashes match `dist/`
@@ -58,5 +63,5 @@ bun run release -- --major
 bun run release -- v1.3.0  # explicit version
 ```
 
-Publishing a GitHub Release runs CI’s `release-assets` job, which uploads `sddkit-dist.tar.gz` (`dist/` + `manifest.txt`).
-Annotated tags; don’t move published tags — cut a new patch instead.
+Publishing a GitHub Release runs CI’s `release-assets` job, which uploads `sddkit-dist.tar.gz` (`dist/` +
+`manifest.txt`). Annotated tags; don’t move published tags — cut a new patch instead.

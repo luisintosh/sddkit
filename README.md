@@ -43,7 +43,7 @@ docs/feats/<feature>/
   plan.md
 docs/product/<slug>/
   roadmap.md             optional, written by sddkit-plan
-src/<domain>/README.md   domain doc, written by docs-writer at docs-sync
+src/<domain>/README.md   domain doc, written by sddkit-docs-writer at docs-sync
 docs/domains/<domain>.md same, for a domain too cross-cutting to own a directory
 .agents/bin/sddkit-state.mjs    installed by npx/bunx sddkit
 .agents/skills/          sddkit, sddkit-plan + setup-docs
@@ -60,27 +60,27 @@ Models live in `src/catalog.yaml` as a host × profile matrix. Agents declare a 
 entry. Skills (`sddkit`, `sddkit-plan`) inherit the session model — run `/sddkit` on Grok 4.6 Extra High, Claude sonnet,
 or Codex terra.
 
-| profile    | OpenCode                      | Cursor                         | Claude                   | Codex                  |
-| ---------- | ----------------------------- | ------------------------------ | ------------------------ | ---------------------- |
-| `conduct`  | `opencode-go/qwen3.7-plus`    | `inherit`                      | `inherit`                | `inherit`              |
-| `think`    | `openai/gpt-5.6-sol`          | `grok-4.6[effort=xhigh]`       | `sonnet[effort=xhigh]`   | `gpt-5.6-terra[xhigh]` |
-| `execute`  | `openai/gpt-5.6-luna`         | `grok-4.6[effort=high]`        | `sonnet[effort=high]`    | `gpt-5.6-terra[high]`  |
-| `review`   | `opencode-go/kimi-k3`         | `grok-4.6[effort=high]`        | `sonnet[effort=high]`    | `gpt-5.6-terra[high]`  |
-| `critique` | `opencode-go/kimi-k2.7-code`  | `claude-sonnet-5[effort=high]` | `opus[effort=high]`      | `gpt-5.6-sol[high]`    |
-| `validate` | `opencode-go/deepseek-v4-pro` | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]`  | `gpt-5.6-terra[high]`  |
-| `write`    | `opencode-go/kimi-k3`         | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]`  | `gpt-5.6-luna[medium]` |
+| profile    | OpenCode                      | Cursor                         | Claude                  | Codex                  |
+| ---------- | ----------------------------- | ------------------------------ | ----------------------- | ---------------------- |
+| `conduct`  | `opencode-go/qwen3.7-plus`    | `inherit`                      | `inherit`               | `inherit`              |
+| `think`    | `openai/gpt-5.6-sol`          | `grok-4.6[effort=xhigh]`       | `sonnet[effort=xhigh]`  | `gpt-5.6-terra[xhigh]` |
+| `execute`  | `openai/gpt-5.6-luna`         | `grok-4.6[effort=high]`        | `sonnet[effort=high]`   | `gpt-5.6-terra[high]`  |
+| `review`   | `opencode-go/kimi-k3`         | `grok-4.6[effort=high]`        | `sonnet[effort=high]`   | `gpt-5.6-terra[high]`  |
+| `critique` | `opencode-go/kimi-k2.7-code`  | `claude-sonnet-5[effort=high]` | `opus[effort=high]`     | `gpt-5.6-sol[high]`    |
+| `validate` | `opencode-go/deepseek-v4-pro` | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]` | `gpt-5.6-terra[high]`  |
+| `write`    | `opencode-go/kimi-k3`         | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]` | `gpt-5.6-luna[medium]` |
 
-| agent           | profile    |
-| --------------- | ---------- |
-| `sddkit`        | `conduct`  |
-| `spec`          | `think`    |
-| `architect`     | `think`    |
-| `plan-reviewer` | `review`   |
-| `implementer`   | `execute`  |
-| `code-reviewer` | `critique` |
-| `qa`            | `validate` |
-| `docs-writer`   | `write`    |
-| `sddkit-plan`   | `think`    |
+| agent                  | profile    |
+| ---------------------- | ---------- |
+| `sddkit`               | `conduct`  |
+| `sddkit-spec`          | `think`    |
+| `sddkit-architect`     | `think`    |
+| `sddkit-plan-reviewer` | `review`   |
+| `sddkit-implementer`   | `execute`  |
+| `sddkit-code-reviewer` | `critique` |
+| `sddkit-qa`            | `validate` |
+| `sddkit-docs-writer`   | `write`    |
+| `sddkit-plan`          | `think`    |
 
 Checked in CI against `src/catalog.yaml` and emitted frontmatter / Codex TOML.
 
@@ -112,10 +112,9 @@ writes only `~/.config/opencode/agents/` — never `opencode.jsonc`. Claude skil
 
 After install, invoke `.agents/bin/sddkit-state.mjs` from the repo root. It is a Node ESM bundle; the `.mjs` extension
 keeps that even when the consuming repo's `package.json` is CommonJS. Node 20+ is already required for `npx`. The
-installer prints next steps: `/setup-docs`, installing
-[`gh`](https://cli.github.com/) (required — the pipeline verifies it at start). Another forge or tracker is fine if an
-MCP, Skill, or CLI for it is already connected. Optional [rtk](https://github.com/rtk-ai/rtk) hint (never
-auto-installed).
+installer prints next steps: `/setup-docs`, installing [`gh`](https://cli.github.com/) (required — the pipeline verifies
+it at start). Another forge or tracker is fine if an MCP, Skill, or CLI for it is already connected. Optional
+[rtk](https://github.com/rtk-ai/rtk) hint (never auto-installed).
 
 ### Setup Docs
 
@@ -125,7 +124,7 @@ auto-installed).
 
 Creates `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and `docs/feats/.gitkeep` if missing. `AGENTS.md`
 must include install/dev/build/test/lint/typecheck (and a single-test-file command). It does **not** backfill domain
-READMEs for existing code — `docs-writer` creates each one as a feature touches that domain.
+READMEs for existing code — `sddkit-docs-writer` creates each one as a feature touches that domain.
 
 ### Start a Feature
 
@@ -135,8 +134,8 @@ READMEs for existing code — `docs-writer` creates each one as a feature touche
 session model (Grok Extra High / opus / sol), then describe the feature.
 
 `sddkit` verifies `gh` (or a connected substitute) + the target repo, creates `feat/<slug>`, scaffolds state with
-`.agents/bin/sddkit-state.mjs init`, and runs the pipeline, stopping at the spec and plan gates for review. Resume by asking
-to continue.
+`.agents/bin/sddkit-state.mjs init`, and runs the pipeline, stopping at the spec and plan gates for review. Resume by
+asking to continue.
 
 Not for a confined, no-behavior-branch change — a typo, a comment, a version bump, a single-line config value, a pure
 rename. A fresh run flags these and asks before scaffolding state; an unattended run, or one naming a GitHub issue,
@@ -172,18 +171,19 @@ context; the handoff carries forward only what the next run actually needs.
 ```
 initialize → specify (spec + contracts) → spec critique → ⏸spec gate
   → plan (Test strategy + waypoints) → plan critique → ⏸plan gate
-  → implementer (failing integration/e2e test, then full impl) → targeted test
-  → code-reviewer (lens: all) → commit → verify → docs-sync → pr → qa → complete → handoff
+  → sddkit-implementer (failing integration/e2e test, then full impl) → targeted test
+  → sddkit-code-reviewer (lens: all) → commit → verify → docs-sync → pr → qa → complete → handoff
 ```
 
 Architect picks the repo's highest existing test layer, or Playwright when the feature is UI-observable and no
-e2e/integration runner exists. `implementer` writes that one failing test and the implementation in a single pass.
+e2e/integration runner exists. `sddkit-implementer` writes that one failing test and the implementation in a single
+pass.
 
 **Escalation:** if the targeted test fails twice or review exhausts with `blocker`/`major`, set `escalation: 1` and
-re-run `implementer` with failure history (re-derive from plan+tests). One rung; then pause for a human.
+re-run `sddkit-implementer` with failure history (re-derive from plan+tests). One rung; then pause for a human.
 
-**Docs:** `docs-sync` delegates to `docs-writer`, which writes the touched domain's `README.md` — co-located with the
-code, or `docs/domains/<domain>.md` when the domain is cross-cutting — to a fixed skeleton (purpose, how it works,
+**Docs:** `docs-sync` delegates to `sddkit-docs-writer`, which writes the touched domain's `README.md` — co-located with
+the code, or `docs/domains/<domain>.md` when the domain is cross-cutting — to a fixed skeleton (purpose, how it works,
 usage, configuration, gotchas), capped at 120 lines, current state only, never a changelog. Environment variables and
 external service setup are grepped out of the feature's own diff and repeated in the PR body under `## Setup required`,
 since that part is work only a human can do.

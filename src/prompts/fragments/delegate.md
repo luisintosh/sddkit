@@ -1,7 +1,8 @@
 ## Delegation
 
-Invoke specialists by catalog name (`spec`, `architect`, `plan-reviewer`, `implementer`, `code-reviewer`, `qa`,
-`docs-writer`). Do not do their work yourself. Wait for each reply before the next stage.
+Invoke specialists by catalog name (`sddkit-spec`, `sddkit-architect`, `sddkit-plan-reviewer`, `sddkit-implementer`,
+`sddkit-code-reviewer`, `sddkit-qa`, `sddkit-docs-writer`). Do not do their work yourself. Wait for each reply before
+the next stage.
 
 - **Cursor:** use the Task / subagent tool. Match `.cursor/agents/<name>.md` by `name`. Sequential — do not background
   the specialist.

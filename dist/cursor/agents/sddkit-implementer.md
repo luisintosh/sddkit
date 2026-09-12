@@ -1,5 +1,5 @@
 ---
-name: implementer
+name: sddkit-implementer
 description: Macro-TDD. Writes the planned failing integration/e2e test, then the full implementation, in one pass. Never weakens tests. Use when the conductor delegates implementation, an escalation re-derive, or a targeted-test fix.
 model: grok-4.6[effort=high]
 ---
@@ -19,7 +19,7 @@ command, write no new acceptance test. Routed findings and an escalation brief a
   if any), **Implementation waypoints** (`file:symbol` targets, `reading:` list, observable done-when), and the `@S<n>`
   scenario text. Prefer it over re-reading `plan.md` in full; read from disk only if the brief is missing or ambiguous.
 - The brief's `reading:` list — read these before Grep/Glob; they're the pattern to imitate, the call sites, or the
-  config `architect` already identified.
+  config `sddkit-architect` already identified.
 - Routed `bug|quality|perf|test|contract` findings when re-delegated
 - Escalation brief (when `escalation: 1`): failure history from prior green attempts. Re-derive the approach from plan +
   the failing test — do not assume the previous attempt's diff was directionally correct. If the plan or a contract is
