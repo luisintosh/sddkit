@@ -64,10 +64,33 @@ function parseManifest(raw: string): Manifest {
   return map
 }
 
-function backupStamp(): string {
-  const d = new Date()
-  const p2 = (n: number) => String(n).padStart(2, "0")
-  return `${d.getFullYear()}${p2(d.getMonth() + 1)}${p2(d.getDate())}${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}`
+type CopyOp = {
+  kind: "create" | "update" | "overwrite"
+  label: string
+  dest: string
+  src: string
+  chmod?: number
+  localEdit: boolean
+  extra?: string
+}
+
+type DeleteOp = {
+  kind: "delete"
+  label: string
+  dest: string
+  recursive?: boolean
+  localEdit: boolean
+  extra?: string
+}
+
+type FileOp = CopyOp | DeleteOp
+
+type TreePlan = {
+  prefix: string
+  destRoot: string
+  ops: FileOp[]
+  skipped: number
+  manifestBody: string
 }
 
 const STATE_BIN = "sddkit-state.mjs"
@@ -152,25 +175,25 @@ async function promptInteractive(targetDir: string): Promise<{ scope: Scope; tar
   })
   if (p.isCancel(targets)) abort()
 
-  const destHint = scope === "global" ? process.env.HOME || "$HOME" : targetDir
-  const confirmed = await p.confirm({
-    message: `Install ${targets.join(", ")} into ${destHint}?`,
-    initialValue: true,
-  })
-  if (p.isCancel(confirmed) || !confirmed) abort()
-
-  p.outro("Starting install")
   return { scope: scope as Scope, target: targets.join(",") }
 }
 
-function parseArgs(argv: string[]): { dryRun: boolean; doctorOnly: boolean } {
+function parseArgs(argv: string[]): { dryRun: boolean; doctorOnly: boolean; yes: boolean } {
   let dryRun = false
   let doctorOnly = false
+  let yes = false
   for (const arg of argv) {
     if (arg === "--dry-run") dryRun = true
     else if (arg === "--doctor") doctorOnly = true
+    else if (arg === "--yes") yes = true
   }
-  return { dryRun, doctorOnly }
+  return { dryRun, doctorOnly, yes }
+}
+
+function shouldConfirmApply(yes: boolean): boolean {
+  if (yes) return false
+  if (process.env.CI) return false
+  return Boolean(process.stdout.isTTY)
 }
 
 function isGitRepo(dir: string): boolean {
@@ -217,14 +240,84 @@ function resolveDests(scope: Scope, targetDir: string, home: string) {
   }
 }
 
-async function installTree(opts: {
+function opLine(op: FileOp): string {
+  let verb: string
+  switch (op.kind) {
+    case "create":
+      verb = "+ create   "
+      break
+    case "update":
+      verb = "~ update   "
+      break
+    case "overwrite":
+      verb = "~ overwrite"
+      break
+    case "delete":
+      verb = "- delete   "
+      break
+  }
+  const warn = op.localEdit ? " (local edits will be lost)" : ""
+  const extra = op.extra ? ` ${op.extra}` : ""
+  return `  ${verb} ${op.label}${warn}${extra}`
+}
+
+function countKinds(ops: FileOp[]) {
+  let created = 0
+  let updated = 0
+  let overwritten = 0
+  let deleted = 0
+  for (const op of ops) {
+    if (op.kind === "create") created++
+    else if (op.kind === "update") updated++
+    else if (op.kind === "overwrite") overwritten++
+    else deleted++
+  }
+  return { created, updated, overwritten, deleted }
+}
+
+function printTreePlan(plan: TreePlan) {
+  for (const op of plan.ops) log(opLine(op))
+  const { created, updated, overwritten, deleted } = countKinds(plan.ops)
+  log(
+    `  ${plan.prefix}: created ${created}, updated ${updated}, overwritten ${overwritten}, deleted ${deleted}, unchanged ${plan.skipped}.`,
+  )
+}
+
+async function applyOp(op: FileOp): Promise<void> {
+  if (op.kind === "delete") {
+    await fs.rm(op.dest, { recursive: op.recursive === true, force: true })
+    return
+  }
+  await fs.mkdir(path.dirname(op.dest), { recursive: true })
+  await fs.copyFile(op.src, op.dest)
+  if (op.chmod !== undefined) await fs.chmod(op.dest, op.chmod)
+}
+
+async function applyTree(plan: TreePlan): Promise<void> {
+  for (const op of plan.ops) await applyOp(op)
+  await fs.mkdir(plan.destRoot, { recursive: true })
+  await fs.writeFile(path.join(plan.destRoot, ".harness-manifest"), plan.manifestBody)
+}
+
+async function confirmApply(ops: FileOp[]): Promise<void> {
+  const n = ops.length
+  const local = ops.filter((op) => op.localEdit).length
+  const noun = n === 1 ? "change" : "changes"
+  const message =
+    local > 0
+      ? `Apply ${n} ${noun}? ${local} file${local === 1 ? " has" : "s have"} local edits that will be lost.`
+      : `Apply ${n} ${noun}?`
+  const confirmed = await p.confirm({ message, initialValue: true })
+  if (p.isCancel(confirmed) || !confirmed) abort()
+}
+
+async function planTree(opts: {
   prefix: string
   destRoot: string
   stageDir: string
   newManifest: Manifest
-  dryRun: boolean
-}) {
-  const { prefix, destRoot, stageDir, newManifest, dryRun } = opts
+}): Promise<TreePlan> {
+  const { prefix, destRoot, stageDir, newManifest } = opts
   const oldManifestPath = path.join(destRoot, ".harness-manifest")
   let oldManifest: Manifest = new Map()
   try {
@@ -233,12 +326,7 @@ async function installTree(opts: {
     oldManifest = new Map()
   }
 
-  const backupDir = path.join(destRoot, `.backup-${backupStamp()}`)
-  let backupUsed = false
-  let installed = 0
-  let updated = 0
-  let backedUp = 0
-  let pruned = 0
+  const ops: FileOp[] = []
   let skipped = 0
   const prefixSlash = `${prefix}/`
 
@@ -247,14 +335,11 @@ async function installTree(opts: {
     const destRel = relPath.slice(prefixSlash.length)
     const dest = fromPosix(destRoot, destRel)
     const wantHash = newManifest.get(relPath) ?? ""
+    const src = fromPosix(stageDir, relPath)
+    const label = `${prefix}/${destRel}`
 
     if (!fsSync.existsSync(dest) || !fsSync.statSync(dest).isFile()) {
-      if (!dryRun) {
-        await fs.mkdir(path.dirname(dest), { recursive: true })
-        await fs.copyFile(fromPosix(stageDir, relPath), dest)
-      }
-      log(`  + install  ${prefix}/${destRel}`)
-      installed++
+      ops.push({ kind: "create", label, dest, src, localEdit: false })
       continue
     }
 
@@ -266,21 +351,9 @@ async function installTree(opts: {
 
     const prevHash = oldManifest.get(destRel)
     if (prevHash && haveHash !== prevHash) {
-      if (!dryRun) {
-        const backupDest = fromPosix(backupDir, destRel)
-        await fs.mkdir(path.dirname(backupDest), { recursive: true })
-        await fs.copyFile(dest, backupDest)
-      }
-      backupUsed = true
-      backedUp++
-      log(`  ~ modified ${prefix}/${destRel} (locally changed — backed up, then updated)`)
+      ops.push({ kind: "overwrite", label, dest, src, localEdit: true })
     } else {
-      log(`  ~ update   ${prefix}/${destRel}`)
-      updated++
-    }
-    if (!dryRun) {
-      await fs.mkdir(path.dirname(dest), { recursive: true })
-      await fs.copyFile(fromPosix(stageDir, relPath), dest)
+      ops.push({ kind: "update", label, dest, src, localEdit: false })
     }
   }
 
@@ -292,49 +365,39 @@ async function installTree(opts: {
 
     const haveHash = await sha256File(dest)
     const prevHash = oldManifest.get(destRel)
-    if (prevHash && haveHash !== prevHash) {
-      if (!dryRun) {
-        const backupDest = fromPosix(backupDir, destRel)
-        await fs.mkdir(path.dirname(backupDest), { recursive: true })
-        await fs.copyFile(dest, backupDest)
-      }
-      backupUsed = true
-      log(`  ~ prune    ${prefix}/${destRel} (locally changed — backed up, then removed)`)
-    } else {
-      log(`  - prune    ${prefix}/${destRel}`)
-    }
-    if (!dryRun) await fs.rm(dest)
-    pruned++
+    const localEdit = Boolean(prevHash && haveHash !== prevHash)
+    ops.push({
+      kind: "delete",
+      label: `${prefix}/${destRel}`,
+      dest,
+      localEdit,
+    })
   }
 
-  if (!dryRun) {
-    await fs.mkdir(destRoot, { recursive: true })
-    const lines: string[] = []
-    for (const relPath of newManifest.keys()) {
-      if (!relPath.startsWith(prefixSlash)) continue
-      const destRel = relPath.slice(prefixSlash.length)
-      lines.push(`${newManifest.get(relPath)}  ${destRel}`)
-    }
-    lines.sort((a, b) => (a.split("  ")[1] ?? "").localeCompare(b.split("  ")[1] ?? ""))
-    await fs.writeFile(oldManifestPath, lines.length > 0 ? `${lines.join("\n")}\n` : "")
+  const lines: string[] = []
+  for (const relPath of newManifest.keys()) {
+    if (!relPath.startsWith(prefixSlash)) continue
+    const destRel = relPath.slice(prefixSlash.length)
+    lines.push(`${newManifest.get(relPath)}  ${destRel}`)
   }
+  lines.sort((a, b) => (a.split("  ")[1] ?? "").localeCompare(b.split("  ")[1] ?? ""))
 
-  log(
-    `  ${prefix}: installed ${installed}, updated ${updated}, backed up ${backedUp}, pruned ${pruned}, unchanged ${skipped}.`,
-  )
-  if (backupUsed) {
-    log(`  Locally modified files preserved under ${destRoot}/.backup-*/`)
+  return {
+    prefix,
+    destRoot,
+    ops,
+    skipped,
+    manifestBody: lines.length > 0 ? `${lines.join("\n")}\n` : "",
   }
 }
 
-async function installBin(opts: {
+async function planBin(opts: {
   scope: Scope
   targetDir: string
   home: string
   stageDir: string
   newManifest: Manifest
-  dryRun: boolean
-}) {
+}): Promise<FileOp[]> {
   const destDir =
     opts.scope === "global" ? path.join(opts.home, ".agents", "bin") : path.join(opts.targetDir, ".agents", "bin")
   const dest = path.join(destDir, STATE_BIN)
@@ -342,15 +405,13 @@ async function installBin(opts: {
   const wantHash = opts.newManifest.get(`bin/${STATE_BIN}`)
   if (!wantHash) die(`manifest missing bin/${STATE_BIN}`)
 
-  if (fsSync.existsSync(dest) && (await sha256File(dest)) === wantHash) {
-    log(`  .agents/bin/${STATE_BIN} unchanged`)
-  } else {
-    if (fsSync.existsSync(dest)) log(`  ~ update   .agents/bin/${STATE_BIN}`)
-    else log(`  + install  .agents/bin/${STATE_BIN}`)
-    if (!opts.dryRun) {
-      await fs.mkdir(destDir, { recursive: true })
-      await fs.copyFile(src, dest)
-      await fs.chmod(dest, 0o755)
+  const ops: FileOp[] = []
+  const label = `.agents/bin/${STATE_BIN}`
+  if (!(fsSync.existsSync(dest) && (await sha256File(dest)) === wantHash)) {
+    if (fsSync.existsSync(dest)) {
+      ops.push({ kind: "update", label, dest, src, chmod: 0o755, localEdit: false })
+    } else {
+      ops.push({ kind: "create", label, dest, src, chmod: 0o755, localEdit: false })
     }
   }
 
@@ -360,23 +421,37 @@ async function installBin(opts: {
   }
   for (const leftover of leftovers) {
     if (!fsSync.existsSync(leftover)) continue
-    if (!opts.dryRun) await fs.rm(leftover)
     const rel = leftover.startsWith(`${opts.targetDir}${path.sep}`)
       ? leftover.slice(opts.targetDir.length + 1)
       : leftover
-    log(`  - prune    ${rel} (moved to .agents/bin/${STATE_BIN})`)
+    ops.push({
+      kind: "delete",
+      label: rel,
+      dest: leftover,
+      localEdit: false,
+      extra: `(moved to .agents/bin/${STATE_BIN})`,
+    })
   }
+  return ops
 }
 
-async function pruneLegacyCursorSkills(scope: Scope, targetDir: string, home: string, dryRun: boolean) {
+function planLegacyCursorSkills(scope: Scope, targetDir: string, home: string): FileOp[] {
   const dest = scope === "global" ? path.join(home, ".cursor", "skills") : path.join(targetDir, ".cursor", "skills")
-  if (!fsSync.existsSync(dest)) return
+  const ops: FileOp[] = []
+  if (!fsSync.existsSync(dest)) return ops
   for (const name of ["sddkit", "sddkit-plan", "setup-docs"]) {
     const pth = path.join(dest, name)
     if (!fsSync.existsSync(pth)) continue
-    if (!dryRun) await fs.rm(pth, { recursive: true, force: true })
-    log(`  - prune    .cursor/skills/${name} (moved to .agents/skills/)`)
+    ops.push({
+      kind: "delete",
+      label: `.cursor/skills/${name}`,
+      dest: pth,
+      recursive: true,
+      localEdit: false,
+      extra: "(moved to .agents/skills/)",
+    })
   }
+  return ops
 }
 
 function doctor(targetDir: string, home: string) {
@@ -475,7 +550,7 @@ async function stagePayload(payloadDir: string): Promise<{ stageDir: string; man
 }
 
 async function main() {
-  const { dryRun, doctorOnly } = parseArgs(process.argv.slice(2))
+  const { dryRun, doctorOnly, yes } = parseArgs(process.argv.slice(2))
   const targetDir = path.resolve(process.env.TARGET_DIR || process.cwd())
   const home = process.env.HOME || os.homedir()
 
@@ -526,65 +601,85 @@ async function main() {
     log(`Verified ${fileCount} files against manifest.txt`)
 
     const dests = resolveDests(scope, targetDir, home)
-    await installTree({
-      prefix: "agents",
-      destRoot: dests.agentsRoot,
-      stageDir,
-      newManifest: manifest,
-      dryRun,
-    })
-    if (wantsHost(installTarget, "cursor")) {
-      await installTree({
-        prefix: "cursor/agents",
-        destRoot: dests.cursorAgents,
+    const trees: TreePlan[] = [
+      await planTree({
+        prefix: "agents",
+        destRoot: dests.agentsRoot,
         stageDir,
         newManifest: manifest,
-        dryRun,
-      })
+      }),
+    ]
+    if (wantsHost(installTarget, "cursor")) {
+      trees.push(
+        await planTree({
+          prefix: "cursor/agents",
+          destRoot: dests.cursorAgents,
+          stageDir,
+          newManifest: manifest,
+        }),
+      )
     }
     if (wantsHost(installTarget, "claude")) {
-      await installTree({
-        prefix: "claude/agents",
-        destRoot: dests.claudeAgents,
-        stageDir,
-        newManifest: manifest,
-        dryRun,
-      })
-      await installTree({
-        prefix: "agents/skills",
-        destRoot: dests.claudeSkills,
-        stageDir,
-        newManifest: manifest,
-        dryRun,
-      })
+      trees.push(
+        await planTree({
+          prefix: "claude/agents",
+          destRoot: dests.claudeAgents,
+          stageDir,
+          newManifest: manifest,
+        }),
+      )
+      trees.push(
+        await planTree({
+          prefix: "agents/skills",
+          destRoot: dests.claudeSkills,
+          stageDir,
+          newManifest: manifest,
+        }),
+      )
     }
     if (wantsHost(installTarget, "codex")) {
-      await installTree({
-        prefix: "codex/agents",
-        destRoot: dests.codexAgents,
-        stageDir,
-        newManifest: manifest,
-        dryRun,
-      })
+      trees.push(
+        await planTree({
+          prefix: "codex/agents",
+          destRoot: dests.codexAgents,
+          stageDir,
+          newManifest: manifest,
+        }),
+      )
     }
     if (wantsHost(installTarget, "opencode")) {
-      await installTree({
-        prefix: dests.opencodePrefix,
-        destRoot: dests.opencodeDest,
-        stageDir,
-        newManifest: manifest,
-        dryRun,
-      })
+      trees.push(
+        await planTree({
+          prefix: dests.opencodePrefix,
+          destRoot: dests.opencodeDest,
+          stageDir,
+          newManifest: manifest,
+        }),
+      )
     }
 
-    await installBin({ scope, targetDir, home, stageDir, newManifest: manifest, dryRun })
-    await pruneLegacyCursorSkills(scope, targetDir, home, dryRun)
+    const extraOps = [
+      ...(await planBin({ scope, targetDir, home, stageDir, newManifest: manifest })),
+      ...planLegacyCursorSkills(scope, targetDir, home),
+    ]
+
+    for (const tree of trees) printTreePlan(tree)
+    for (const op of extraOps) log(opLine(op))
+
+    const allFileOps = [...trees.flatMap((tree) => tree.ops), ...extraOps]
 
     if (dryRun) {
       log("")
       log(`Dry run complete (scope=${scope} target=${installTarget}).`)
       return
     }
+
+    if (allFileOps.length > 0 && shouldConfirmApply(yes)) {
+      await confirmApply(allFileOps)
+    }
+
+    for (const tree of trees) await applyTree(tree)
+    for (const op of extraOps) await applyOp(op)
 
     log("")
     log(

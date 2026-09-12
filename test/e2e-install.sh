@@ -83,30 +83,30 @@ assert_file_exists "${TARGET}/.agents/.harness-manifest" "agents harness-manifes
 
 # 2. no-op reinstall
 reinstall_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" --dry-run 2>&1)"
-if grep -q "unchanged" <<<"$reinstall_output" && ! grep -q "+ install" <<<"$reinstall_output"; then
+if grep -q "unchanged" <<<"$reinstall_output" && ! grep -q "+ create" <<<"$reinstall_output"; then
   ok "no-op reinstall reports unchanged"
 else
-  # dry-run still prints per-tree summary with 0 installed
-  if grep -q "installed 0" <<<"$reinstall_output"; then
-    ok "no-op reinstall reports installed 0"
+  # dry-run still prints per-tree summary with 0 created
+  if grep -q "created 0" <<<"$reinstall_output"; then
+    ok "no-op reinstall reports created 0"
   else
     bad "no-op reinstall unexpected: $reinstall_output"
   fi
 fi
 
-# 3. local modify + backup
+# 3. local modify + overwrite (no backup)
 before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit.md" | awk '{print $1}')"
 echo "LOCAL EDIT" >> "${TARGET}/.opencode/agents/sddkit.md"
 
 modify_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" 2>&1)"
-if grep -q "modified opencode/agents/sddkit.md" <<<"$modify_output"; then
+if grep -q "overwrite opencode/agents/sddkit.md" <<<"$modify_output"; then
   ok "reports locally-modified opencode agent"
 else
   bad "should report locally-modified file: $modify_output"
 fi
 
-backup_copy="$(find "${TARGET}/.opencode" -path '*/.backup-*/agents/sddkit.md' | head -1)"
-if [[ -n "$backup_copy" ]]; then ok "locally-modified file was backed up"; else bad "expected backup of agents/sddkit.md"; fi
+backup_copy="$(find "${TARGET}/.opencode" -path '*/.backup-*' | head -1)"
+if [[ -z "$backup_copy" ]]; then ok "did not create a .backup-* directory"; else bad "unexpected backup: $backup_copy"; fi
 
 after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit.md" | awk '{print $1}')"
 assert_eq "$after_hash" "$before_hash" "locally-modified file restored to upstream"
@@ -116,10 +116,10 @@ rm "${UPSTREAM}/dist/opencode/agents/qa.md"
 HARNESS_ROOT="$UPSTREAM" bun "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
 
 prune_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" 2>&1)"
-if grep -q "prune    opencode/agents/qa.md" <<<"$prune_output"; then
-  ok "reports prune of opencode/agents/qa.md"
+if grep -q "delete    opencode/agents/qa.md" <<<"$prune_output"; then
+  ok "reports delete of opencode/agents/qa.md"
 else
-  bad "should report prune: $prune_output"
+  bad "should report delete: $prune_output"
 fi
 assert_file_absent "${TARGET}/.opencode/agents/qa.md" "qa.md removed after upstream deletion"
 
