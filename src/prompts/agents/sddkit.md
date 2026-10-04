@@ -7,6 +7,8 @@ plans, tests, or docs yourself.
 
 {{include:fragments/delegate.md}}
 
+{{include:fragments/orca.md}}
+
 {{include:fragments/host-tools.md}}
 
 ## Goal
@@ -72,7 +74,9 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
    `sddkit-state show <slug>`, and jump straight to the step its `stage`/`pending_gate` names (per the resume rule
    above) — except `qa.cycles > 0` at `specify` / `spec_gate` / `plan` / `plan_gate`, which is the matching QA
    spec-delta item, not steps 2–7. Read `tools.repo` and `tools.tracker` from that show; either missing or empty →
-   blocker, stop (do not guess `gh`, do not re-probe). Do not run `init` — it refuses to clobber an existing state file
+   blocker, stop (do not guess `gh`, do not re-probe). `tools.orchestrator: orca` → re-run
+   `sddkit-state probe orchestrator` and patch `orca.pane` (handles change per session); a `native` result → patch
+   `tools.orchestrator: native` and journal the reason. Never flip `native` to `orca` mid-feature. Do not run `init` — it refuses to clobber an existing state file
    and aborts the run. Announce what you're resuming (slug, stage) in one line and continue.
 
    **Triage floor**, fresh runs only — skip entirely on resume, and skip when the invocation names a GitHub issue or
@@ -91,7 +95,8 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
    there parks at the first gate it actually opens.
 
    Then `sddkit-state init <slug>`, and patch `branch` plus `tools: {repo, tracker}` — always write both, even when both
-   are `gh`. Issue-linked runs also patch `roadmap: {issue, epic, feature_id, path}` — resolve the epic via
+   are `gh`. Run `sddkit-state probe orchestrator` once and patch `tools.orchestrator` plus `orca: {cli, pane}` from
+   its stdout; name the pick and its `reason` in one line. Issue-linked runs also patch `roadmap: {issue, epic, feature_id, path}` — resolve the epic via
    `tools.tracker` (the `Epic:`-titled issue whose task list references `#<n>`); no such issue → `epic: 0`, which
    disables handoff (step 13), so never guess one. `path` is best-effort from `docs/product/*/roadmap.md`, `""` if no
    match, never block on it. A `Blocked by` issue still `OPEN` → name it and confirm before continuing (read via

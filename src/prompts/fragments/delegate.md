@@ -9,3 +9,4 @@ the next stage.
 - **Claude Code:** use the Agent tool (Task on Claude Code before v2.1.63). Match `.claude/agents/<name>.md`.
 - **Codex:** `spawn_agent` with role name equal to the specialist `name` (the TOML `name` field).
 - **OpenCode:** delegate to the named subagent.
+- **Orca** (`tools.orchestrator: orca`, any host): dispatch per **Orca dispatch** below instead of the host tool.

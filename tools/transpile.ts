@@ -14,6 +14,7 @@ import {
   type Host,
   type ModelRef,
 } from "./models.ts"
+import { type OrcaRoutes, orcaAgentFile, orcaLaunchCommand, orcaRoutesByAgent } from "../src/state/orca.ts"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const srcDir = path.join(root, "src")
@@ -36,6 +37,7 @@ type AgentCatalog = {
 
 type Catalog = {
   hosts: Record<Host, { profiles: Record<string, ModelRef> }>
+  orchestrators?: { orca?: { profiles?: OrcaRoutes } }
   agents: Record<string, AgentCatalog>
   commands: Record<string, { description: string }>
   opencode_config: {
@@ -74,7 +76,15 @@ async function loadCatalog(): Promise<Catalog> {
   return parseYaml(raw) as Catalog
 }
 
-async function resolveIncludes(body: string): Promise<string> {
+function orcaRoutesTable(catalog: Catalog): string {
+  const rows = Object.entries(orcaRoutesByAgent(catalog)).map(([name, route]) => {
+    const profile = catalog.agents[name]!.profile
+    return `| \`${name}\` | ${profile} | \`${orcaLaunchCommand(route)}\` | \`${orcaAgentFile(route.agent, name)}\` |`
+  })
+  return ["| Specialist | Profile | Launch command | Agent file |", "| --- | --- | --- | --- |", ...rows].join("\n")
+}
+
+async function resolveIncludes(body: string, catalog: Catalog): Promise<string> {
   const re = /\{\{include:([^}]+)\}\}/g
   let out = body
   const matches = [...body.matchAll(re)]
@@ -83,12 +93,13 @@ async function resolveIncludes(body: string): Promise<string> {
     const frag = await fs.readFile(path.join(srcDir, "prompts", rel), "utf8")
     out = out.replace(m[0], frag.trim())
   }
-  return out
+  // Generated after includes so fragments may carry it.
+  return out.replaceAll("{{orca:routes}}", orcaRoutesTable(catalog))
 }
 
-async function readPrompt(rel: string): Promise<string> {
+async function readPrompt(rel: string, catalog: Catalog): Promise<string> {
   const raw = await fs.readFile(path.join(srcDir, "prompts", rel), "utf8")
-  return resolveIncludes(`${raw.trim()}\n`)
+  return resolveIncludes(`${raw.trim()}\n`, catalog)
 }
 
 function yamlFrontmatter(obj: Record<string, unknown>): string {
@@ -140,7 +151,7 @@ async function emitOpencode(catalog: Catalog) {
 
   const commands: Record<string, { description: string; template: string }> = {}
   for (const [name, meta] of Object.entries(catalog.commands)) {
-    const template = (await readPrompt(`commands/${name}.md`)).trimEnd()
+    const template = (await readPrompt(`commands/${name}.md`, catalog)).trimEnd()
     commands[name] = { description: meta.description, template }
   }
 
@@ -195,7 +206,7 @@ async function emitOpencode(catalog: Catalog) {
   await writeFile(path.join(outRoot, "opencode.jsonc"), `${JSON.stringify(cfg, null, 2)}\n`)
 
   for (const [name, agent] of Object.entries(catalog.agents)) {
-    const body = await readPrompt(`agents/${name}.md`)
+    const body = await readPrompt(`agents/${name}.md`, catalog)
     const fm: Record<string, unknown> = {
       description: agent.description,
       mode: agent.opencode.mode,
@@ -221,7 +232,7 @@ async function emitSharedSkills(catalog: Catalog) {
       raw = raw.replace("{{include:fragments/reply-mapping.md}}", replyMappingPointer())
       await writeFile(path.join(outRoot, name, "references", "reply-mapping.md"), `${replyMapping.trim()}\n`)
     }
-    const body = await resolveIncludes(`${raw.trim()}\n`)
+    const body = await resolveIncludes(`${raw.trim()}\n`, catalog)
     const restrictions = cursorRestrictions(agent.opencode)
     const skillFm = {
       name,
@@ -234,7 +245,7 @@ async function emitSharedSkills(catalog: Catalog) {
   }
 
   for (const [name, meta] of Object.entries(catalog.commands)) {
-    const body = await readPrompt(`commands/${name}.md`)
+    const body = await readPrompt(`commands/${name}.md`, catalog)
     const fm = {
       name,
       description: meta.description,
@@ -260,7 +271,7 @@ async function emitCursor(catalog: Catalog) {
 
   for (const [name, agent] of Object.entries(catalog.agents)) {
     if (agent.cursor?.skill) continue
-    const body = await readPrompt(`agents/${name}.md`)
+    const body = await readPrompt(`agents/${name}.md`, catalog)
     const restrictions = cursorRestrictions(agent.opencode)
     const fullBody = `${body.trimEnd() + restrictions}\n`
 
@@ -280,7 +291,7 @@ async function emitClaude(catalog: Catalog) {
 
   for (const [name, agent] of Object.entries(catalog.agents)) {
     if (agent.cursor?.skill) continue
-    const body = await readPrompt(`agents/${name}.md`)
+    const body = await readPrompt(`agents/${name}.md`, catalog)
     const ref = resolveModel(catalog, "claude", agent)
     const fm: Record<string, unknown> = {
       name,
@@ -299,7 +310,7 @@ async function emitCodex(catalog: Catalog) {
 
   for (const [name, agent] of Object.entries(catalog.agents)) {
     if (agent.cursor?.skill) continue
-    const body = await readPrompt(`agents/${name}.md`)
+    const body = await readPrompt(`agents/${name}.md`, catalog)
     const resolved = formatCodexModel(resolveModel(catalog, "codex", agent))
     const sandbox = isReadonly(agent) ? "read-only" : "workspace-write"
     const lines = [

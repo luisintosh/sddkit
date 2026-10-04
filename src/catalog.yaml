@@ -43,6 +43,20 @@ hosts:
       validate: { id: gpt-5.6-terra, effort: high }
       write: { id: gpt-5.6-luna, effort: medium }
 
+# Optional supervised dispatch. When `sddkit-state probe orchestrator` finds Orca
+# plus the routed CLIs, the conductor starts each specialist as an Orca worker on
+# the CLI/model below instead of the host's own subagent. `conduct` is absent:
+# the conductor is never dispatched. Cursor ids carry their effort.
+orchestrators:
+  orca:
+    profiles:
+      think: { agent: claude, id: opus, effort: medium }
+      critique: { agent: claude, id: sonnet, effort: high }
+      review: { agent: claude, id: sonnet, effort: high }
+      execute: { agent: cursor, id: grok-4.7-high }
+      validate: { agent: cursor, id: grok-4.7-high }
+      write: { agent: cursor, id: grok-4.7-high }
+
 agents:
   sddkit:
     profile: conduct

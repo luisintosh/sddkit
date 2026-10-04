@@ -1,9 +1,15 @@
 #!/usr/bin/env bun
+import { execFile } from "node:child_process"
 import * as fs from "node:fs/promises"
+import * as os from "node:os"
+import * as path from "node:path"
 import { parse as parseYaml, stringify as stringifyYaml } from "yaml"
+import catalog from "../catalog.yaml"
 import { runInit, runPatch } from "./checkpoint.ts"
 import { runDecide } from "./decisions.ts"
 import { readState } from "./io.ts"
+import { orcaRoutesByAgent } from "./orca.ts"
+import { type ProbeDeps, probeOrchestrator } from "./probe.ts"
 import { validateState } from "./schema.ts"
 
 function usage(): never {
@@ -14,7 +20,8 @@ function usage(): never {
   sddkit-state patch <feature>   # YAML patch on stdin
   sddkit-state show <feature>
   sddkit-state validate <feature>
-  sddkit-state decide <feature> --event qa-route|skip-spec-gate|skip-plan-critique|skip-review --yaml '...'`)
+  sddkit-state decide <feature> --event qa-route|skip-spec-gate|skip-plan-critique|skip-review --yaml '...'
+  sddkit-state probe orchestrator`)
   process.exit(2)
 }
 
@@ -55,6 +62,39 @@ async function readPatch(args: string[]): Promise<Record<string, unknown>> {
     throw new Error("sddkit-state: patch must be a YAML mapping")
   }
   return parsed as Record<string, unknown>
+}
+
+async function exists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function nodeProbeDeps(root: string): ProbeDeps {
+  return {
+    env: process.env,
+    platform: process.platform,
+    root,
+    home: os.homedir(),
+    exec: (cmd, args) =>
+      new Promise((resolve) => {
+        execFile(cmd, args, { timeout: 15_000 }, (err, stdout) => {
+          const code = (err as { code?: unknown } | null)?.code
+          if (code === "ENOENT") resolve({ code: null, stdout: "" })
+          else resolve({ code: typeof code === "number" ? code : err ? 1 : 0, stdout: String(stdout) })
+        })
+      }),
+    which: async (bin) => {
+      for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
+        if (dir && (await exists(path.join(dir, bin)))) return true
+      }
+      return false
+    },
+    exists,
+  }
 }
 
 async function main(): Promise<void> {
@@ -102,6 +142,12 @@ async function main(): Promise<void> {
         if (!event) throw new Error("sddkit-state: decide requires --event")
         const input = await readPatch(rest)
         process.stdout.write(runDecide(event, input))
+        break
+      }
+      case "probe": {
+        if (feature !== "orchestrator") usage()
+        const result = await probeOrchestrator(nodeProbeDeps(root), orcaRoutesByAgent(catalog))
+        process.stdout.write(stringifyYaml(result))
         break
       }
       default:

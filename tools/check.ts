@@ -28,6 +28,7 @@ import {
   type ModelRef,
   PROFILE_NAMES,
 } from "./models.ts"
+import { ORCA_AGENTS, ORCA_UNDISPATCHED, type OrcaRoutes } from "../src/state/orca.ts"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const errors: string[] = []
@@ -71,6 +72,7 @@ type Catalog = {
   hosts?: Record<string, { profiles?: Record<string, ModelRef> }>
   agents?: Record<string, AgentCatalog>
   commands?: Record<string, unknown>
+  orchestrators?: { orca?: { profiles?: OrcaRoutes } }
 }
 
 function resolveRef(catalog: Catalog, host: Host, profile: string): ModelRef | undefined {
@@ -181,6 +183,34 @@ if (catalog) {
     goldenCodexExecute.reasoning !== GOLDEN_MODELS.codex.execute.reasoning
   ) {
     fail(`catalog: codex execute formatted as ${JSON.stringify(goldenCodexExecute)} != golden`)
+  }
+  const orca = catalog.orchestrators?.orca
+  if (orca) {
+    const routes = orca.profiles ?? {}
+    for (const [profile, route] of Object.entries(routes)) {
+      if (!(PROFILE_NAMES as readonly string[]).includes(profile) || profile === "conduct") {
+        fail(`catalog: orchestrators.orca.profiles.${profile} is not a dispatchable profile`)
+      }
+      if (!ORCA_AGENTS.includes(route?.agent)) {
+        fail(`catalog: orchestrators.orca.profiles.${profile}.agent must be one of ${ORCA_AGENTS.join("|")}`)
+      }
+      if (!route?.id) fail(`catalog: orchestrators.orca.profiles.${profile}.id required`)
+      if (route?.agent === "cursor" && route.effort) {
+        fail(`catalog: orchestrators.orca.profiles.${profile} — cursor ids carry their effort; drop effort`)
+      }
+    }
+    for (const name of agentNames) {
+      const profile = catalog.agents![name]!.profile
+      if (ORCA_UNDISPATCHED.has(name) || !profile) continue
+      if (!routes[profile]) fail(`catalog: orchestrators.orca.profiles.${profile} required for agents.${name}`)
+    }
+    try {
+      const conductor = await readFile(path.join(root, "dist", "agents", "skills", "sddkit", "SKILL.md"), "utf8")
+      if (conductor.includes("{{orca:")) fail("dist: conductor has an unresolved {{orca:...}} placeholder")
+      if (!conductor.includes("## Orca dispatch")) fail("dist: conductor is missing the Orca dispatch section")
+    } catch {
+      fail("dist/agents/skills/sddkit/SKILL.md missing — run bun run build")
+    }
   }
   for (const cmd of Object.keys(catalog.commands || {})) {
     try {

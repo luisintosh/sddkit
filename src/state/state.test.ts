@@ -60,7 +60,8 @@ describe("validateState", () => {
       expect(result.data.qa.cycles).toBe(0)
       expect(result.data.pending_gate).toBe("")
       expect(result.data.artifacts).toEqual({ spec: "", contracts: [], plan: "", docs: [] })
-      expect(result.data.tools).toEqual({ repo: "gh", tracker: "gh" })
+      expect(result.data.tools).toEqual({ repo: "gh", tracker: "gh", orchestrator: "native" })
+      expect(result.data.orca).toEqual({ cli: "", pane: "", run_id: "" })
       expect(result.data.roadmap).toEqual({ issue: 0, epic: 0, feature_id: "", path: "" })
     }
   })
@@ -257,7 +258,19 @@ describe("runInit / runPatch", () => {
     await runPatch(root, "account-export", { tools: { repo: "glab", tracker: "gh" } })
     await runPatch(root, "account-export", { tools: { repo: "tea" } })
     const after = await readState(root, "account-export")
-    expect(after?.tools).toEqual({ repo: "tea", tracker: "gh" })
+    expect(after?.tools).toEqual({ repo: "tea", tracker: "gh", orchestrator: "native" })
+  })
+
+  test("an orca patch keeps tools siblings and rejects unknown orchestrators", async () => {
+    await runInit(root, "account-export")
+    await runPatch(root, "account-export", {
+      tools: { orchestrator: "orca" },
+      orca: { cli: "orca", pane: "term_1", run_id: "run_1" },
+    })
+    const after = await readState(root, "account-export")
+    expect(after?.tools).toEqual({ repo: "gh", tracker: "gh", orchestrator: "orca" })
+    expect(after?.orca).toEqual({ cli: "orca", pane: "term_1", run_id: "run_1" })
+    await expect(runPatch(root, "account-export", { tools: { orchestrator: "tmux" } })).rejects.toThrow()
   })
 
   test("a partial roadmap patch preserves sibling keys", async () => {
