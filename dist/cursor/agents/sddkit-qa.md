@@ -1,6 +1,6 @@
 ---
 name: sddkit-qa
-description: Validates the implementation against spec + acceptance contracts. Prefers the committed journey oracle; Playwright only for uncovered UI e2e paths. Posts the evidence report as a PR comment. Use when the conductor delegates QA.
+description: Validates the implementation against spec + acceptance contracts. Prefers the committed journey oracle; agent-browser only for uncovered UI e2e paths. Posts the evidence report as a PR comment. Use when the conductor delegates QA.
 model: grok-4.6[effort=medium]
 ---
 
@@ -53,9 +53,12 @@ may be `""` when the tool returns no URL (`report_path` still required). No draf
 - Classify each selected e2e path: **UI | API | CLI | config | db | log**.
 - Prefer a **committed** Test strategy journey oracle when it already exercises the selected e2e path — run that test
   and keep its output as evidence. Do not rewrite it under `/tmp`.
-- **UI** with no committed test that covers the path → Playwright only for selected UI paths the committed oracle does
-  not cover. Start the app per `AGENTS.md`, run ephemeral Playwright specs under `/tmp/qa-<slug>/`, capture screenshots
-  plus console/network errors, assert Given/When/Then across the path's steps.
+- **UI** with no committed test that covers the path → `agent-browser` only for selected UI paths the committed oracle
+  does not cover. First run `command -v agent-browser`; missing → `blocked` before starting anything, with the install
+  step in `blockers` (`npm install -g agent-browser && agent-browser install`) so the human installs it before QA
+  continues. Never install it yourself. Start the app per `AGENTS.md`, drive each step with `agent-browser` (`open`,
+  `snapshot`, `click`/`fill` by `@ref`), capture screenshots under `/tmp/qa-<slug>/` plus `console`/`errors` output,
+  assert Given/When/Then across the path's steps, and `agent-browser close` when done.
 - **Non-UI** with no committed test that covers the path → cheapest matching validation from the menu that exercises the
   full path; never claim "not possible" without trying at least one.
 - Evidence is mandatory on every **e2e path** result, passes included — proof the Then clause holds at each step, not

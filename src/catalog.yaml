@@ -175,8 +175,9 @@ agents:
   sddkit-qa:
     profile: validate
     description: >-
-      Validates the implementation against spec + acceptance contracts. Prefers the committed journey oracle; Playwright
-      only for uncovered UI e2e paths. Posts the evidence report as a PR comment. Use when the conductor delegates QA.
+      Validates the implementation against spec + acceptance contracts. Prefers the committed journey oracle;
+      agent-browser only for uncovered UI e2e paths. Posts the evidence report as a PR comment. Use when the conductor
+      delegates QA.
     opencode:
       mode: subagent
       temperature: 0.1
