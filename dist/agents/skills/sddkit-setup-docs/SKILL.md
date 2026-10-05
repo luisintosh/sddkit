@@ -1,6 +1,6 @@
 ---
-name: setup-docs
-description: Scaffolds AGENTS.md, docs/ARCHITECTURE.md, docs/CONSTITUTION.md, and docs/feats/. Use when the user runs /setup-docs or asks to create the project's AI working-context docs.
+name: sddkit-setup-docs
+description: Scaffolds AGENTS.md, docs/ARCHITECTURE.md, docs/CONSTITUTION.md, and docs/feats/. Run by the user as /sddkit-setup-docs.
 disable-model-invocation: true
 ---
 

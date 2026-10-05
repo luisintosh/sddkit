@@ -204,12 +204,20 @@ if (catalog) {
       if (ORCA_UNDISPATCHED.has(name) || !profile) continue
       if (!routes[profile]) fail(`catalog: orchestrators.orca.profiles.${profile} required for agents.${name}`)
     }
+    const skillDir = path.join(root, "dist", "agents", "skills", "sddkit")
     try {
-      const conductor = await readFile(path.join(root, "dist", "agents", "skills", "sddkit", "SKILL.md"), "utf8")
-      if (conductor.includes("{{orca:")) fail("dist: conductor has an unresolved {{orca:...}} placeholder")
-      if (!conductor.includes("## Orca dispatch")) fail("dist: conductor is missing the Orca dispatch section")
+      const conductor = await readFile(path.join(skillDir, "SKILL.md"), "utf8")
+      if (!conductor.includes("](references/orca.md)"))
+        fail("dist: conductor skill does not point at references/orca.md")
     } catch {
       fail("dist/agents/skills/sddkit/SKILL.md missing — run bun run build")
+    }
+    try {
+      const dispatch = await readFile(path.join(skillDir, "references", "orca.md"), "utf8")
+      if (dispatch.includes("{{orca:")) fail("dist: references/orca.md has an unresolved {{orca:...}} placeholder")
+      if (!dispatch.includes("## Orca dispatch")) fail("dist: references/orca.md is missing the Orca dispatch section")
+    } catch {
+      fail("dist/agents/skills/sddkit/references/orca.md missing — run bun run build")
     }
   }
   for (const cmd of Object.keys(catalog.commands || {})) {

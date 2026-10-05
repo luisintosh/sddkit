@@ -1967,7 +1967,7 @@ function doctor(targetDir, home) {
   if (fsSync.existsSync(path.join(targetDir, "AGENTS.md")))
     log("  [ok]   AGENTS.md present");
   else
-    log("  [warn] AGENTS.md missing — run /setup-docs first");
+    log("  [warn] AGENTS.md missing — run /sddkit-setup-docs first");
   log("  paths:");
   log(`    skills          ${targetDir}/.agents/skills/  or  ${home}/.agents/skills/`);
   log(`    sddkit-state    ${targetDir}/.agents/bin/  or  ${home}/.agents/bin/`);
@@ -1996,7 +1996,7 @@ function doctor(targetDir, home) {
 }
 function suggestNextSteps() {
   log("Next steps:");
-  log("  1. /setup-docs       — scaffold AGENTS.md + docs/ARCHITECTURE.md + CONSTITUTION");
+  log("  1. /sddkit-setup-docs — scaffold AGENTS.md + docs/ARCHITECTURE.md + CONSTITUTION");
   if (!onPath("gh")) {
     log("  2. Install gh (required by the pipeline):");
     log("       brew install gh && gh auth login");

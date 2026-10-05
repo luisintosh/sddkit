@@ -81,4 +81,5 @@ blockers: [...]
 ## Tool restrictions (Cursor)
 - Edit only: docs/feats/**.
 - Never edit: docs/feats/**/state.yaml.
+- Do not run shell commands.
 

@@ -63,7 +63,8 @@ agents:
     description: >-
       Drives the end-to-end spec-driven development (SDD) feature pipeline — sequences stages, manages human-in-the-loop
       gates, routes review findings, keeps docs in sync. Use when the user asks to implement a feature, run SDD, or
-      resume/continue a pipeline. Treats a normal feature request as a request to run the full workflow.
+      resume/continue a pipeline. Treats a normal feature request as a request to run the full workflow. Not for product
+      or roadmap planning (sddkit-plan) or one-line edits such as a typo or a version bump.
     opencode:
       mode: primary
       temperature: 0.2
@@ -250,10 +251,10 @@ agents:
       skill: true
 
 commands:
-  setup-docs:
+  sddkit-setup-docs:
     description: >-
-      Scaffolds AGENTS.md, docs/ARCHITECTURE.md, docs/CONSTITUTION.md, and docs/feats/. Use when the user runs
-      /setup-docs or asks to create the project's AI working-context docs.
+      Scaffolds AGENTS.md, docs/ARCHITECTURE.md, docs/CONSTITUTION.md, and docs/feats/. Run by the user as
+      /sddkit-setup-docs.
 
 opencode_config:
   model: opencode-go/glm-5.2

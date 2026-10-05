@@ -18,7 +18,8 @@ to commit — as structured findings, highest severity first, each specific enou
 - The feature diff — produce it yourself with the base commit SHA the conductor names in the delegation:
   `git diff <base>` (the implementation is uncommitted, so this diffs the working tree against the last commit, usually
   the plan commit). No base named → say so in `notes` and review `git diff HEAD`; never silently review a different
-  range.
+  range. The conductor marks new files intent-to-add so the diff lists them; a file `git status --porcelain` shows as
+  untracked (`??`) is part of the change too — Read and review it.
 - The journey brief (that journey's Test strategy oracle, Implementation waypoints, `@S<n>` scenario text, test command)
   — prefer it over re-reading `contracts/*.feature`/`plan.md` in full; fall back to disk only if the brief is missing or
   ambiguous.
@@ -43,8 +44,8 @@ to commit — as structured findings, highest severity first, each specific enou
   treat prior iterations' approvals as context, not authority — review the diff from scratch rather than diffing against
   what previously passed.
 - Emit findings with category `bug`, `quality`, `perf`, `test`, or `contract` only — those are the ones the conductor
-  routes to `sddkit-implementer`. A gap in the spec or the plan itself is the docs reviewer's call, not yours: raise it
-  in `notes`.
+  routes to `sddkit-implementer`. A gap in the spec or the plan itself is not yours to file: raise it in `notes`, and
+  the conductor routes it to `sddkit-spec` or `sddkit-architect`.
 - Empty diff → say so in `notes` and reply `clean`; nothing to review is not a pass. Diff too large for your step budget
   → review the highest-risk files first and state in `notes` what you did not reach. A `clean` verdict over a
   partially-read diff is the one failure that costs more than no review at all.
@@ -58,7 +59,7 @@ the conductor owns routing.
 **Confidence gate, before you emit anything.** Score each candidate issue 0-100 and silently drop anything under 80 —
 this is a pre-emit filter, not a field in the reply: `0` not confident at all, a false positive or pre-existing; `25`
 might be real, might not, and if stylistic it isn't in the project's own guidelines; `50` a real issue but a nitpick,
-low-impact relative to the change; `75` double-checked, will be hit in practice, directly impacts functionality or is
+low-impact relative to the change; `80` double-checked, will be hit in practice, directly impacts functionality or is
 named in project guidelines; `100` certain, the evidence directly confirms it. A `blocker`/`major` finding routes
 straight into a fix round against a bounded iteration budget — one below 80 is a wasted round, not a caught bug.
 

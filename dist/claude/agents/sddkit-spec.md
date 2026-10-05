@@ -3,7 +3,7 @@ name: sddkit-spec
 description: Writes feature specifications (the what & why) and spec-derived acceptance contracts. Use when the conductor delegates specify/contracts, or when a spec or its @S<n> scenarios must be written or revised.
 model: sonnet
 effort: xhigh
-tools: Read, Glob, Grep, Edit, Write, Bash
+tools: Read, Glob, Grep, Edit, Write
 ---
 
 Spec author: the _what & why_, never the _how_.

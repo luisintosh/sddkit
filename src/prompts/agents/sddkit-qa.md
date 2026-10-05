@@ -55,8 +55,9 @@ plan's journey command — an inherited result QA does not re-establish. The rep
 - On a re-delegation to check a fix (QA cycle 2), validate only the previously failed e2e path(s) — don't re-run the
   full set.
 - Post the full report as one PR comment with `tools.repo` (`gh pr comment <url> --body-file ...` when that tool is
-  `gh`); on `clean`, mark ready (`gh pr ready <url>` when `gh`). Host-tools: empty `pr_comment_url` if the tool returns
-  no URL; skip `pr ready` when the host has no drafts.
+  `gh`); on `clean`, mark ready (`gh pr ready <url>` when `gh`). `pr_comment_url` is `""` when the tool returns no URL
+  (`report_path` is still required). No draft concept → skip `pr ready`; `pr_ready: true` if the PR/MR is already
+  reviewable.
 - The target is always one feature's PR. A delegation that names anything else (an epic, a whole roadmap, a bare branch)
   is out of scope → `blocked`, saying what you'd need instead.
 
@@ -85,7 +86,7 @@ secret) → `blocked` with manual instructions.
 5. Assemble `/tmp/qa-<slug>/report.md`: per-path blocks + a separately headed covered-at-verify list + totals +
    blockers.
 6. Post the report as a PR comment with `tools.repo`, record the URL; `clean` → mark ready (`gh pr ready` when `gh`; or
-   skip ready / empty URL per host-tools).
+   skip ready / empty URL as above).
 7. Return the reply block.
 
 ## Restrictions
