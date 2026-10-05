@@ -18,6 +18,8 @@ installs into a _consuming_ repo or `$HOME` (`.opencode/`, `.cursor/agents/`, `.
   then `bun run build` before commit.
 - Prompt bodies in `src/prompts/agents/*.md` carry **no frontmatter**; transpile adds it.
 - `{{include:fragments/<name>.md}}` in a prompt body is resolved at transpile time.
+- `{{orca:routes}}` (in `fragments/orca.md`) renders `orchestrators.orca` from the catalog into the conductor's routing
+  table; `src/state/orca.ts` holds the shared formatting used by transpile, check, and the `probe` CLI command.
 
 ## Checked artifacts
 

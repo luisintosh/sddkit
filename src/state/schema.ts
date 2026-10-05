@@ -37,8 +37,16 @@ export const StateSchema = z.object({
     .object({
       repo: z.string().default("gh"),
       tracker: z.string().default("gh"),
+      orchestrator: z.enum(["native", "orca"]).default("native"),
     })
-    .default({ repo: "gh", tracker: "gh" }),
+    .default({ repo: "gh", tracker: "gh", orchestrator: "native" }),
+  orca: z
+    .object({
+      cli: z.string().default(""),
+      pane: z.string().default(""),
+      run_id: z.string().default(""),
+    })
+    .default({ cli: "", pane: "", run_id: "" }),
   current_slice: z.string().default(""),
   slice_phase: z.enum(SLICE_PHASES).default(""),
   escalation: z.union([z.literal(0), z.literal(1)]).default(0),

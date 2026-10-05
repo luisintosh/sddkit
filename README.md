@@ -84,6 +84,32 @@ or Codex terra.
 
 Checked in CI against `src/catalog.yaml` and emitted frontmatter / Codex TOML.
 
+### Orca (optional)
+
+When [Orca](https://github.com/stablyai/orca) is running, the conductor dispatches each specialist as a supervised Orca
+worker instead of the host's subagent, on any host. The CLI and model per profile come from `orchestrators.orca` in
+`src/catalog.yaml`:
+
+| specialist                                              | worker                                                       |
+| ------------------------------------------------------- | ------------------------------------------------------------ |
+| `sddkit-spec`, `sddkit-architect`                       | `claude --model opus --effort medium --permission-mode auto` |
+| `sddkit-plan-reviewer`, `sddkit-code-reviewer`          | `claude --model sonnet --effort high --permission-mode auto` |
+| `sddkit-implementer`, `sddkit-qa`, `sddkit-docs-writer` | `cursor-agent --model grok-4.7-high --yolo`                  |
+
+At initialize the conductor runs `sddkit-state probe orchestrator`. All of these must hold, or it delegates natively as
+before:
+
+- `orca status --json` reports a ready runtime
+- `claude` and `cursor-agent` are on `PATH`
+- each routed specialist's agent file is installed (`.claude/agents/` and `.cursor/agents/`, in the repo or `$HOME`) —
+  install both the Claude and Cursor hosts
+
+If the conductor itself runs in an Orca terminal, each specialist opens in a split pane to its right, titled
+`<specialist> · <stage>`, and the conductor closes it once the specialist settles. Otherwise workers open as Orca tabs,
+closed the same way. The conductor launches every worker itself, so workers skip approval prompts (Claude auto mode,
+Cursor `--yolo`) and an unattended run never stalls on one. Briefs and replies pass through `.git/sddkit/<slug>/`, so
+they never land in the diff. Opt out with `SDDKIT_ORCHESTRATOR=native`.
+
 ## Install
 
 From the root of the consuming repository:
@@ -209,6 +235,7 @@ since that part is work only a human can do.
 .agents/bin/sddkit-state.mjs show <feature>
 .agents/bin/sddkit-state.mjs validate <feature>
 .agents/bin/sddkit-state.mjs decide <feature> --event qa-route --yaml 'findings: [{category: bug}]'
+.agents/bin/sddkit-state.mjs probe orchestrator   # orca | native, see Models → Orca
 ```
 
 The conductor applies subagent reply YAML through `patch`. OpenCode also denies direct edits to `state.yaml` /
