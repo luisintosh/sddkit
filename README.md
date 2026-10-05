@@ -6,7 +6,7 @@ acceptance contracts (`@S<n>`), cheapest-oracle journeys (at most three, public-
 consuming repo's test stack, a multi-agent pipeline with a one-rung clean-tree escalation loop, and a file-based
 **`state.yaml` checkpoint** written only through `.agents/bin/sddkit-state.mjs`.
 
-Prompts live once under `src/prompts/`; `bun run build` transpiles them into OpenCode, Cursor, Claude Code, Codex, and
+Prompts live once under `src/prompts/`; `pnpm run build` transpiles them into OpenCode, Cursor, Claude Code, Codex, and
 shared skill formats under `dist/` (tracked so install does not need a client-side build).
 
 ## Layout
@@ -247,7 +247,7 @@ The conductor applies subagent reply YAML through `patch`. OpenCode also denies 
 ## Editing prompts
 
 1. Edit `src/prompts/` and/or `src/catalog.yaml`
-2. `bun run build && bun run check && bun test`
+2. `pnpm run build && pnpm run check && pnpm test`
 
 ## Notes
 
@@ -258,4 +258,4 @@ The conductor applies subagent reply YAML through `patch`. OpenCode also denies 
   permission config: `gh pr merge` is allowed at the config level, so branch protection is your hard backstop.
 - No permission is `ask`. An unattended `opencode run` has no responder for a bash/edit permission request, so a
   reachable `ask` would stall it indefinitely. Dangerous commands are hard denies instead — refused, so the agent
-  adapts. `bun run check` enforces this; only `sddkit-plan`, which is interactive-only, is exempt.
+  adapts. `pnpm run check` enforces this; only `sddkit-plan`, which is interactive-only, is exempt.

@@ -1,6 +1,6 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
- * Hygiene checks (run after `bun run build`):
+ * Hygiene checks (run after `pnpm run build`):
  *   1. catalog.yaml shape + prompt files
  *   2. dist/ frontmatter matches catalog models
  *   3. README profile × host matrix matches catalog
@@ -14,7 +14,6 @@ import { readFile, readdir, rm, stat } from "node:fs/promises"
 import * as os from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { $ } from "bun"
 import { parse as parseYaml } from "yaml"
 import {
   formatClaudeDisplay,
@@ -28,6 +27,7 @@ import {
   type ModelRef,
   PROFILE_NAMES,
 } from "./models.ts"
+import { run } from "./sh.ts"
 import { ORCA_AGENTS, ORCA_UNDISPATCHED, type OrcaRoutes } from "../src/state/orca.ts"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
@@ -210,14 +210,14 @@ if (catalog) {
       if (!conductor.includes("](references/orca.md)"))
         fail("dist: conductor skill does not point at references/orca.md")
     } catch {
-      fail("dist/agents/skills/sddkit/SKILL.md missing — run bun run build")
+      fail("dist/agents/skills/sddkit/SKILL.md missing — run pnpm run build")
     }
     try {
       const dispatch = await readFile(path.join(skillDir, "references", "orca.md"), "utf8")
       if (dispatch.includes("{{orca:")) fail("dist: references/orca.md has an unresolved {{orca:...}} placeholder")
       if (!dispatch.includes("## Orca dispatch")) fail("dist: references/orca.md is missing the Orca dispatch section")
     } catch {
-      fail("dist/agents/skills/sddkit/references/orca.md missing — run bun run build")
+      fail("dist/agents/skills/sddkit/references/orca.md missing — run pnpm run build")
     }
   }
   for (const cmd of Object.keys(catalog.commands || {})) {
@@ -229,7 +229,7 @@ if (catalog) {
     try {
       await stat(path.join(root, "dist", "agents", "skills", cmd, "SKILL.md"))
     } catch {
-      fail(`dist/agents/skills/${cmd}/SKILL.md missing — run bun run build`)
+      fail(`dist/agents/skills/${cmd}/SKILL.md missing — run pnpm run build`)
     }
   }
 }
@@ -241,7 +241,7 @@ let ocConfig: { permission?: unknown } | undefined
 try {
   ocConfig = JSON.parse(await readFile(path.join(distOc, "opencode.jsonc"), "utf8"))
 } catch {
-  fail("dist/opencode/opencode.jsonc missing or unparseable — run bun run build")
+  fail("dist/opencode/opencode.jsonc missing or unparseable — run pnpm run build")
 }
 if (ocConfig) failOnAsk("dist/opencode/opencode.jsonc", ocConfig.permission)
 
@@ -264,21 +264,21 @@ if (catalog) {
       const oc = catalog.agents![name]!.opencode!
       const wantOc = formatOpenCodeModel(resolveRef(catalog, "opencode", catalog.agents![name]!.profile!)!)
       if (fm.model !== wantOc) {
-        fail(`dist drift: opencode ${name} model ${fm.model} != catalog ${wantOc} — run bun run build`)
+        fail(`dist drift: opencode ${name} model ${fm.model} != catalog ${wantOc} — run pnpm run build`)
       }
       if (fm.temperature !== oc.temperature) {
         fail(
-          `dist drift: opencode ${name} temperature ${fm.temperature} != catalog ${oc.temperature} — run bun run build`,
+          `dist drift: opencode ${name} temperature ${fm.temperature} != catalog ${oc.temperature} — run pnpm run build`,
         )
       }
       if (fm.steps !== oc.steps) {
-        fail(`dist drift: opencode ${name} steps ${fm.steps} != catalog ${oc.steps} — run bun run build`)
+        fail(`dist drift: opencode ${name} steps ${fm.steps} != catalog ${oc.steps} — run pnpm run build`)
       }
       if (stable(fm.permission) !== stable(oc.permission)) {
-        fail(`dist drift: opencode ${name} permission block != catalog — run bun run build`)
+        fail(`dist drift: opencode ${name} permission block != catalog — run pnpm run build`)
       }
     } catch {
-      fail(`dist/opencode/agents/${name}.md missing — run bun run build`)
+      fail(`dist/opencode/agents/${name}.md missing — run pnpm run build`)
     }
 
     const agent = catalog.agents![name]!
@@ -286,7 +286,7 @@ if (catalog) {
       try {
         await stat(path.join(root, "dist", "agents", "skills", name, "SKILL.md"))
       } catch {
-        fail(`dist/agents/skills/${name}/SKILL.md missing — run bun run build`)
+        fail(`dist/agents/skills/${name}/SKILL.md missing — run pnpm run build`)
       }
     } else {
       const cuPath = path.join(distCu, "agents", `${name}.md`)
@@ -300,13 +300,13 @@ if (catalog) {
         const fm = parseYaml(m[1]!) as { model?: string; is_background?: boolean }
         const wantModel = formatCursorModel(resolveRef(catalog, "cursor", agent.profile!)!)
         if (fm.model !== wantModel) {
-          fail(`dist drift: cursor ${name} model ${fm.model} != catalog ${wantModel} — run bun run build`)
+          fail(`dist drift: cursor ${name} model ${fm.model} != catalog ${wantModel} — run pnpm run build`)
         }
         if (fm.is_background === true) {
           fail(`dist drift: cursor ${name} must not set is_background — conductor is sequential`)
         }
       } catch {
-        fail(`dist/cursor/agents/${name}.md missing — run bun run build`)
+        fail(`dist/cursor/agents/${name}.md missing — run pnpm run build`)
       }
       try {
         const raw = await readFile(path.join(root, "dist", "claude", "agents", `${name}.md`), "utf8")
@@ -318,14 +318,14 @@ if (catalog) {
           const want = resolveRef(catalog, "claude", agent.profile!)!
           const wantModel = formatClaudeModel(want)
           if (fm.model !== wantModel) {
-            fail(`dist drift: claude ${name} model ${fm.model} != catalog ${wantModel} — run bun run build`)
+            fail(`dist drift: claude ${name} model ${fm.model} != catalog ${wantModel} — run pnpm run build`)
           }
           if ((fm.effort ?? undefined) !== want.effort) {
-            fail(`dist drift: claude ${name} effort ${fm.effort} != catalog ${want.effort} — run bun run build`)
+            fail(`dist drift: claude ${name} effort ${fm.effort} != catalog ${want.effort} — run pnpm run build`)
           }
         }
       } catch {
-        fail(`dist/claude/agents/${name}.md missing — run bun run build`)
+        fail(`dist/claude/agents/${name}.md missing — run pnpm run build`)
       }
       try {
         const raw = await readFile(path.join(root, "dist", "codex", "agents", `${name}.toml`), "utf8")
@@ -335,15 +335,15 @@ if (catalog) {
         if (want.model === "inherit") {
           if (model) fail(`dist drift: codex ${name} must omit model when inherit`)
         } else if (model !== want.model) {
-          fail(`dist drift: codex ${name} model ${model} != catalog ${want.model} — run bun run build`)
+          fail(`dist drift: codex ${name} model ${model} != catalog ${want.model} — run pnpm run build`)
         }
         if ((reasoning ?? undefined) !== want.reasoning) {
           fail(
-            `dist drift: codex ${name} model_reasoning_effort ${reasoning} != catalog ${want.reasoning} — run bun run build`,
+            `dist drift: codex ${name} model_reasoning_effort ${reasoning} != catalog ${want.reasoning} — run pnpm run build`,
           )
         }
       } catch {
-        fail(`dist/codex/agents/${name}.toml missing — run bun run build`)
+        fail(`dist/codex/agents/${name}.toml missing — run pnpm run build`)
       }
     }
   }
@@ -352,15 +352,15 @@ if (catalog) {
 try {
   const stateBin = await readFile(path.join(root, "dist", "bin", "sddkit-state.mjs"), "utf8")
   if (!stateBin.startsWith("#!/usr/bin/env node\n")) {
-    fail("dist/bin/sddkit-state.mjs missing node shebang — run bun run build")
+    fail("dist/bin/sddkit-state.mjs missing node shebang — run pnpm run build")
   }
 } catch {
-  fail("dist/bin/sddkit-state.mjs missing — run bun run build")
+  fail("dist/bin/sddkit-state.mjs missing — run pnpm run build")
 }
 for (const stale of ["sddkit-state", "sddkit-state.js"]) {
   try {
     await stat(path.join(root, "dist", "bin", stale))
-    fail(`dist/bin/${stale} should be sddkit-state.mjs — run bun run build`)
+    fail(`dist/bin/${stale} should be sddkit-state.mjs — run pnpm run build`)
   } catch {
     // leftover names must not be tracked
   }
@@ -477,7 +477,7 @@ let manifestRaw: string | undefined
 try {
   manifestRaw = await readFile(manifestPath, "utf8")
 } catch {
-  fail("manifest.txt: missing — run bun tools/gen-manifest.ts (or bun run build)")
+  fail("manifest.txt: missing — run node tools/gen-manifest.ts (or pnpm run build)")
 }
 
 if (manifestRaw !== undefined) {
@@ -499,8 +499,8 @@ if (manifestRaw !== undefined) {
     const actualSet = new Map((actualLines as [string, string][]).map(([hash, rel]) => [rel, hash]))
 
     for (const [rel, hash] of expectedSet) {
-      if (!actualSet.has(rel)) fail(`manifest.txt: missing ${rel} — run bun tools/gen-manifest.ts`)
-      else if (actualSet.get(rel) !== hash) fail(`manifest.txt: stale hash for ${rel} — run bun tools/gen-manifest.ts`)
+      if (!actualSet.has(rel)) fail(`manifest.txt: missing ${rel} — run node tools/gen-manifest.ts`)
+      else if (actualSet.get(rel) !== hash) fail(`manifest.txt: stale hash for ${rel} — run node tools/gen-manifest.ts`)
     }
     for (const rel of actualSet.keys()) {
       if (!expectedSet.has(rel)) fail(`manifest.txt: lists ${rel}, which shouldn't be installed`)
@@ -515,19 +515,19 @@ if (manifestRaw !== undefined) {
   try {
     current = await readFile(dest, "utf8")
   } catch {
-    fail("dist/install.js missing — run bun run build")
+    fail("dist/install.js missing — run pnpm run build")
   }
   if (current !== undefined) {
     if (!current.startsWith("#!/usr/bin/env node\n")) {
-      fail("dist/install.js missing node shebang — run bun run build")
+      fail("dist/install.js missing node shebang — run pnpm run build")
     }
     const tmp = path.join(os.tmpdir(), `sddkit-install-check-${process.pid}.js`)
     try {
-      await $`bun ${path.join(root, "tools", "build-install.ts")} --outfile ${tmp}`.quiet()
+      await run(process.execPath, [path.join(root, "tools", "build-install.ts"), "--outfile", tmp])
       const expected = await readFile(tmp, "utf8")
-      if (current !== expected) fail("dist/install.js stale — run bun run build")
+      if (current !== expected) fail("dist/install.js stale — run pnpm run build")
     } catch {
-      fail("dist/install.js rebuild failed — run bun run build")
+      fail("dist/install.js rebuild failed — run pnpm run build")
     } finally {
       await rm(tmp, { force: true })
     }

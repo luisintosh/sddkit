@@ -29,33 +29,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
-      - run: bun install
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: Build (transpile + CLI + manifest)
-        run: bun run build
+        run: pnpm run build
       - name: Hygiene checks
-        run: bun run check
+        run: pnpm run check
 
   state-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
-      - run: bun install
-      - run: bun test src/state/
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
 
   e2e-install:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
-      - run: bun install
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - run: bash test/e2e-install.sh
 
   release-assets:
@@ -65,13 +71,15 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
         with:
-          bun-version: latest
-      - run: bun install
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: Build payload
         run: |
-          bun run build
+          pnpm run build
           tar -czf sddkit-dist.tar.gz dist manifest.txt
       - name: Upload release assets
         env:
