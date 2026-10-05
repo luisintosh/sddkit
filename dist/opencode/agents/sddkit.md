@@ -9,6 +9,8 @@ permission:
     docs/feats/**/state.yaml: deny
     "**/journal.ndjson": deny
     .opencode/**: deny
+  bash:
+    git reset --hard HEAD: allow
 ---
 
 SDD conductor: sequences stages, delegates to named subagents (`sddkit-spec`, `sddkit-architect`,
@@ -311,12 +313,12 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
      files this journey touched count; pre-existing failures in untouched files do not), then the journey command. On a
      counted failure, patch `green_attempts` +1 and re-delegate `sddkit-implementer` with only the failing command
      names + first error lines (≤40 lines), never the full raw output. **`green_attempts` reaching 2 and `escalation: 0`
-     → clean-tree escalation:** `git reset --hard` to this journey's base commit (HEAD — the last commit: plan commit on
-     the first journey, or the previous journey commit). Do not stash or commit the failed tree onto the feature branch.
-     Set `escalation: 1`. If `git worktree add` succeeds, add two worktrees at that SHA and run the `AGENTS.md` install
-     command in each — a fresh worktree has no installed dependencies or untracked env files. Delegate
-     `sddkit-implementer` in each, one after the other, with the same escalation brief plus the worktree's absolute path
-     as its working directory; run the journey command in each, copy back the green tree with the smaller
+     → clean-tree escalation:** `git reset --hard HEAD` — HEAD is this journey's base commit (the last commit: plan
+     commit on the first journey, or the previous journey commit). Do not stash or commit the failed tree onto the
+     feature branch. Set `escalation: 1`. If `git worktree add` succeeds, add two worktrees at that SHA and run the
+     `AGENTS.md` install command in each — a fresh worktree has no installed dependencies or untracked env files.
+     Delegate `sddkit-implementer` in each, one after the other, with the same escalation brief plus the worktree's
+     absolute path as its working directory; run the journey command in each, copy back the green tree with the smaller
      `git diff --stat`, remove the worktrees. If worktrees are unavailable, one implementer pass on the reset tree. A
      failure after that, while `escalation` is already 1, → record blockers and pause. Never keep incrementing
      `green_attempts` as a retry loop past that.
@@ -341,7 +343,7 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
        `sddkit-implementer`, re-test, then Iteration >1 (do not run skip-review again). `minor`-only findings: append
        them to `review.deferred_findings` — read the current array and patch current + new. Then proceed to commit. Stop
        on `clean` (or minor-only) or after 2 iterations. Exhausted with `blocker|major` findings: if `escalation: 0` →
-       set it to 1, `git reset --hard` to the journey base, reset `review.iterations` to 0, redo
+       set it to 1, `git reset --hard HEAD` (the journey base), reset `review.iterations` to 0, redo
        sddkit-implementer+review once (that next review is first entry again with `escalation: 1`, so skip-review is
        false — the escalated final pass); else record blockers, pause.
      - **An empty `git diff HEAD` is not a pass** — whether review was skipped or the reviewer reports an empty diff in

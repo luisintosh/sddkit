@@ -74,6 +74,10 @@ agents:
           "docs/feats/**/state.yaml": deny
           "**/journal.ndjson": deny
           ".opencode/**": deny
+        # Merged over the global map, which denies "git reset --hard*"; the clean-tree escalation needs exactly this
+        # one form.
+        bash:
+          "git reset --hard HEAD": allow
     cursor:
       skill: true
 
