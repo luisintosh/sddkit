@@ -27,7 +27,7 @@ assert_eq() {
 }
 
 # Ensure dist + manifest exist
-(cd "$REPO_ROOT" && bun run build >/dev/null)
+(cd "$REPO_ROOT" && pnpm run build >/dev/null)
 
 assert_file_exists "${REPO_ROOT}/dist/claude/agents/sddkit-spec.md" "transpile emits claude spec agent"
 assert_file_exists "${REPO_ROOT}/dist/codex/agents/sddkit-spec.toml" "transpile emits codex spec agent"
@@ -114,7 +114,7 @@ assert_eq "$after_hash" "$before_hash" "locally-modified file restored to upstre
 
 # 4. prune upstream file
 rm "${UPSTREAM}/dist/opencode/agents/sddkit-qa.md"
-HARNESS_ROOT="$UPSTREAM" bun "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
+HARNESS_ROOT="$UPSTREAM" node "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
 
 prune_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" 2>&1)"
 if grep -q "delete    opencode/agents/sddkit-qa.md" <<<"$prune_output"; then
@@ -288,14 +288,16 @@ else
 fi
 
 rm "${UPSTREAM}/dist/cursor/agents/sddkit-qa.md"
-HARNESS_ROOT="$UPSTREAM" bun "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
+HARNESS_ROOT="$UPSTREAM" node "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
 HOME="$FAKE_HOME" INSTALL_SCOPE=global INSTALL_TARGET=cursor \
   LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$GLOBAL_TARGET" node "$INSTALL_JS" >/dev/null
 assert_file_absent "${FAKE_HOME}/.cursor/agents/sddkit-qa.md" "global prune removes upstream-deleted cursor agent"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global prune keeps planted non-sddkit agent"
 
-# bunx-equivalent: same dist/install.js under bun
-if TARGET_DIR="$TARGET" bun "$INSTALL_JS" --doctor >/dev/null 2>&1; then
+# bunx-equivalent: same dist/install.js under bun (consumers may still use bunx)
+if ! command -v bun >/dev/null 2>&1; then
+  ok "bun dist/install.js --doctor (skipped: bun not installed)"
+elif TARGET_DIR="$TARGET" bun "$INSTALL_JS" --doctor >/dev/null 2>&1; then
   ok "bun dist/install.js --doctor exits 0"
 else
   bad "bun dist/install.js --doctor should exit 0"

@@ -1,4 +1,4 @@
-import { describe, test, expect } from "bun:test"
+import { describe, test, expect } from "vitest"
 import { routeQaFindings, runDecide, skipPlanCritique, skipReviewIter1, skipSpecGate } from "./decisions.ts"
 
 describe("routeQaFindings", () => {

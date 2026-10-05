@@ -15,14 +15,14 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "bun test src/state/",
-    "transpile": "bun tools/transpile.ts",
-    "build:cli": "bun tools/build-cli.ts",
-    "build:install": "bun tools/build-install.ts",
-    "gen-manifest": "bun tools/gen-manifest.ts",
-    "build": "bun tools/transpile.ts && bun tools/build-cli.ts && bun tools/gen-manifest.ts && bun tools/build-install.ts",
-    "check": "bun tools/check.ts",
-    "release": "bun tools/release.ts",
+    "test": "vitest run src/state/",
+    "transpile": "node tools/transpile.ts",
+    "build:cli": "node tools/build-cli.ts",
+    "build:install": "node tools/build-install.ts",
+    "gen-manifest": "node tools/gen-manifest.ts",
+    "build": "node tools/transpile.ts && node tools/build-cli.ts && node tools/gen-manifest.ts && node tools/build-install.ts",
+    "check": "node tools/check.ts",
+    "release": "node tools/release.ts",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
     "format": "prettier --write ."
@@ -34,6 +34,16 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.6",
-    "prettier": "^3.9.6"
+    "@types/node": "^26.6.4",
+    "esbuild": "^0.28.2",
+    "prettier": "^3.9.6",
+    "vitest": "^5.0.3"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=22.18"
+    }
   }
 }

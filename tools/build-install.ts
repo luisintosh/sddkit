@@ -1,9 +1,9 @@
-#!/usr/bin/env bun
-/** Bundle tools/install.ts for npx/bunx (`--target node`). */
+#!/usr/bin/env node
+/** Bundle tools/install.ts for npx/bunx (Node ESM). */
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
 import { fileURLToPath } from "node:url"
-import { $ } from "bun"
+import { build } from "esbuild"
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const entry = path.join(root, "tools", "install.ts")
@@ -17,7 +17,17 @@ function parseOutfile(argv: string[]): string {
 const out = parseOutfile(process.argv.slice(2))
 await fs.mkdir(path.dirname(out), { recursive: true })
 const tmp = `${out}.tmp`
-await $`bun build ${entry} --outfile ${tmp} --target node`
+await build({
+  entryPoints: [entry],
+  outfile: tmp,
+  bundle: true,
+  platform: "node",
+  format: "esm",
+  target: "node20",
+  // Bundled CJS deps (yaml) call require() for node builtins; ESM output needs a real require.
+  banner: { js: 'import { createRequire } from "node:module";const require=createRequire(import.meta.url);' },
+  logLevel: "warning",
+})
 const js = await fs.readFile(tmp, "utf8")
 const body = js.replace(/^#!.*\n/, "")
 await fs.writeFile(out, `#!/usr/bin/env node\n${body}`, { mode: 0o755 })

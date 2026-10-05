@@ -15,7 +15,7 @@ installs into a _consuming_ repo or `$HOME` (`.opencode/`, `.cursor/agents/`, `.
 **only** sources of truth. `tools/transpile.ts` emits OpenCode, Cursor, Claude Code, Codex, and shared skills.
 
 - Never hand-edit `dist/` or `manifest.txt` — both are generated and **tracked**. Fix the catalog or the prompt body,
-  then `bun run build` before commit.
+  then `pnpm run build` before commit.
 - Prompt bodies in `src/prompts/agents/*.md` carry **no frontmatter**; transpile adds it.
 - `{{include:fragments/<name>.md}}` in a prompt body is resolved at transpile time.
 - `{{orca:routes}}` (in `fragments/orca.md`) renders `orchestrators.orca` from the catalog into the conductor's routing
@@ -23,11 +23,11 @@ installs into a _consuming_ repo or `$HOME` (`.opencode/`, `.cursor/agents/`, `.
 
 ## Checked artifacts
 
-`bun run check` fails the build (and CI) on drift, so these must be updated together:
+`pnpm run check` fails the build (and CI) on drift, so these must be updated together:
 
 - Changing a host profile in `src/catalog.yaml` requires editing the profile × host matrix in `README.md` to match — the
   check compares the matrix and each agent's `profile`.
-- Any `src/` change requires a `bun run build` before `bun run check`; check compares against `dist/` and against
+- Any `src/` change requires a `pnpm run build` before `pnpm run check`; check compares against `dist/` and against
   `manifest.txt` hashes.
 
 ## Build, test, release
@@ -36,14 +36,14 @@ installs into a _consuming_ repo or `$HOME` (`.opencode/`, `.cursor/agents/`, `.
 
 ## Code style
 
-Biome lints `src/**/*.ts` and `tools/**/*.ts` (`bun run lint`, `bun run lint:fix`). Prettier formats those same files
-plus all `**/*.md` (`bun run format`). Shell scripts are covered by `bash -n` + `shellcheck` only. Both are configured
+Biome lints `src/**/*.ts` and `tools/**/*.ts` (`pnpm run lint`, `pnpm run lint:fix`). Prettier formats those same files
+plus all `**/*.md` (`pnpm run format`). Shell scripts are covered by `bash -n` + `shellcheck` only. Both are configured
 to match the conventions already in the tree, so keep to them:
 
 - No semicolons, double quotes, 2-space indent.
 - `.ts` extension in relative imports (`import { deepMerge } from "./merge.ts"`).
 - Node builtins namespaced: `import * as fs from "node:fs/promises"`.
-- `tools/*.ts` use a `#!/usr/bin/env bun` shebang and top-level `await main()`.
+- `tools/*.ts` use a `#!/usr/bin/env node` shebang (Node ≥22.18 runs `.ts` directly) and top-level `await main()`.
 
 ## Commits
 

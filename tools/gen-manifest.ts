@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /** Write manifest.txt (sha256 + dist-relative path) from dist/. */
 import { createHash } from "node:crypto"
 import type { Dirent } from "node:fs"
@@ -41,7 +41,7 @@ try {
   for (const d of distRoots) await fs.stat(d)
   await fs.stat(bin)
 } catch {
-  console.error("ERROR: dist/ incomplete — run: bun tools/transpile.ts && bun tools/build-cli.ts")
+  console.error("ERROR: dist/ incomplete — run: pnpm run build")
   process.exit(1)
 }
 
