@@ -10,28 +10,53 @@ export const FindingSchema = z.object({
   fix: z.string(),
 })
 
-const STAGES = [
-  "initialized",
-  "specify",
-  "spec_gate",
-  "plan",
-  "plan_gate",
-  "implementation",
-  "verify",
-  "docs_sync",
-  "pr",
-  "qa",
-  "complete",
-] as const
+const STAGES = ["initialized", "design", "design_gate", "implementation", "review", "verify", "pr", "qa", "complete"] as const
 
-const SLICE_PHASES = ["", "green", "targeted_test", "review"] as const
+const SLICE_PHASES = ["", "green", "targeted_test"] as const
 
-export const StateSchema = z.object({
+/** Stage names written by earlier pipeline versions, mapped to the stage that resumes them. */
+const LEGACY_STAGES: Record<string, string> = {
+  specify: "design",
+  spec_gate: "design",
+  plan: "design",
+  plan_gate: "design_gate",
+  docs_sync: "pr",
+}
+
+/** Legacy `completed` entries; `null` drops the entry. */
+const LEGACY_COMPLETED: Record<string, string | null> = {
+  specify: "design",
+  plan: "design",
+  spec_gate: null,
+  plan_gate: null,
+}
+
+/** Rewrites a state document from an earlier pipeline version so an in-flight feature resumes. */
+export function normalizeLegacy(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw
+  const state = { ...(raw as Record<string, unknown>) }
+  if (typeof state.stage === "string" && state.stage in LEGACY_STAGES) {
+    state.stage = LEGACY_STAGES[state.stage]
+  }
+  if (state.pending_gate === "spec" || state.pending_gate === "plan") {
+    state.pending_gate = state.stage === "design_gate" ? "design" : ""
+  }
+  if (state.slice_phase === "review") state.slice_phase = "targeted_test"
+  if (Array.isArray(state.completed)) {
+    const mapped = state.completed.map((entry) =>
+      typeof entry === "string" && entry in LEGACY_COMPLETED ? LEGACY_COMPLETED[entry] : entry,
+    )
+    state.completed = [...new Set(mapped.filter((entry) => entry !== null))]
+  }
+  return state
+}
+
+const StateObject = z.object({
   feature: z.string().min(1),
   workflow: z.literal("sdd").default("sdd"),
   stage: z.enum(STAGES),
   completed: z.array(z.string()).default([]),
-  pending_gate: z.enum(["", "spec", "plan", "opinion"]).default(""),
+  pending_gate: z.enum(["", "design", "opinion"]).default(""),
   branch: z.string().default(""),
   tools: z
     .object({
@@ -72,11 +97,12 @@ export const StateSchema = z.object({
   review: z
     .object({
       iterations: z.number().int().default(0),
+      base: z.string().default(""),
       status: z.string().default(""),
       findings: z.array(FindingSchema).default([]),
       deferred_findings: z.array(FindingSchema).default([]),
     })
-    .default({ iterations: 0, status: "", findings: [], deferred_findings: [] }),
+    .default({ iterations: 0, base: "", status: "", findings: [], deferred_findings: [] }),
   qa: z
     .object({
       status: z.string().default(""),
@@ -115,7 +141,9 @@ export const StateSchema = z.object({
     .default({ issue: 0, epic: 0, feature_id: "", path: "" }),
 })
 
-export type SddState = z.infer<typeof StateSchema>
+export const StateSchema = z.preprocess(normalizeLegacy, StateObject)
+
+export type SddState = z.infer<typeof StateObject>
 
 export function validateState(
   candidate: unknown,

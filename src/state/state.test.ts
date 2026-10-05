@@ -136,7 +136,7 @@ describe("validateState", () => {
     const result = validateState({
       feature: "x",
       workflow: "sdd",
-      stage: "docs_sync",
+      stage: "qa",
       updated: new Date().toISOString(),
       artifacts: { spec: "docs/feats/x/spec.md", docs: ["src/billing/README.md", "AGENTS.md"] },
     })
@@ -148,6 +148,28 @@ describe("validateState", () => {
     }
   })
 
+  test("accepts a design gate and records the review base", () => {
+    const result = validateState({
+      feature: "x",
+      stage: "design_gate",
+      pending_gate: "design",
+      review: { base: "abc123" },
+      updated: new Date().toISOString(),
+    })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.review.base).toBe("abc123")
+  })
+
+  test("rejects a legacy-only slice phase value that is not normalized", () => {
+    const result = validateState({
+      feature: "x",
+      stage: "implementation",
+      slice_phase: "red",
+      updated: new Date().toISOString(),
+    })
+    expect(result.success).toBe(false)
+  })
+
   test("rejects a malformed finding record", () => {
     const result = validateState({
       feature: "x",
@@ -157,6 +179,49 @@ describe("validateState", () => {
       review: { findings: [{ id: "F1", file: "a.ts" }] },
     })
     expect(result.success).toBe(false)
+  })
+})
+
+describe("legacy state normalization", () => {
+  const base = { feature: "x", workflow: "sdd", updated: new Date().toISOString() }
+
+  test.each([
+    ["specify", "spec", "design", ""],
+    ["spec_gate", "spec", "design", ""],
+    ["plan", "", "design", ""],
+    ["plan_gate", "plan", "design_gate", "design"],
+    ["docs_sync", "", "pr", ""],
+  ])("stage %s with pending_gate %s resumes at %s / %s", (stage, gate, wantStage, wantGate) => {
+    const result = validateState({ ...base, stage, pending_gate: gate })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.stage).toBe(wantStage)
+      expect(result.data.pending_gate).toBe(wantGate)
+    }
+  })
+
+  test("maps slice_phase review to targeted_test", () => {
+    const result = validateState({ ...base, stage: "implementation", slice_phase: "review" })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.slice_phase).toBe("targeted_test")
+  })
+
+  test("maps and de-duplicates completed entries", () => {
+    const result = validateState({
+      ...base,
+      stage: "implementation",
+      completed: ["specify", "spec_gate", "plan", "plan_gate", "implementation"],
+    })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.completed).toEqual(["design", "implementation"])
+  })
+
+  test("a patch against a legacy file writes the normalized document", async () => {
+    await writeStateAtomic(root, "legacy", { ...base, feature: "legacy", stage: "plan_gate", pending_gate: "plan" } as never)
+    await runPatch(root, "legacy", { blockers: [] })
+    const after = await readState(root, "legacy")
+    expect(after?.stage).toBe("design_gate")
+    expect(after?.pending_gate).toBe("design")
   })
 })
 
@@ -223,16 +288,16 @@ describe("runInit / runPatch", () => {
     await runInit(root, "account-export")
     const before = await readState(root, "account-export")
     await new Promise((r) => setTimeout(r, 5))
-    await runPatch(root, "account-export", { stage: "specify", completed: ["specify"] })
+    await runPatch(root, "account-export", { stage: "design", completed: ["design"] })
     const after = await readState(root, "account-export")
-    expect(after?.stage).toBe("specify")
-    expect(after?.completed).toEqual(["specify"])
+    expect(after?.stage).toBe("design")
+    expect(after?.completed).toEqual(["design"])
     expect(after?.last_agent).toBe("sddkit")
     expect(after?.updated).not.toBe(before?.updated)
   })
 
   test("patch against a missing feature throws", async () => {
-    await expect(runPatch(root, "ghost", { stage: "specify" })).rejects.toThrow(/does not exist/)
+    await expect(runPatch(root, "ghost", { stage: "design" })).rejects.toThrow(/does not exist/)
   })
 
   test("loop counters survive a round-trip so a resume reads them back", async () => {

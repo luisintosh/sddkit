@@ -20,7 +20,7 @@ function usage(): never {
   sddkit-state patch <feature>   # YAML patch on stdin
   sddkit-state show <feature>
   sddkit-state validate <feature>
-  sddkit-state decide <feature> --event qa-route|skip-spec-gate|skip-plan-critique|skip-review --yaml '...'
+  sddkit-state decide <feature> --event qa-route|skip-design-critique|batch-journeys --yaml '...'
   sddkit-state probe orchestrator`)
   process.exit(2)
 }
@@ -119,7 +119,8 @@ async function main(): Promise<void> {
           console.error(`sddkit-state: docs/feats/${feature}/state.yaml does not exist`)
           process.exit(1)
         }
-        process.stdout.write(stringifyYaml(state))
+        const normalized = validateState(state)
+        process.stdout.write(stringifyYaml(normalized.success ? normalized.data : state))
         break
       }
       case "validate": {

@@ -1,10 +1,11 @@
 # sddkit
 
 A thin harness for **spec-driven development (SDD)** on [OpenCode](https://opencode.ai), [Cursor](https://cursor.com),
-[Claude Code](https://code.claude.com), and [Codex](https://developers.openai.com/codex): an approved spec, tagged
-acceptance contracts (`@S<n>`), cheapest-oracle journeys (at most three, public-boundary or golden first) with the
-consuming repo's test stack, a multi-agent pipeline with a one-rung clean-tree escalation loop, and a file-based
-**`state.yaml` checkpoint** written only through `.agents/bin/sddkit-state.mjs`.
+[Claude Code](https://code.claude.com), and [Codex](https://developers.openai.com/codex): one approved design (spec,
+tagged acceptance contracts `@S<n>`, and plan), cheapest-oracle journeys (at most three, public-boundary or golden
+first) with the consuming repo's test stack, a multi-agent pipeline whose reviewers fix what they find, a one-rung
+clean-tree escalation loop, and a file-based **`state.yaml` checkpoint** written only through
+`.agents/bin/sddkit-state.mjs`.
 
 Prompts live once under `src/prompts/`; `pnpm run build` transpiles them into OpenCode, Cursor, Claude Code, Codex, and
 shared skill formats under `dist/` (tracked so install does not need a client-side build).
@@ -64,24 +65,23 @@ or Codex terra.
 | profile    | OpenCode                      | Cursor                         | Claude                  | Codex                  |
 | ---------- | ----------------------------- | ------------------------------ | ----------------------- | ---------------------- |
 | `conduct`  | `opencode-go/qwen3.7-plus`    | `inherit`                      | `inherit`               | `inherit`              |
-| `think`    | `openai/gpt-5.6-sol`          | `grok-4.6[effort=xhigh]`       | `sonnet[effort=xhigh]`  | `gpt-5.6-terra[xhigh]` |
+| `think`    | `openai/gpt-5.6-sol`          | `grok-4.6[effort=xhigh]`       | `opus[effort=medium]`   | `gpt-5.6-terra[xhigh]` |
 | `execute`  | `openai/gpt-5.6-luna`         | `grok-4.6[effort=high]`        | `sonnet[effort=high]`   | `gpt-5.6-terra[high]`  |
 | `review`   | `opencode-go/kimi-k3`         | `grok-4.6[effort=high]`        | `sonnet[effort=high]`   | `gpt-5.6-terra[high]`  |
 | `critique` | `opencode-go/kimi-k2.7-code`  | `claude-sonnet-5[effort=high]` | `opus[effort=high]`     | `gpt-5.6-sol[high]`    |
 | `validate` | `opencode-go/deepseek-v4-pro` | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]` | `gpt-5.6-terra[high]`  |
 | `write`    | `opencode-go/kimi-k3`         | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]` | `gpt-5.6-luna[medium]` |
 
-| agent                  | profile    |
-| ---------------------- | ---------- |
-| `sddkit`               | `conduct`  |
-| `sddkit-spec`          | `think`    |
-| `sddkit-architect`     | `think`    |
-| `sddkit-plan-reviewer` | `review`   |
-| `sddkit-implementer`   | `execute`  |
-| `sddkit-code-reviewer` | `critique` |
-| `sddkit-qa`            | `validate` |
-| `sddkit-docs-writer`   | `write`    |
-| `sddkit-plan`          | `think`    |
+| agent                    | profile    |
+| ------------------------ | ---------- |
+| `sddkit`                 | `conduct`  |
+| `sddkit-design`          | `think`    |
+| `sddkit-design-reviewer` | `review`   |
+| `sddkit-implementer`     | `execute`  |
+| `sddkit-code-reviewer`   | `critique` |
+| `sddkit-qa`              | `validate` |
+| `sddkit-docs-writer`     | `write`    |
+| `sddkit-plan`            | `think`    |
 
 Checked in CI against `src/catalog.yaml` and emitted frontmatter / Codex TOML.
 
@@ -93,8 +93,8 @@ worker instead of the host's subagent, on any host. The CLI and model per profil
 
 | specialist                                              | worker                                                       |
 | ------------------------------------------------------- | ------------------------------------------------------------ |
-| `sddkit-spec`, `sddkit-architect`                       | `claude --model opus --effort medium --permission-mode auto` |
-| `sddkit-plan-reviewer`, `sddkit-code-reviewer`          | `claude --model sonnet --effort high --permission-mode auto` |
+| `sddkit-design`                                         | `claude --model opus --effort medium --permission-mode auto` |
+| `sddkit-design-reviewer`, `sddkit-code-reviewer`        | `claude --model sonnet --effort high --permission-mode auto` |
 | `sddkit-implementer`, `sddkit-qa`, `sddkit-docs-writer` | `cursor-agent --model grok-4.7-high --yolo`                  |
 
 At initialize the conductor runs `sddkit-state probe orchestrator`. All of these must hold, or it delegates natively as
@@ -130,7 +130,8 @@ ref npx/bunx fetched — the installer never builds on the client.
 
 Re-running is idempotent: unchanged files skip. The installer prints every create, update, overwrite, and delete, then
 applies after confirmation on a TTY (`--yes`, `CI`, and non-TTY runs apply after printing the plan). Local edits are
-overwritten — this toolkit repo is the version store. Removed upstream files are deleted.
+overwritten — this toolkit repo is the version store. Removed upstream files are deleted when the target holds the
+`.harness-manifest` a previous install wrote; otherwise delete stale `sddkit-*` agent files by hand.
 
 Flags: `--dry-run`, `--doctor`, `--yes`.
 
@@ -161,7 +162,7 @@ READMEs for existing code — `sddkit-docs-writer` creates each one as a feature
 session model (Grok Extra High / opus / sol), then describe the feature.
 
 `sddkit` verifies `gh` (or a connected substitute) + the target repo, creates `feat/<slug>`, scaffolds state with
-`.agents/bin/sddkit-state.mjs init`, and runs the pipeline, stopping at the spec and plan gates for review. Resume by
+`.agents/bin/sddkit-state.mjs init`, and runs the pipeline, stopping once at the design gate for review. Resume by
 asking to continue.
 
 Not for a confined, no-behavior-branch change — a typo, a comment, a version bump, a single-line config value, a pure
@@ -196,31 +197,38 @@ context; the handoff carries forward only what the next run actually needs.
 ## Pipeline
 
 ```
-initialize → specify (spec + contracts) → spec critique → ⏸spec gate (first pass; skipped when clean)
-  → plan (journeys + waypoints) → plan critique (skipped only when skip-plan-critique is true) → ⏸plan gate
-  → per journey: implementer (failing cheap oracle, then impl) → sensors + targeted test
-  → sddkit-code-reviewer (skipped on first green, non-escalation pass only) → commit
-  → verify → docs-sync → pr → qa → complete → handoff
+initialize → design (spec + contracts + plan) → design critique (fixes in place; skippable) → ⏸design gate
+  → implementation (failing cheap oracle, then impl; two cheap journeys batched) → sensors → commit
+  → review (once per feature; reviewer fixes in place) → verify → pr → docs-sync ∥ qa → finalize PR → complete
+  → handoff
 ```
 
-Architect picks the cheapest sensor that can fail the observable `@S<n>` (public-boundary or golden before
-integration/e2e) and writes a fenced `journeys:` YAML block in `plan.md`. A committed Playwright oracle is planned only
-when the feature is UI-only; QA otherwise covers UI paths ad hoc with
-[agent-browser](https://github.com/vercel-labs/agent-browser), which must be installed (QA blocks with the install step
-if it is missing). `sddkit-implementer` writes that journey's failing oracle and the implementation in a single pass.
-The conductor loops at most 3 journeys.
+1. **Design.** `sddkit-design` writes `spec.md`, the `@S<n>` contracts, and `plan.md` in one session. It picks the
+   cheapest sensor that can fail each observable `@S<n>` (public-boundary or golden before integration/e2e), groups
+   scenarios into at most 3 journeys, and writes a fenced `journeys:` YAML block in `plan.md`. A committed Playwright
+   oracle is planned only when the feature is UI-only; QA otherwise covers UI paths ad hoc with
+   [agent-browser](https://github.com/vercel-labs/agent-browser), which must be installed (QA blocks with the install
+   step if it is missing).
+2. **Design critique.** `sddkit-design-reviewer` fixes unambiguous issues in the spec, contracts, and plan, and reports
+   only what needs a human or a redesign. Skipped when `skip-design-critique` is true: one journey with a `boundary` or
+   `golden` oracle, a single viable approach, no Playwright, no human decisions, no open questions, and no constitution
+   blocker.
+3. **Design gate.** The one human approval, never skipped.
+4. **Implementation.** `sddkit-implementer` writes each journey's failing oracle and the implementation in one pass. Two
+   `boundary`/`golden` journeys with no Playwright add go in one delegation (`batch-journeys`).
+5. **Review.** `sddkit-code-reviewer` reviews the whole feature diff once and fixes `blocker`/`major` findings itself —
+   never in `docs/feats/**`, a journey test file, or an existing assertion, and never more than ~40 lines per fix. The
+   conductor reverts any edit outside those limits or any that breaks a sensor. What remains goes to one implementer fix
+   round and a second, delta-scoped review.
+6. **Verify, PR, docs-sync ∥ QA.** After verify, the draft PR opens; `sddkit-docs-writer` and `sddkit-qa` then run in
+   parallel. The conductor adds `## Setup required` to the PR body and marks it ready once both are done.
 
-Plan critique is skipped only when `skip-plan-critique` is true: every journey oracle is `boundary` or `golden`, the
-spec critique was clean, the recommended approach is the only viable one, Playwright is not the planned oracle,
-`human_decisions` is empty, and there is no constitution blocker. The plan gate is never skipped on a first pass. A QA
-spec delta skips it only when Test strategy is unchanged.
-
-**Escalation:** if the targeted test fails twice, `git reset --hard` to the journey base and re-run `sddkit-implementer`
-(optionally two worktrees; keep the smaller green diff). One rung; then pause for a human.
+**Escalation:** if a slice's targeted tests fail twice, `git reset --hard` to the slice base and re-run
+`sddkit-implementer` (optionally two worktrees; keep the smaller green diff). One rung; then pause for a human.
 
 **QA:** findings route by category (`sddkit-state decide --event qa-route`) — impl-only to a verify-fix, spec/plan-only
-to a spec delta (always presents the spec gate), mixed runs the spec delta and drops stale impl findings for the re-QA
-pass. They do not always re-enter specify.
+to a design delta (always presents the design gate), mixed runs the design delta and drops stale impl findings for the
+re-QA pass.
 
 **Docs:** `docs-sync` delegates to `sddkit-docs-writer`, which writes the touched domain's `README.md` — co-located with
 the code, or `docs/domains/<domain>.md` when the domain is cross-cutting — to a fixed skeleton (purpose, how it works,
@@ -234,7 +242,7 @@ since that part is work only a human can do.
 
 ```bash
 .agents/bin/sddkit-state.mjs init <feature>
-.agents/bin/sddkit-state.mjs patch <feature> --yaml 'stage: specify'
+.agents/bin/sddkit-state.mjs patch <feature> --yaml 'stage: design'
 .agents/bin/sddkit-state.mjs show <feature>
 .agents/bin/sddkit-state.mjs validate <feature>
 .agents/bin/sddkit-state.mjs decide <feature> --event qa-route --yaml 'findings: [{category: bug}]'

@@ -27,7 +27,7 @@ hosts:
   claude:
     profiles:
       conduct: { id: inherit }
-      think: { id: sonnet, effort: xhigh }
+      think: { id: opus, effort: medium }
       execute: { id: sonnet, effort: high }
       review: { id: sonnet, effort: high }
       critique: { id: opus, effort: high }
@@ -81,61 +81,47 @@ agents:
     cursor:
       skill: true
 
-  sddkit-spec:
+  sddkit-design:
     profile: think
     description: >-
-      Writes feature specifications (the what & why) and spec-derived acceptance contracts. Use when the conductor
-      delegates specify/contracts, or when a spec or its @S<n> scenarios must be written or revised.
+      Writes the feature design in one pass — spec (the what & why), spec-derived acceptance contracts, and the
+      implementation plan with cheapest-oracle journeys and waypoints. Use when the conductor delegates design, or when
+      a spec, its @S<n> scenarios, or a plan must be written or revised.
     opencode:
       mode: subagent
       temperature: 0.3
-      steps: 20
+      steps: 50
       permission:
         edit:
           "*": deny
           "docs/feats/**": allow
           "docs/feats/**/state.yaml": deny
-        bash: deny
+          "**/journal.ndjson": deny
+        bash: allow
     cursor: {}
 
-  sddkit-architect:
-    profile: think
+  sddkit-design-reviewer:
+    profile: review
     description: >-
-      Plans implementation strategy and writes feature plans (SDD plan stage). Owns codebase exploration and cheapest-
-      oracle journeys. Use when the conductor delegates plan, or when a feature plan, its Test strategy, or
-      Implementation waypoints must be written or revised.
+      Independent critique of a feature design (spec, contracts, plan) before its gate. Fixes unambiguous issues in
+      place and reports the rest as structured findings. Use when the conductor delegates a design critique.
     opencode:
       mode: subagent
-      temperature: 0.3
+      temperature: 0.1
       steps: 30
       permission:
         edit:
           "*": deny
           "docs/feats/**": allow
           "docs/feats/**/state.yaml": deny
-        bash: allow
-    cursor: {}
-
-  sddkit-plan-reviewer:
-    profile: review
-    description: >-
-      Independent, READ-ONLY critique of the spec or the plan before its gate. Emits structured spec/plan findings;
-      never edits. Use when the conductor delegates a spec or plan critique.
-    opencode:
-      mode: subagent
-      temperature: 0.1
-      steps: 25
-      permission:
-        edit: deny
-        write: deny
+          "**/journal.ndjson": deny
         bash:
           "*": deny
           "git diff*": allow
           "git show*": allow
           "git log*": allow
           "git status*": allow
-    cursor:
-      readonly: true
+    cursor: {}
 
   sddkit-implementer:
     profile: execute
@@ -159,23 +145,40 @@ agents:
   sddkit-code-reviewer:
     profile: critique
     description: >-
-      Independent, READ-ONLY review of the feature implementation diff against its acceptance contracts. Emits
-      structured findings; never edits. Use when the conductor delegates implementation review.
+      Independent review of the feature implementation diff against its acceptance contracts. Fixes unambiguous
+      blocker/major findings in place and reports the rest as structured findings. Use when the conductor delegates
+      implementation review.
     opencode:
       mode: subagent
       temperature: 0.1
-      steps: 25
+      steps: 40
       permission:
-        edit: deny
-        write: deny
+        edit:
+          "*": allow
+          # Frozen inputs, conductor-owned state, git internals, and host/agent config stay out of reach.
+          "docs/feats/**": deny
+          "**/journal.ndjson": deny
+          ".git/**": deny
+          ".agents/**": deny
+          ".claude/**": deny
+          ".codex/**": deny
+          ".cursor/**": deny
+          ".opencode/**": deny
+        # Commands may run tests; git and tracker writes stay with the conductor.
         bash:
-          "*": deny
-          "git diff*": allow
-          "git show*": allow
-          "git log*": allow
-          "git status*": allow
-    cursor:
-      readonly: true
+          "*": allow
+          "git add*": deny
+          "git rm*": deny
+          "git mv*": deny
+          "git restore*": deny
+          "git update-index*": deny
+          "git commit*": deny
+          "git push*": deny
+          "git reset*": deny
+          "git checkout*": deny
+          "git stash*": deny
+          "gh *": deny
+    cursor: {}
 
   sddkit-qa:
     profile: validate

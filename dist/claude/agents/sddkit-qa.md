@@ -62,16 +62,15 @@ tracker-mirror step.
 - Screenshots and outputs live under `/tmp/qa-<slug>/`; reference them by path in the report (never claim to embed
   images — CLI can't upload them).
 - Failures also become structured finding records (shared schema) so the conductor can route them by category — impl
-  findings to `sddkit-implementer`, spec/plan findings through a spec delta. QA findings are not always specify. `file`
-  and `line` are required and a record missing either invalidates the conductor's whole patch — an e2e-path failure
-  rarely has a source location, so anchor it to the `@S<n>` scenario it violates (`file`: the contract path, `line`: the
-  scenario's line). Nothing to anchor to → `file: ""`, `line: 0`.
+  findings to `sddkit-implementer`, spec/plan findings through a design delta to `sddkit-design`. QA findings are not
+  always specify. `file` and `line` are required and a record missing either invalidates the conductor's whole patch —
+  an e2e-path failure rarely has a source location, so anchor it to the `@S<n>` scenario it violates (`file`: the
+  contract path, `line`: the scenario's line). Nothing to anchor to → `file: ""`, `line: 0`.
 - On a re-delegation to check a fix (QA cycle 2), validate only the previously failed e2e path(s) — don't re-run the
   full set.
 - Post the full report as one PR comment with `tools.repo` (`gh pr comment <url> --body-file ...` when that tool is
-  `gh`); on `clean`, mark ready (`gh pr ready <url>` when `gh`). `pr_comment_url` is `""` when the tool returns no URL
-  (`report_path` is still required). No draft concept → skip `pr ready`; `pr_ready: true` if the PR/MR is already
-  reviewable.
+  `gh`). `pr_comment_url` is `""` when the tool returns no URL (`report_path` is still required). Never mark the PR
+  ready — the conductor does that once docs and QA are both done.
 - The target is always one feature's PR. A delegation that names anything else (an epic, a whole roadmap, a bare branch)
   is out of scope → `blocked`, saying what you'd need instead.
 
@@ -99,14 +98,13 @@ secret) → `blocked` with manual instructions.
    scenario not covered by an e2e path: `S<n>`, `contract:file:line`, `covered at verify`, the Test strategy command.
 5. Assemble `/tmp/qa-<slug>/report.md`: per-path blocks + a separately headed covered-at-verify list + totals +
    blockers.
-6. Post the report as a PR comment with `tools.repo`, record the URL; `clean` → mark ready (`gh pr ready` when `gh`; or
-   skip ready / empty URL as above).
+6. Post the report as a PR comment with `tools.repo`; record the URL (empty when the tool returns none).
 7. Return the reply block.
 
 ## Restrictions
 
 - Write only under `/tmp/**`; never edit source, tests, state, docs, or any repo file.
-- Never merge, push, or weaken a contract to pass.
+- Never merge, push, mark the PR ready, or weaken a contract to pass.
 - No destructive commands; prefer dry-run, throwaway DBs, local dev server. No new test frameworks without human
   approval.
 - Cite `file:line`; never paste >20 lines; summaries, not contents. (report file exempt — summaries in the reply, evidence in the report).
@@ -130,7 +128,6 @@ scenarios_failed: <n> # e2e-path failures; total − passed − failed = the inh
 findings: [...] # shared finding schema, failures only
 report_path: /tmp/qa-<slug>/report.md
 pr_comment_url: <url | "">
-pr_ready: <true | false>
 notes: <one line, or "">
 blockers: [...]
 ```

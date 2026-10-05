@@ -6,13 +6,11 @@ Resolve `sddkit-state` before the first checkpoint, then use that path for every
 
 Never edit `state.yaml` or `journal.ndjson` directly.
 
-`decide <slug> --event <event> --yaml '...'` prints `skip: true|false` or `route: impl|spec|mixed`. It does not read
-`state.yaml`; every key must be in the YAML. Events:
+`decide <slug> --event <event> --yaml '...'` prints one line. It does not read `state.yaml`; every key must be in the
+YAML, and a missing or malformed key fails closed. Events:
 
-- `qa-route` — `findings`: this cycle's QA findings (`{category}` rows or category strings). Empty or unknown category →
-  `spec`.
-- `skip-spec-gate` — `specCritiqueClean`, `openQuestions` (YAML list, never a string).
-- `skip-plan-critique` — `specCritiqueClean`, `onlyViableApproach`, `playwrightFallback`, `humanDecisions` (YAML list),
-  `constitutionBlocker`, `oracles` (YAML list). Omit no key.
-- `skip-review` — `typecheck`, `lint`, `targetedTest` (`pass|fail|n/a`), `escalation` (`0|1`), `iteration` (`1` on first
-  review).
+- `skip-design-critique` → `skip: true|false`. Keys: `onlyViableApproach`, `playwrightFallback`, `constitutionBlocker`
+  (booleans), `humanDecisions`, `openQuestions`, `oracles` (YAML lists). Omit no key.
+- `batch-journeys` → `batch: true|false`. Keys: `oracles` (YAML list, one per journey), `playwrightAdd` (boolean).
+- `qa-route` → `route: impl|spec|mixed`. Key: `findings` — this cycle's QA findings (`{category}` rows or category
+  strings). Empty or unknown category → `spec`.

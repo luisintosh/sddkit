@@ -1,5 +1,5 @@
 import { describe, test, expect } from "vitest"
-import { routeQaFindings, runDecide, skipPlanCritique, skipReviewIter1, skipSpecGate } from "./decisions.ts"
+import { batchJourneys, routeQaFindings, runDecide, skipDesignCritique } from "./decisions.ts"
 
 describe("routeQaFindings", () => {
   test("impl-only categories route to impl", () => {
@@ -28,95 +28,57 @@ describe("routeQaFindings", () => {
   })
 })
 
-describe("skipSpecGate", () => {
-  test("skips when critique is clean and there are no open questions", () => {
-    expect(skipSpecGate({ specCritiqueClean: true, openQuestions: [] })).toBe(true)
-  })
-
-  test("does not skip when critique is dirty", () => {
-    expect(skipSpecGate({ specCritiqueClean: false, openQuestions: [] })).toBe(false)
-  })
-
-  test("does not skip when open questions remain", () => {
-    expect(skipSpecGate({ specCritiqueClean: true, openQuestions: ["auth provider?"] })).toBe(false)
-  })
-})
-
-describe("skipPlanCritique", () => {
+describe("skipDesignCritique", () => {
   const clean = {
-    specCritiqueClean: true,
     onlyViableApproach: true,
     playwrightFallback: false,
     humanDecisions: [] as string[],
+    openQuestions: [] as string[],
     constitutionBlocker: false,
     oracles: ["boundary"],
   }
 
   test("skips when every predicate holds", () => {
-    expect(skipPlanCritique(clean)).toBe(true)
-  })
-
-  test("does not skip when spec critique is dirty", () => {
-    expect(skipPlanCritique({ ...clean, specCritiqueClean: false })).toBe(false)
+    expect(skipDesignCritique(clean)).toBe(true)
   })
 
   test("does not skip when more than one approach is live", () => {
-    expect(skipPlanCritique({ ...clean, onlyViableApproach: false })).toBe(false)
+    expect(skipDesignCritique({ ...clean, onlyViableApproach: false })).toBe(false)
   })
 
   test("does not skip when playwright is the planned oracle", () => {
-    expect(skipPlanCritique({ ...clean, playwrightFallback: true })).toBe(false)
+    expect(skipDesignCritique({ ...clean, playwrightFallback: true })).toBe(false)
   })
 
-  test("does not skip when the architect flagged a human decision", () => {
-    expect(skipPlanCritique({ ...clean, humanDecisions: ["pick store"] })).toBe(false)
+  test("does not skip when the design flagged a human decision or open question", () => {
+    expect(skipDesignCritique({ ...clean, humanDecisions: ["pick store"] })).toBe(false)
+    expect(skipDesignCritique({ ...clean, openQuestions: ["auth provider?"] })).toBe(false)
   })
 
   test("does not skip on a constitution blocker", () => {
-    expect(skipPlanCritique({ ...clean, constitutionBlocker: true })).toBe(false)
+    expect(skipDesignCritique({ ...clean, constitutionBlocker: true })).toBe(false)
   })
 
-  test("does not skip when a journey oracle is integration or e2e", () => {
-    expect(skipPlanCritique({ ...clean, oracles: ["boundary", "e2e"] })).toBe(false)
-  })
-
-  test("does not skip when oracles are omitted", () => {
-    expect(skipPlanCritique({ ...clean, oracles: [] })).toBe(false)
+  test("does not skip with more than one journey or a costly oracle", () => {
+    expect(skipDesignCritique({ ...clean, oracles: ["boundary", "golden"] })).toBe(false)
+    expect(skipDesignCritique({ ...clean, oracles: ["e2e"] })).toBe(false)
+    expect(skipDesignCritique({ ...clean, oracles: [] })).toBe(false)
   })
 })
 
-describe("skipReviewIter1", () => {
-  test("skips when sensors are green or n/a on iteration 1 and this is not an escalation", () => {
-    expect(skipReviewIter1({ typecheck: "pass", lint: "n/a", targetedTest: "pass", escalation: 0, iteration: 1 })).toBe(
-      true,
-    )
+describe("batchJourneys", () => {
+  test("batches two cheap journeys without a playwright add", () => {
+    expect(batchJourneys({ oracles: ["boundary", "golden"], playwrightAdd: false })).toBe(true)
   })
 
-  test("does not skip on a failing targeted test", () => {
-    expect(
-      skipReviewIter1({ typecheck: "pass", lint: "pass", targetedTest: "fail", escalation: 0, iteration: 1 }),
-    ).toBe(false)
+  test("does not batch a single journey or three journeys", () => {
+    expect(batchJourneys({ oracles: ["boundary"], playwrightAdd: false })).toBe(false)
+    expect(batchJourneys({ oracles: ["boundary", "golden", "boundary"], playwrightAdd: false })).toBe(false)
   })
 
-  test("does not skip on a failing typecheck or lint", () => {
-    expect(
-      skipReviewIter1({ typecheck: "fail", lint: "pass", targetedTest: "pass", escalation: 0, iteration: 1 }),
-    ).toBe(false)
-    expect(
-      skipReviewIter1({ typecheck: "pass", lint: "fail", targetedTest: "pass", escalation: 0, iteration: 1 }),
-    ).toBe(false)
-  })
-
-  test("does not skip on an escalation pass", () => {
-    expect(
-      skipReviewIter1({ typecheck: "pass", lint: "pass", targetedTest: "pass", escalation: 1, iteration: 1 }),
-    ).toBe(false)
-  })
-
-  test("does not skip after a fix-round iteration", () => {
-    expect(
-      skipReviewIter1({ typecheck: "pass", lint: "pass", targetedTest: "pass", escalation: 0, iteration: 2 }),
-    ).toBe(false)
+  test("does not batch a costly oracle or a playwright add", () => {
+    expect(batchJourneys({ oracles: ["boundary", "integration"], playwrightAdd: false })).toBe(false)
+    expect(batchJourneys({ oracles: ["boundary", "golden"], playwrightAdd: true })).toBe(false)
   })
 })
 
@@ -131,73 +93,28 @@ describe("runDecide", () => {
     expect(runDecide("qa-route", { findings: [{ category: "nope" }] })).toBe("route: spec\n")
   })
 
-  test("prints skip for skip events", () => {
-    expect(runDecide("skip-spec-gate", { specCritiqueClean: true, openQuestions: [] })).toBe("skip: true\n")
-    expect(runDecide("skip-spec-gate", { specCritiqueClean: true })).toBe("skip: false\n")
-    expect(runDecide("skip-spec-gate", { specCritiqueClean: true, openQuestions: "none" })).toBe("skip: false\n")
-    expect(
-      runDecide("skip-plan-critique", {
-        specCritiqueClean: true,
-        onlyViableApproach: true,
-        playwrightFallback: false,
-        humanDecisions: [],
-        constitutionBlocker: false,
-        oracles: ["golden"],
-      }),
-    ).toBe("skip: true\n")
-    expect(
-      runDecide("skip-plan-critique", {
-        specCritiqueClean: true,
-        onlyViableApproach: true,
-        playwrightFallback: false,
-        oracles: ["golden"],
-      }),
-    ).toBe("skip: false\n")
-    expect(
-      runDecide("skip-plan-critique", {
-        specCritiqueClean: true,
-        onlyViableApproach: true,
-        playwrightFallback: false,
-        humanDecisions: "none",
-        constitutionBlocker: false,
-        oracles: ["golden"],
-      }),
-    ).toBe("skip: false\n")
-    expect(
-      runDecide("skip-review", {
-        typecheck: "n/a",
-        lint: "pass",
-        targetedTest: "pass",
-        escalation: 0,
-        iteration: 1,
-      }),
-    ).toBe("skip: true\n")
-    expect(
-      runDecide("skip-review", {
-        typecheck: "pass",
-        lint: "pass",
-        targetedTest: "pass",
-        escalation: 0,
-        iteration: 0,
-      }),
-    ).toBe("skip: true\n")
-    expect(
-      runDecide("skip-review", {
-        typecheck: "pass",
-        lint: "pass",
-        targetedTest: "pass",
-        iteration: 1,
-      }),
-    ).toBe("skip: false\n")
-    expect(
-      runDecide("skip-review", {
-        typecheck: "pass",
-        lint: "pass",
-        targetedTest: "pass",
-        escalation: 0,
-        iteration: 2,
-      }),
-    ).toBe("skip: false\n")
+  test("prints skip for skip-design-critique, failing closed", () => {
+    const clean = {
+      onlyViableApproach: true,
+      playwrightFallback: false,
+      humanDecisions: [],
+      openQuestions: [],
+      constitutionBlocker: false,
+      oracles: ["golden"],
+    }
+    expect(runDecide("skip-design-critique", clean)).toBe("skip: true\n")
+    expect(runDecide("skip-design-critique", { ...clean, openQuestions: undefined })).toBe("skip: false\n")
+    expect(runDecide("skip-design-critique", { ...clean, humanDecisions: "none" })).toBe("skip: false\n")
+    expect(runDecide("skip-design-critique", { ...clean, onlyViableApproach: "true" })).toBe("skip: false\n")
+    expect(runDecide("skip-design-critique", { ...clean, playwrightFallback: "false" })).toBe("skip: false\n")
+    const { constitutionBlocker: _omitted, ...missing } = clean
+    expect(runDecide("skip-design-critique", missing)).toBe("skip: false\n")
+  })
+
+  test("prints batch for batch-journeys, failing closed", () => {
+    expect(runDecide("batch-journeys", { oracles: ["boundary", "golden"], playwrightAdd: false })).toBe("batch: true\n")
+    expect(runDecide("batch-journeys", { oracles: ["boundary", "golden"] })).toBe("batch: false\n")
+    expect(runDecide("batch-journeys", { oracles: "boundary", playwrightAdd: false })).toBe("batch: false\n")
   })
 
   test("rejects an unknown event", () => {

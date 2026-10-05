@@ -29,8 +29,8 @@ assert_eq() {
 # Ensure dist + manifest exist
 (cd "$REPO_ROOT" && pnpm run build >/dev/null)
 
-assert_file_exists "${REPO_ROOT}/dist/claude/agents/sddkit-spec.md" "transpile emits claude spec agent"
-assert_file_exists "${REPO_ROOT}/dist/codex/agents/sddkit-spec.toml" "transpile emits codex spec agent"
+assert_file_exists "${REPO_ROOT}/dist/claude/agents/sddkit-design.md" "transpile emits claude design agent"
+assert_file_exists "${REPO_ROOT}/dist/codex/agents/sddkit-design.toml" "transpile emits codex design agent"
 if grep -q 'spawn_agent' "${REPO_ROOT}/dist/agents/skills/sddkit/SKILL.md"; then
   ok "sddkit skill documents Codex spawn_agent"
 else
@@ -60,9 +60,9 @@ assert_file_exists "${TARGET}/.opencode/agents/sddkit-plan.md" "opencode sddkit-
 assert_file_exists "${TARGET}/.opencode/opencode.jsonc" "opencode.jsonc installed"
 assert_file_absent "${TARGET}/.opencode/plugins/sdd-guard.ts" "plugin not installed"
 assert_file_exists "${TARGET}/.cursor/agents/sddkit-implementer.md" "cursor implementer installed"
-assert_file_exists "${TARGET}/.claude/agents/sddkit-spec.md" "claude spec agent installed"
+assert_file_exists "${TARGET}/.claude/agents/sddkit-design.md" "claude design agent installed"
 assert_file_exists "${TARGET}/.claude/skills/sddkit/SKILL.md" "claude skills copy installed"
-assert_file_exists "${TARGET}/.codex/agents/sddkit-spec.toml" "codex spec agent installed"
+assert_file_exists "${TARGET}/.codex/agents/sddkit-design.toml" "codex design agent installed"
 if [[ -L "${TARGET}/.claude/skills/sddkit/SKILL.md" ]]; then
   bad "claude skills must be a copy, not a symlink"
 else
@@ -136,15 +136,15 @@ fi
 # 6. checksum mismatch aborts
 TAMPERED="${WORK}/tampered-upstream"
 cp -R "$UPSTREAM" "$TAMPERED"
-echo "TAMPERED" >> "${TAMPERED}/dist/opencode/agents/sddkit-spec.md"
+echo "TAMPERED" >> "${TAMPERED}/dist/opencode/agents/sddkit-design.md"
 
-before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit-spec.md" | awk '{print $1}')"
+before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit-design.md" | awk '{print $1}')"
 set +e
 LOCAL_SOURCE="$TAMPERED" TARGET_DIR="$TARGET" INSTALL_TARGET=opencode node "$INSTALL_JS" >/dev/null 2>&1
 rc=$?
 set -e
 if [[ $rc -ne 0 ]]; then ok "checksum mismatch exits non-zero"; else bad "checksum mismatch should abort"; fi
-after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit-spec.md" | awk '{print $1}')"
+after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit-design.md" | awk '{print $1}')"
 assert_eq "$after_hash" "$before_hash" "no partial write after checksum mismatch"
 
 # 7. doctor mentions sddkit-state
@@ -165,10 +165,10 @@ rm -rf "${UPSTREAM}/dist"
 cp -R "${REPO_ROOT}/dist" "${UPSTREAM}/dist"
 cp "${REPO_ROOT}/manifest.txt" "$UPSTREAM/"
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor node "$INSTALL_JS" >/dev/null
-assert_file_exists "${TARGET2}/.cursor/agents/sddkit-spec.md" "cursor-only installs .cursor"
+assert_file_exists "${TARGET2}/.cursor/agents/sddkit-design.md" "cursor-only installs .cursor"
 assert_file_absent "${TARGET2}/.opencode/agents/sddkit.md" "cursor-only skips .opencode"
-assert_file_absent "${TARGET2}/.claude/agents/sddkit-spec.md" "cursor-only skips .claude"
-assert_file_absent "${TARGET2}/.codex/agents/sddkit-spec.toml" "cursor-only skips .codex"
+assert_file_absent "${TARGET2}/.claude/agents/sddkit-design.md" "cursor-only skips .claude"
+assert_file_absent "${TARGET2}/.codex/agents/sddkit-design.toml" "cursor-only skips .codex"
 assert_file_exists "${TARGET2}/.agents/bin/sddkit-state.mjs" "cursor-only still installs sddkit-state"
 assert_file_exists "${TARGET2}/.agents/skills/sddkit/SKILL.md" "cursor-only installs shared skills"
 
@@ -191,8 +191,8 @@ if command -v node >/dev/null 2>&1; then
   printf '%s\n' '{"name":"consumer","type":"commonjs"}' > "${TARGET}/package.json"
   (cd "$TARGET" && .agents/bin/sddkit-state.mjs init smoke-feat >/dev/null)
   assert_file_exists "${TARGET}/docs/feats/smoke-feat/state.yaml" "sddkit-state init writes state.yaml"
-  (cd "$TARGET" && .agents/bin/sddkit-state.mjs patch smoke-feat --yaml 'stage: specify' >/dev/null)
-  if grep -q 'stage: specify' "${TARGET}/docs/feats/smoke-feat/state.yaml"; then
+  (cd "$TARGET" && .agents/bin/sddkit-state.mjs patch smoke-feat --yaml 'stage: design' >/dev/null)
+  if grep -q 'stage: design' "${TARGET}/docs/feats/smoke-feat/state.yaml"; then
     ok "sddkit-state patch updates stage"
   else
     bad "sddkit-state patch did not update stage"
@@ -203,23 +203,17 @@ if command -v node >/dev/null 2>&1; then
   else
     bad "sddkit-state decide qa-route: $decide_out"
   fi
-  skip_spec="$(cd "$TARGET" && .agents/bin/sddkit-state.mjs decide smoke-feat --event skip-spec-gate --yaml $'specCritiqueClean: true\nopenQuestions: []')"
-  if grep -q 'skip: true' <<<"$skip_spec"; then
-    ok "sddkit-state decide skip-spec-gate"
+  skip_design="$(cd "$TARGET" && .agents/bin/sddkit-state.mjs decide smoke-feat --event skip-design-critique --yaml $'onlyViableApproach: true\nplaywrightFallback: false\nconstitutionBlocker: false\nhumanDecisions: []\nopenQuestions: []\noracles: [boundary]')"
+  if grep -q 'skip: true' <<<"$skip_design"; then
+    ok "sddkit-state decide skip-design-critique"
   else
-    bad "sddkit-state decide skip-spec-gate: $skip_spec"
+    bad "sddkit-state decide skip-design-critique: $skip_design"
   fi
-  skip_plan="$(cd "$TARGET" && .agents/bin/sddkit-state.mjs decide smoke-feat --event skip-plan-critique --yaml $'specCritiqueClean: true\nonlyViableApproach: true\nplaywrightFallback: false\nhumanDecisions: []\nconstitutionBlocker: false\noracles: [boundary]')"
-  if grep -q 'skip: true' <<<"$skip_plan"; then
-    ok "sddkit-state decide skip-plan-critique"
+  batch="$(cd "$TARGET" && .agents/bin/sddkit-state.mjs decide smoke-feat --event batch-journeys --yaml $'oracles: [boundary, golden]\nplaywrightAdd: false')"
+  if grep -q 'batch: true' <<<"$batch"; then
+    ok "sddkit-state decide batch-journeys"
   else
-    bad "sddkit-state decide skip-plan-critique: $skip_plan"
-  fi
-  skip_review="$(cd "$TARGET" && .agents/bin/sddkit-state.mjs decide smoke-feat --event skip-review --yaml $'typecheck: pass\nlint: pass\ntargetedTest: pass\nescalation: 0\niteration: 1')"
-  if grep -q 'skip: true' <<<"$skip_review"; then
-    ok "sddkit-state decide skip-review"
-  else
-    bad "sddkit-state decide skip-review: $skip_review"
+    bad "sddkit-state decide batch-journeys: $batch"
   fi
 else
   bad "node required for sddkit-state smoke test"
@@ -269,11 +263,11 @@ assert_file_exists "${FAKE_HOME}/.agents/skills/sddkit/SKILL.md" "global skills 
 assert_file_exists "${FAKE_HOME}/.agents/bin/sddkit-state.mjs" "global sddkit-state lands in ~/.agents/bin"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/sddkit-implementer.md" "global cursor agents leaf"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global install keeps planted cursor agent"
-assert_file_exists "${FAKE_HOME}/.claude/agents/sddkit-spec.md" "global claude agents leaf"
+assert_file_exists "${FAKE_HOME}/.claude/agents/sddkit-design.md" "global claude agents leaf"
 assert_file_exists "${FAKE_HOME}/.claude/skills/sddkit/SKILL.md" "global claude skills copy"
-assert_file_exists "${FAKE_HOME}/.codex/agents/sddkit-spec.toml" "global codex agents leaf"
+assert_file_exists "${FAKE_HOME}/.codex/agents/sddkit-design.toml" "global codex agents leaf"
 assert_file_exists "${FAKE_HOME}/.config/opencode/agents/sddkit.md" "global opencode agents only"
-assert_file_absent "${GLOBAL_TARGET}/.claude/agents/sddkit-spec.md" "global install does not write claude into TARGET_DIR"
+assert_file_absent "${GLOBAL_TARGET}/.claude/agents/sddkit-design.md" "global install does not write claude into TARGET_DIR"
 assert_file_absent "${GLOBAL_TARGET}/.agents/skills/sddkit/SKILL.md" "global install does not write skills into TARGET_DIR"
 assert_eq "$(cat "${FAKE_HOME}/.config/opencode/opencode.jsonc")" '{"keep":"opencode"}' \
   "global install does not clobber opencode.jsonc"
