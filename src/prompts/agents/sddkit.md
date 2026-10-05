@@ -33,12 +33,13 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
   Read them back on resume rather than assuming zero.
 - Subagents return YAML reply blocks and cannot write state. **Translate every reply into a patch — never pass one
   through verbatim** (mapping below).
-- Resume: on "resume/continue", read the feature with the newest `updated`; continue from `stage`/`pending_gate`; trust
-  on-disk artifacts — never restart completed stages. Three fields qualify that:
+- **Resume:** on "resume/continue", read the feature with the newest `updated`; continue from `stage`/`pending_gate`;
+  trust on-disk artifacts — never restart completed stages. Three fields qualify that:
   - `qa.cycles > 0` at `specify` / `spec_gate` / `plan` / `plan_gate` is a QA spec delta (step 12 `route: spec|mixed`),
     not steps 2–7. Resume the matching item: `specify` → item 1 (delegate spec); `spec_gate` → wait, then item 2 after
     approve (do not run skip-spec-gate, do not continue to step 5); `plan` → item 2 (architect); `plan_gate` → wait,
-    then item 3 (clear `completed_slices`, reset `escalation`, then step 8). Do not restart the delta from the top.
+    then item 3 (clear `completed_slices`, reset `escalation`, then step 8). Do not restart the delta from the top. A
+    `route: impl` delta never leaves `qa` / `verify`, so it resumes there.
   - `pending_gate: opinion` means an `sddkit-implementer` opinion gate is still unanswered — the question is in
     `blockers`, so put it back to the human rather than re-running implementation into the same fork.
   - `stage: implementation` with a non-empty `slice_phase` is mid-implementation — jump to that phase; do **not** zero
@@ -56,6 +57,10 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
    the default branch now and open a draft PR later, and a **tracker** tool if a work item is named (they need not be
    the same). Name each pick in one line. Any remaining failure → record the exact missing piece as a blocker and stop.
 
+   `AGENTS.md` must exist and name the install, dev/run, build, test, lint, and typecheck commands (`n/a` counts) —
+   targeted tests, verify, and QA run exactly those. Missing → stop and tell the human to run `/sddkit-setup-docs`
+   themselves, then re-invoke the pipeline. That skill is user-invoked only; never write `AGENTS.md` yourself.
+
    **Resolve the slug before touching git.** Invocation names a GitHub issue →
    `gh issue view <n> --json number,title,body,state` (or this step's tracker pick; failure here is a blocker, same as
    preflight); parse `F<n>: <name>` and `Blocked by #<m>` from the title/body and derive the slug from `<name>` — never
@@ -71,13 +76,12 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
    suffix one.
 
    **Resume short-circuits the rest of this step.** `docs/feats/<slug>/state.yaml` already exists → check it out,
-   `sddkit-state show <slug>`, and jump straight to the step its `stage`/`pending_gate` names (per the resume rule
-   above) — except `qa.cycles > 0` at `specify` / `spec_gate` / `plan` / `plan_gate`, which is the matching QA
-   spec-delta item, not steps 2–7. Read `tools.repo` and `tools.tracker` from that show; either missing or empty →
-   blocker, stop (do not guess `gh`, do not re-probe). `tools.orchestrator: orca` → re-run
-   `sddkit-state probe orchestrator` and patch `orca.pane` (handles change per session); a `native` result → patch
-   `tools.orchestrator: native` and journal the reason. Never flip `native` to `orca` mid-feature. Do not run `init` — it refuses to clobber an existing state file
-   and aborts the run. Announce what you're resuming (slug, stage) in one line and continue.
+   `sddkit-state show <slug>`, and jump to where the **Resume** rule above (with its qualifiers) places it. Read
+   `tools.repo` and `tools.tracker` from that show; either missing or empty → blocker, stop (do not guess `gh`, do not
+   re-probe). `tools.orchestrator: orca` → re-run `sddkit-state probe orchestrator` and patch `orca.pane` (handles
+   change per session); a `native` result → patch `tools.orchestrator: native` and journal the reason. Never flip
+   `native` to `orca` mid-feature. Do not run `init` — it refuses to clobber an existing state file and aborts the run.
+   Announce what you're resuming (slug, stage) in one line and continue.
 
    **Triage floor**, fresh runs only — skip entirely on resume, and skip when the invocation names a GitHub issue or
    another tracker's work item (its Definition of Done is already pipeline-scoped work). Classify the request: does it
@@ -95,14 +99,15 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
    there parks at the first gate it actually opens.
 
    Then `sddkit-state init <slug>`, and patch `branch` plus `tools: {repo, tracker}` — always write both, even when both
-   are `gh`. Run `sddkit-state probe orchestrator` once and patch `tools.orchestrator` plus `orca: {cli, pane}` from
-   its stdout; name the pick and its `reason` in one line. Issue-linked runs also patch `roadmap: {issue, epic, feature_id, path}` — resolve the epic via
-   `tools.tracker` (the `Epic:`-titled issue whose task list references `#<n>`); no such issue → `epic: 0`, which
-   disables handoff (step 13), so never guess one. `path` is best-effort from `docs/product/*/roadmap.md`, `""` if no
-   match, never block on it. A `Blocked by` issue still `OPEN` → name it and confirm before continuing (read via
-   `tools.tracker`); unattended, journal it and proceed. (`Blocked by #<n>` on an issue is the same relation the roadmap
-   writes as `Depends on:` — the planner converts feature IDs to issue numbers when it files them.) Other tracker: patch
-   `feature_id` and `path` only; leave `issue`/`epic` at `0`. No issue named → `roadmap` stays zeroed.
+   are `gh`. Run `sddkit-state probe orchestrator` once and patch `tools.orchestrator` plus `orca: {cli, pane}` from its
+   stdout; name the pick and its `reason` in one line. Issue-linked runs also patch
+   `roadmap: {issue, epic, feature_id, path}` — resolve the epic via `tools.tracker` (the `Epic:`-titled issue whose
+   task list references `#<n>`); no such issue → `epic: 0`, which disables handoff (step 13), so never guess one. `path`
+   is best-effort from `docs/product/*/roadmap.md`, `""` if no match, never block on it. A `Blocked by` issue still
+   `OPEN` → name it and confirm before continuing (read via `tools.tracker`); unattended, journal it and proceed.
+   (`Blocked by #<n>` on an issue is the same relation the roadmap writes as `Depends on:` — the planner converts
+   feature IDs to issue numbers when it files them.) Other tracker: patch `feature_id` and `path` only; leave
+   `issue`/`epic` at `0`. No issue named → `roadmap` stays zeroed.
 
 2. **specify** — `stage: specify`. Delegate `sddkit-spec` to write `spec.md` and spec-derived acceptance contracts
    (`contracts/*.feature`, scenarios tagged `@S<n>`) together. Patch `artifacts.spec` + `artifacts.contracts` from its
@@ -159,6 +164,9 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
      lint, and the journey command pass, patch `slice_phase: review`.
    - **Resume mid-journey** when `slice_phase` is non-empty: leave counters and `current_slice` alone; jump to that
      phase.
+   - **Track new files.** After every `sddkit-implementer` reply (step 9 verify-fixes too), run
+     `git add --intent-to-add -- <files_changed>`. An untracked file is invisible to `git diff HEAD` — the reviewer's
+     diff and the empty-diff check — and survives `git reset --hard`.
    - `escalation` is **one budget of 1** shared by the green and review loops of the current implementation pass.
      Whichever exhausts first spends it; the other then records blockers. A QA spec-delta restart (step 12) is a new
      pass — reset `escalation` to 0 when restarting step 8 after that delta.
@@ -166,7 +174,8 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
      failure history and tell it to re-derive from plan + the failing test (do not trust the prior diff). Opinion gate
      raised → patch `pending_gate: opinion` and append the question verbatim to `blockers` as
      `opinion gate (impl): <question>`, then pause for the human. On the answer, clear `pending_gate` and drop that
-     blocker, then re-delegate with the decision in the brief.
+     blocker, then re-delegate with the decision in the brief. `status: blocked` → patch its `blockers` and pause; never
+     advance to `targeted_test`.
    - An `sddkit-implementer` reply of `status: done` with `files_changed: []` is a no-op success **only** when the
      planned test file is already in the tree **and** there are no outstanding `blocker|major` findings to apply. On
      first arrival, or when `review.findings` still holds `blocker|major` (a fix round), that reply is always wrong —
@@ -175,10 +184,12 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
      files this journey touched count; pre-existing failures in untouched files do not), then the journey command. On a
      counted failure, patch `green_attempts` +1 and re-delegate `sddkit-implementer` with only the failing command
      names + first error lines (≤40 lines), never the full raw output. **`green_attempts` reaching 2 and `escalation: 0`
-     → clean-tree escalation:** `git reset --hard` to this journey's base commit (HEAD — the last commit: plan commit on
-     the first journey, or the previous journey commit). Do not stash or commit the failed tree onto the feature branch.
-     Set `escalation: 1`. If `git worktree add` succeeds, add two worktrees at that SHA, delegate `sddkit-implementer`
-     in each with the same escalation brief, run the journey command in each, copy back the green tree with the smaller
+     → clean-tree escalation:** `git reset --hard HEAD` — HEAD is this journey's base commit (the last commit: plan
+     commit on the first journey, or the previous journey commit). Do not stash or commit the failed tree onto the
+     feature branch. Set `escalation: 1`. If `git worktree add` succeeds, add two worktrees at that SHA and run the
+     `AGENTS.md` install command in each — a fresh worktree has no installed dependencies or untracked env files.
+     Delegate `sddkit-implementer` in each, one after the other, with the same escalation brief plus the worktree's
+     absolute path as its working directory; run the journey command in each, copy back the green tree with the smaller
      `git diff --stat`, remove the worktrees. If worktrees are unavailable, one implementer pass on the reset tree. A
      failure after that, while `escalation` is already 1, → record blockers and pause. Never keep incrementing
      `green_attempts` as a retry loop past that.
@@ -203,7 +214,7 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
        `sddkit-implementer`, re-test, then Iteration >1 (do not run skip-review again). `minor`-only findings: append
        them to `review.deferred_findings` — read the current array and patch current + new. Then proceed to commit. Stop
        on `clean` (or minor-only) or after 2 iterations. Exhausted with `blocker|major` findings: if `escalation: 0` →
-       set it to 1, `git reset --hard` to the journey base, reset `review.iterations` to 0, redo
+       set it to 1, `git reset --hard HEAD` (the journey base), reset `review.iterations` to 0, redo
        sddkit-implementer+review once (that next review is first entry again with `escalation: 1`, so skip-review is
        false — the escalated final pass); else record blockers, pause.
      - **An empty `git diff HEAD` is not a pass** — whether review was skipped or the reviewer reports an empty diff in
@@ -228,9 +239,9 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
    `current_slice: verify-fix-<n>` (`<n>` = 1, 2, … within this verify pass), `slice_phase: green`. Do not zero the
    feature's `escalation` budget; reset only a local `green_attempts` for this verify-fix (cap 2, then blockers — no
    second escalation rung). Targeted test command = the failing verify command; **no** `@S<n>` scenarios — do not write
-   a new acceptance test. A `status: green` reply means that verify command is clean. Commit the verify-fix files plus
-   state (Conventional Commit); if `pr.url` is already set, `git push`. Never drop `implementation` from `completed`.
-   Clear `current_slice` after it commits, then re-verify.
+   a new acceptance test. A `status: green` reply means that verify command is clean; `status: blocked` → patch its
+   `blockers` and pause. Commit the verify-fix files plus state (Conventional Commit); if `pr.url` is already set,
+   `git push`. Never drop `implementation` from `completed`. Clear `current_slice` after it commits, then re-verify.
 
 10. **docs-sync** — `stage: docs_sync`. Delegate `sddkit-docs-writer`, passing the **diff base SHA**
     (`git merge-base <base> HEAD`, where `<base>` is the base branch resolved in step 1) plus `spec.md`, `plan.md`, and
@@ -250,11 +261,12 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
 
 11. **pr** — `stage: pr`. `git push -u origin <branch>`, then open a draft PR with `tools.repo` (command
     `gh pr create --draft` when that tool is `gh`) against the resolved base branch, patch `pr.url`. GitHub issue-linked
-    → `Closes #<n>` in the body; otherwise the host-tools close-on-merge rule. Read the `## Configuration` section of
-    each path in `artifacts.docs`; anything there beyond `None.` is repeated in the body under `## Setup required`,
-    naming the README it came from. That is work only the human can do, and the PR is where they will look for it — and
-    reading it back from the committed READMEs is what makes it survive a resume that lands here with step 10's reply
-    long gone. Failure → blocker, stop. Add `pr` to `completed`.
+    → `Closes #<n>` in the body (GitLab too). A tracker that is not the git host → its native ref as `Work item: <ref>`,
+    no invented keyword, and tell the human to close it. Read the `## Configuration` section of each path in
+    `artifacts.docs`; anything there beyond `None.` is repeated in the body under `## Setup required`, naming the README
+    it came from. That is work only the human can do, and the PR is where they will look for it — and reading it back
+    from the committed READMEs is what makes it survive a resume that lands here with step 10's reply long gone. Failure
+    → blocker, stop. Add `pr` to `completed`.
 
 12. **qa** — `stage: qa`. Delegate `sddkit-qa`, passing the PR URL, `tools.repo`, and the verify stage's
     `verification.status` + `verification.commands`, and each journey command from the plan's Test strategy — leftover
@@ -262,10 +274,11 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
     `sddkit-qa` selects at most 3 top-of-pyramid e2e paths that together exercise as many `@S<n>` scenarios as possible,
     validates those with evidence, and records the rest as covered at verify. Translate its reply into a `qa.*` patch
     (its `journeys` key is e2e paths, not Test strategy `J*`).
-    - `findings` → patch `qa.cycles` +1 first. Already at 2 → record the findings as blockers and pause; the budget is
-      spent. Otherwise run `sddkit-state decide <slug> --event qa-route --yaml` with **this cycle's** QA reply
-      `findings` (object rows `{category: ...}` or category strings). Do not reuse a canned example; omit no `findings`
-      key. Empty or unknown categories fail closed to `spec`. Follow stdout. QA findings are not always specify:
+    - `findings` → `qa.cycles` already 2 → record the findings as blockers and pause; the budget is spent. Otherwise
+      patch `qa.cycles` +1 before routing (resume reads it), then run
+      `sddkit-state decide <slug> --event qa-route --yaml` with **this cycle's** QA reply `findings` (object rows
+      `{category: ...}` or category strings). Do not reuse a canned example; omit no `findings` key. Empty or unknown
+      categories fail closed to `spec`. Follow stdout. QA findings are not always specify:
       - `route: impl` (only `bug|quality|perf|test|contract`) — implementer verify-fix brief (no new oracle, no
         specify). Re-verify (step 9). Re-delegate `sddkit-qa`, scoped to only the previously failed e2e paths.
       - `route: spec` (only `spec|plan`) — spec delta, not steps 2–8:
@@ -284,9 +297,6 @@ hand off the roadmap's next feature on completion. Other trackers skip handoff.
         4. Re-verify (step 9). Then re-delegate `sddkit-qa`, scoped to only the previously failed e2e paths.
       - `route: mixed` — run the `route: spec` delta on the spec/plan findings (items 1–4). Drop the impl findings from
         this cycle; the re-QA pass will re-emit any that still fail on the new tree.
-
-      Resume: `qa.cycles > 0` at `specify` / `spec_gate` / `plan` / `plan_gate` is this spec delta, not steps 2–7. Jump
-      to the matching item above. A `route: impl` resume stays at `qa` / `verify`.
 
     - `blocked` / retries exhausted → blockers, pause.
     - `clean` → `sddkit-qa` has already posted the report as a PR comment (URL may be empty) and marked the PR ready

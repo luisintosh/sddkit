@@ -93,9 +93,9 @@ mirrored as GitHub issues.
     each box ticks itself as that feature's PR merges. Entries in any other form leave handoff unable to read the epic.
     Handoff is GitHub-only; other trackers still get the same title/checklist/`Blocked by` shapes so a later GitHub
     import or a human can follow them. Report every issue URL.
-11. **Hand off** — tell the user each feature can now be run through `/sddkit` (OpenCode default agent, or the Cursor
-    `/sddkit` skill), one at a time, respecting the waves. If `gh` created issues, also print a paste-ready invocation
-    for wave 1's first feature:
+11. **Hand off** — tell the user each feature can now be run through `sddkit` (OpenCode's default agent, or the
+    `/sddkit` skill on Cursor, Claude Code, or Codex), one at a time, respecting the waves. If `gh` created issues, also
+    print a paste-ready invocation for wave 1's first feature:
     `Run the SDD pipeline for GitHub issue #<n> in <owner>/<repo>. Scope is exactly that issue's Definition of Done. Base: <base>.`
     Another tracker → the same sentence naming that tracker and id instead.
 

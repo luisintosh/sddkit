@@ -62,9 +62,14 @@ function isReadonly(agent: AgentCatalog): boolean {
   return edit === "deny"
 }
 
+function bashDenied(agent: AgentCatalog): boolean {
+  return (agent.opencode.permission as { bash?: unknown } | undefined)?.bash === "deny"
+}
+
 function claudeTools(agent: AgentCatalog): string {
-  if (isReadonly(agent)) return "Read, Glob, Grep, Bash"
-  return "Read, Glob, Grep, Edit, Write, Bash"
+  const tools = isReadonly(agent) ? ["Read", "Glob", "Grep"] : ["Read", "Glob", "Grep", "Edit", "Write"]
+  if (!bashDenied(agent)) tools.push("Bash")
+  return tools.join(", ")
 }
 
 function tomlString(value: string): string {
@@ -107,8 +112,8 @@ function yamlFrontmatter(obj: Record<string, unknown>): string {
   return `---\n${yaml}\n---\n\n`
 }
 
-function cursorRestrictions(oc: AgentCatalog["opencode"]): string {
-  const perm = oc.permission
+function cursorRestrictions(agent: AgentCatalog): string {
+  const perm = agent.opencode.permission
   if (!perm || typeof perm !== "object") return ""
   const edit = (perm as { edit?: unknown }).edit
   const lines: string[] = []
@@ -132,6 +137,7 @@ function cursorRestrictions(oc: AgentCatalog["opencode"]): string {
       lines.push(`- Never edit: ${carveOuts.join(", ")}.`)
     }
   }
+  if (bashDenied(agent)) lines.push("- Do not run shell commands.")
   if (!lines.length) return ""
   return `\n## Tool restrictions (Cursor)\n${lines.join("\n")}\n`
 }
@@ -219,21 +225,38 @@ async function emitOpencode(catalog: Catalog) {
   }
 }
 
+// Fragments a shared skill loads on demand: the SKILL.md body keeps the pointer, the
+// fragment moves to references/<file>.
+const SKILL_REFERENCES: Record<string, string[]> = {
+  "reply-mapping.md": [
+    "## Applying subagent replies",
+    "",
+    "Reply keys are not state keys. Read [references/reply-mapping.md](references/reply-mapping.md) before the first",
+    "patch — translate every reply; never pass one through verbatim.",
+  ],
+  "orca.md": [
+    "## Orca dispatch",
+    "",
+    "Applies only when state has `tools.orchestrator: orca`; otherwise skip it. Then read",
+    "[references/orca.md](references/orca.md) before the first dispatch, resume, or close.",
+  ],
+}
+
 async function emitSharedSkills(catalog: Catalog) {
   const outRoot = path.join(distDir, "agents", "skills")
   await rmrf(outRoot)
 
-  const replyMapping = await fs.readFile(path.join(srcDir, "prompts", "fragments", "reply-mapping.md"), "utf8")
-
   for (const [name, agent] of Object.entries(catalog.agents)) {
     if (!agent.cursor?.skill) continue
     let raw = await fs.readFile(path.join(srcDir, "prompts", "agents", `${name}.md`), "utf8")
-    if (raw.includes("{{include:fragments/reply-mapping.md}}")) {
-      raw = raw.replace("{{include:fragments/reply-mapping.md}}", replyMappingPointer())
-      await writeFile(path.join(outRoot, name, "references", "reply-mapping.md"), `${replyMapping.trim()}\n`)
+    for (const [file, pointer] of Object.entries(SKILL_REFERENCES)) {
+      const tag = `{{include:fragments/${file}}}`
+      if (!raw.includes(tag)) continue
+      raw = raw.replace(tag, `${pointer.join("\n")}\n`)
+      await writeFile(path.join(outRoot, name, "references", file), await readPrompt(`fragments/${file}`, catalog))
     }
     const body = await resolveIncludes(`${raw.trim()}\n`, catalog)
-    const restrictions = cursorRestrictions(agent.opencode)
+    const restrictions = cursorRestrictions(agent)
     const skillFm = {
       name,
       description: agent.description,
@@ -255,16 +278,6 @@ async function emitSharedSkills(catalog: Catalog) {
   }
 }
 
-function replyMappingPointer(): string {
-  return [
-    "## Applying subagent replies",
-    "",
-    "Reply keys are not state keys. Read [references/reply-mapping.md](references/reply-mapping.md) before the first",
-    "patch — translate every reply; never pass one through verbatim.",
-    "",
-  ].join("\n")
-}
-
 async function emitCursor(catalog: Catalog) {
   const outRoot = path.join(distDir, "cursor")
   await rmrf(outRoot)
@@ -272,7 +285,7 @@ async function emitCursor(catalog: Catalog) {
   for (const [name, agent] of Object.entries(catalog.agents)) {
     if (agent.cursor?.skill) continue
     const body = await readPrompt(`agents/${name}.md`, catalog)
-    const restrictions = cursorRestrictions(agent.opencode)
+    const restrictions = cursorRestrictions(agent)
     const fullBody = `${body.trimEnd() + restrictions}\n`
 
     const fm: Record<string, unknown> = {
