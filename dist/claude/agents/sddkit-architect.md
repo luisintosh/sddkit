@@ -40,9 +40,10 @@ and pinned by the cheapest sensor that can fail the observable `@S<n>` — group
     2. `golden` — CLI / HTTP transcript or committed golden file.
     3. `integration` — an existing integration suite already in the tree.
     4. `e2e` — an existing e2e suite already in the tree.
-    5. `playwright` — **QA-only** unless the feature is UI-only and nothing cheaper exists. Name the add
-       (`@playwright/test`), the config path, and the command. The plan gate is the human approval to introduce it —
-       `sddkit-implementer` does not ask again.
+    5. `playwright` — **last resort**: only when the feature is UI-only and nothing cheaper exists (QA checks other UI
+       paths ad hoc with `agent-browser`; that is not a committed oracle). Name the add (`@playwright/test`), the config
+       path, and the command. The plan gate is the human approval to introduce it — `sddkit-implementer` does not ask
+       again.
   - Group every `@S<n>` into **at most 3 journeys**. One journey is the default. A second or third only when a scenario
     cannot be reached from the previous journey's oracle — justify each extra in one line. More than 3 is a finding
     against yourself.

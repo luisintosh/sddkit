@@ -203,9 +203,11 @@ initialize → specify (spec + contracts) → spec critique → ⏸spec gate (fi
 ```
 
 Architect picks the cheapest sensor that can fail the observable `@S<n>` (public-boundary or golden before
-integration/e2e) and writes a fenced `journeys:` YAML block in `plan.md`. Playwright is QA-only unless the feature is
-UI-only. `sddkit-implementer` writes that journey's failing oracle and the implementation in a single pass. The
-conductor loops at most 3 journeys.
+integration/e2e) and writes a fenced `journeys:` YAML block in `plan.md`. A committed Playwright oracle is planned only
+when the feature is UI-only; QA otherwise covers UI paths ad hoc with
+[agent-browser](https://github.com/vercel-labs/agent-browser), which must be installed (QA blocks with the install step
+if it is missing). `sddkit-implementer` writes that journey's failing oracle and the implementation in a single pass.
+The conductor loops at most 3 journeys.
 
 Plan critique is skipped only when `skip-plan-critique` is true: every journey oracle is `boundary` or `golden`, the
 spec critique was clean, the recommended approach is the only viable one, Playwright is not the planned oracle,
