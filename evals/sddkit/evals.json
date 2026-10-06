@@ -1,0 +1,39 @@
+{
+  "skill_name": "sddkit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add a greet(name) function in a new module that returns \"Hello, <name>!\", and make `npm run dev -- --name Ada` print it. Run the full SDD pipeline; I approve the spec and the plan as soon as you present them.",
+      "expected_output": "Run in a copy of test/fixture-repo. One journey whose diff is only new files reaches review, gets reviewed, and commits.",
+      "files": ["test/fixture-repo"],
+      "expectations": [
+        "After each sddkit-implementer reply, the conductor ran `git add --intent-to-add` on the reply's files_changed",
+        "The sddkit-code-reviewer diff included the new module and its test file",
+        "The journey was not recorded as an empty diff or a blocker",
+        "state.yaml and journal.ndjson were written only through sddkit-state"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Add a --version flag to the CLI that prints the package.json version.",
+      "expected_output": "Run in a copy of test/fixture-repo with AGENTS.md deleted. The conductor stops at initialize and hands the setup to the human.",
+      "files": ["test/fixture-repo"],
+      "expectations": [
+        "The conductor stopped before running `sddkit-state init`",
+        "The reply tells the human to run /sddkit-setup-docs themselves, then re-invoke the pipeline",
+        "AGENTS.md was not created"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "bump vitest to ^2.2.0",
+      "expected_output": "Run in a copy of test/fixture-repo with a human present. The triage floor classifies the request as below the floor and asks before scaffolding.",
+      "files": ["test/fixture-repo"],
+      "expectations": [
+        "The conductor classified the request as below the triage floor",
+        "It asked whether to run the full pipeline or leave it as a direct edit",
+        "No docs/feats/ directory or state.yaml exists before the human answers"
+      ]
+    }
+  ]
+}

@@ -25,7 +25,8 @@ stop.
 - Routed `bug|quality|perf|test|contract` findings when re-delegated
 - Escalation brief (when `escalation: 1`): failure history from prior green attempts. Re-derive the approach from plan +
   the failing test — do not assume the previous attempt's diff was directionally correct. If the plan or a contract is
-  the real problem, stop and report that as a blocker instead of forcing green.
+  the real problem, stop and report that as a blocker instead of forcing green. A working directory named in the brief
+  (an escalation worktree) is where every edit and command happens — never the main checkout.
 - Target code — start from the brief's `file:symbol` targets; Grep/Glob only for what they leave uncovered, and Read
   only matching regions
 
@@ -43,6 +44,8 @@ stop.
   without satisfying its Given/When/Then is not done.
 - **Never weaken a test to pass.** Routed `test|contract` findings may add coverage or fix a broken test file; they may
   not soften assertions, delete scenarios, or narrow the planned bar.
+- Tests assert behavior, not implementation, and stay independent: no test relies on another's order or leftover state,
+  and none passes only because a mock was called.
 - Every changed code path traces to one of the brief's `@S<n>` scenarios. One that doesn't is scope, whether it arrived
   with the first pass or a fix round. A brief with **no** `@S<n>` scenarios is a verify-fix: its failing verify command
   is the acceptance bar, so trace changes to that failure instead — do not write a new acceptance test — and keep the
@@ -93,6 +96,7 @@ stop.
 - Never run git or `gh` write commands — no commit, push, merge, or PR, including MCP/Skill equivalents. The conductor
   owns all repo and tracker state.
 - Cite `file:line`; never paste >20 lines; summaries, not contents.
+- Stopped on a blocker instead of reaching green → `status: blocked` with the reason in `blockers`; never `green`.
 
 ## Done when
 
@@ -105,8 +109,9 @@ stop.
 ## Reply to parent
 
 ```yaml
-status: green | done | opinion_gate
+status: green | done | opinion_gate | blocked
 # done = planned test already present and green, AND no routed findings / escalation / verify-fix — nothing written
+# blocked = you stopped on a blocker (wrong plan or contract, missing cited symbol); the reason is in blockers
 files_changed: [...]
 test_command: <cmd>
 tests_passing: <n>

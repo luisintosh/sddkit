@@ -15,7 +15,7 @@ shared skill formats under `dist/` (tracked so install does not need a client-si
 src/
   catalog.yaml           host × profile models + per-agent adapters
   prompts/agents/        canonical agent bodies (no app frontmatter)
-  prompts/commands/      setup-docs
+  prompts/commands/      sddkit-setup-docs
   prompts/fragments/     shared includes
   state/                 sddkit-state CLI (schema, merge, io)
 tools/
@@ -25,6 +25,7 @@ tools/
   build-install.ts       bundle install.ts for Node
   gen-manifest.ts        → manifest.txt
   check.ts               hygiene
+evals/<skill>/           prompt-behavior and trigger evals (skill-creator format)
 dist/                    generated install payload (tracked; never hand-edit)
   install.js             npx/bunx CLI (not copied into consuming repos)
 ```
@@ -46,7 +47,7 @@ docs/product/<slug>/
 src/<domain>/README.md   domain doc, written by sddkit-docs-writer at docs-sync
 docs/domains/<domain>.md same, for a domain too cross-cutting to own a directory
 .agents/bin/sddkit-state.mjs    installed by npx/bunx sddkit
-.agents/skills/          sddkit, sddkit-plan + setup-docs
+.agents/skills/          sddkit, sddkit-plan + sddkit-setup-docs
 .opencode/               OpenCode agents + opencode.jsonc
 .cursor/agents/          Cursor specialists
 .claude/agents/          Claude Code specialists
@@ -138,14 +139,14 @@ writes only `~/.config/opencode/agents/` — never `opencode.jsonc`. Claude skil
 
 After install, invoke `.agents/bin/sddkit-state.mjs` from the repo root. It is a Node ESM bundle; the `.mjs` extension
 keeps that even when the consuming repo's `package.json` is CommonJS. Node 20+ is already required for `npx`. The
-installer prints next steps: `/setup-docs`, installing [`gh`](https://cli.github.com/) (required — the pipeline verifies
-it at start). Another forge or tracker is fine if an MCP, Skill, or CLI for it is already connected. Optional
+installer prints next steps: `/sddkit-setup-docs`, installing [`gh`](https://cli.github.com/) (required — the pipeline
+verifies it at start). Another forge or tracker is fine if an MCP, Skill, or CLI for it is already connected. Optional
 [rtk](https://github.com/rtk-ai/rtk) hint (never auto-installed).
 
 ### Setup Docs
 
 ```text
-/setup-docs
+/sddkit-setup-docs
 ```
 
 Creates `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and `docs/feats/.gitkeep` if missing. `AGENTS.md`

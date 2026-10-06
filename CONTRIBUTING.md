@@ -37,6 +37,13 @@ bun test
 bash test/e2e-install.sh
 ```
 
+## Evals
+
+`evals/<skill>/` holds prompt-behavior evals in the skill-creator format, run against a copy of `test/fixture-repo`:
+`evals.json` (task prompts + expectations) and `trigger-evals.json` (should/shouldn't-trigger queries for the
+description optimizer). After changing a prompt or a catalog `description`, rerun the matching set with the
+skill-creator skill.
+
 ## Tooling (Bun TypeScript)
 
 | Script                       | Purpose                                                               |

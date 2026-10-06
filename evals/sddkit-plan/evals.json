@@ -1,0 +1,19 @@
+{
+  "skill_name": "sddkit-plan",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Idea: let users schedule the greeting to print at a set time every day. Plan it as a product and file the issues if I say yes.",
+      "expected_output": "Run in a copy of test/fixture-repo. Code-first questions, gated goal and approach, an approved roadmap on disk, and a host-neutral handoff.",
+      "files": ["test/fixture-repo"],
+      "expectations": [
+        "The planner read src/index.js or AGENTS.md before asking its first question",
+        "No question round asked more than 5 questions",
+        "Routine choices appear as a numbered Assumptions ledger, not as questions",
+        "Nothing was written under docs/product/ before the roadmap was approved",
+        "roadmap.md has Success criteria, Features with a Definition of Done each, a Sequencing table, and an MVP line",
+        "The handoff names the /sddkit skill on Cursor, Claude Code, or Codex, not Cursor alone"
+      ]
+    }
+  ]
+}

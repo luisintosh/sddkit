@@ -1,0 +1,30 @@
+[
+  {
+    "query": "i want to build a referral program for our saas — help me nail the goal and break it into features",
+    "should_trigger": true
+  },
+  { "query": "turn this idea into a roadmap: offline mode for the mobile app", "should_trigger": true },
+  {
+    "query": "plan a self-serve billing portal as a product and create github issues for each feature",
+    "should_trigger": true
+  },
+  {
+    "query": "we're considering SSO. scope it into sequenced features with a definition of done for each",
+    "should_trigger": true
+  },
+  { "query": "write docs/product/notifications/roadmap.md for a notifications center", "should_trigger": true },
+  {
+    "query": "decompose 'team workspaces' into vertical slices and waves, and mark the MVP line",
+    "should_trigger": true
+  },
+  { "query": "revise the onboarding roadmap, we dropped the email verification requirement", "should_trigger": true },
+  { "query": "PO hat on: what's the MVP for an audit log and what order do we build it in?", "should_trigger": true },
+  { "query": "implement F2 from the onboarding roadmap", "should_trigger": false },
+  { "query": "Run the SDD pipeline for GitHub issue #12 in acme/app. Base: main.", "should_trigger": false },
+  { "query": "write the spec and gherkin contracts for the csv export feature", "should_trigger": false },
+  { "query": "plan how to refactor src/auth to use the new token service", "should_trigger": false },
+  { "query": "summarize what's left on docs/product/notifications/roadmap.md", "should_trigger": false },
+  { "query": "file a github issue: login button does nothing on safari 17", "should_trigger": false },
+  { "query": "set up AGENTS.md and the architecture doc for this repo", "should_trigger": false },
+  { "query": "turn the roadmap's wave table into a mermaid gantt chart in the README", "should_trigger": false }
+]

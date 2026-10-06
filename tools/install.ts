@@ -467,7 +467,7 @@ function doctor(targetDir: string, home: string) {
   else log(`  [warn] ${targetDir} is not a git repository`)
 
   if (fsSync.existsSync(path.join(targetDir, "AGENTS.md"))) log("  [ok]   AGENTS.md present")
-  else log("  [warn] AGENTS.md missing — run /setup-docs first")
+  else log("  [warn] AGENTS.md missing — run /sddkit-setup-docs first")
 
   log("  paths:")
   log(`    skills          ${targetDir}/.agents/skills/  or  ${home}/.agents/skills/`)
@@ -495,7 +495,7 @@ function doctor(targetDir: string, home: string) {
 
 function suggestNextSteps() {
   log("Next steps:")
-  log("  1. /setup-docs       — scaffold AGENTS.md + docs/ARCHITECTURE.md + CONSTITUTION")
+  log("  1. /sddkit-setup-docs — scaffold AGENTS.md + docs/ARCHITECTURE.md + CONSTITUTION")
   if (!onPath("gh")) {
     log("  2. Install gh (required by the pipeline):")
     log("       brew install gh && gh auth login")

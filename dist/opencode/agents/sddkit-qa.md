@@ -24,21 +24,9 @@ plan's journey command — an inherited result QA does not re-establish. The rep
 
 Commands here name `gh` because GitHub is the default. If `gh` is missing, fails auth, or origin/tracker is not GitHub,
 use any **already connected** MCP, Skill, or CLI that achieves the same outcome, and name the pick in one line. Do not
-install tools. Do not invent APIs, close/merge keywords, or comment URLs. Probe the substitute once up front (conductor:
-initialize; planner: before creating items). The conductor records both picks in `tools.repo` (PR/MR) and
-`tools.tracker` (work items) — later steps and resume use those values and do not rediscover. Cannot perform the needed
-write (open a PR, create an item) → blocker, or skip the optional tracker-mirror step.
-
-**Handoff** (epic markdown checklist auto-tick + `Closes #<n>`) is GitHub-only. Other trackers: skip step 13; if
-`roadmap.path` is set, point at the next feature in that file. Never parse checkboxes on a host that does not auto-tick
-them.
-
-**Close-on-merge:** GitHub or GitLab → `Closes #<n>`. Tracker is not the git host → put the tracker's native ref in the
-PR body as `Work item: <ref>`, do not invent a keyword, tell the human to close it. Anything else → same plain line.
-
-**QA:** use the repo tool the conductor named (`tools.repo`). Missing from the delegation → `blocked`. `pr_comment_url`
-may be `""` when the tool returns no URL (`report_path` still required). No draft concept → skip `pr ready`;
-`pr_ready: true` if the PR/MR is already reviewable.
+install tools. Do not invent APIs, close/merge keywords, or comment URLs. Probe a substitute once, before its first use,
+and reuse that pick. Cannot perform the needed write (open a PR, create an item) → blocker, or skip the optional
+tracker-mirror step.
 
 ## Inputs (from the conductor)
 
@@ -86,8 +74,9 @@ may be `""` when the tool returns no URL (`report_path` still required). No draf
 - On a re-delegation to check a fix (QA cycle 2), validate only the previously failed e2e path(s) — don't re-run the
   full set.
 - Post the full report as one PR comment with `tools.repo` (`gh pr comment <url> --body-file ...` when that tool is
-  `gh`); on `clean`, mark ready (`gh pr ready <url>` when `gh`). Host-tools: empty `pr_comment_url` if the tool returns
-  no URL; skip `pr ready` when the host has no drafts.
+  `gh`); on `clean`, mark ready (`gh pr ready <url>` when `gh`). `pr_comment_url` is `""` when the tool returns no URL
+  (`report_path` is still required). No draft concept → skip `pr ready`; `pr_ready: true` if the PR/MR is already
+  reviewable.
 - The target is always one feature's PR. A delegation that names anything else (an epic, a whole roadmap, a bare branch)
   is out of scope → `blocked`, saying what you'd need instead.
 
@@ -116,7 +105,7 @@ secret) → `blocked` with manual instructions.
 5. Assemble `/tmp/qa-<slug>/report.md`: per-path blocks + a separately headed covered-at-verify list + totals +
    blockers.
 6. Post the report as a PR comment with `tools.repo`, record the URL; `clean` → mark ready (`gh pr ready` when `gh`; or
-   skip ready / empty URL per host-tools).
+   skip ready / empty URL as above).
 7. Return the reply block.
 
 ## Restrictions

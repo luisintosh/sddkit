@@ -70,8 +70,9 @@ else
 fi
 assert_file_exists "${TARGET}/.agents/skills/sddkit/SKILL.md" "sddkit skill installed under .agents"
 assert_file_exists "${TARGET}/.agents/skills/sddkit-plan/SKILL.md" "sddkit-plan skill installed under .agents"
-assert_file_exists "${TARGET}/.agents/skills/setup-docs/SKILL.md" "setup-docs skill installed under .agents"
+assert_file_exists "${TARGET}/.agents/skills/sddkit-setup-docs/SKILL.md" "sddkit-setup-docs skill installed under .agents"
 assert_file_exists "${TARGET}/.agents/skills/sddkit/references/reply-mapping.md" "sddkit reply-mapping reference installed"
+assert_file_exists "${TARGET}/.agents/skills/sddkit/references/orca.md" "sddkit orca reference installed"
 assert_file_absent "${TARGET}/.cursor/skills/sddkit/SKILL.md" "legacy .cursor/skills/sddkit not installed"
 assert_file_exists "${TARGET}/.agents/bin/sddkit-state.mjs" "sddkit-state installed under .agents/bin"
 assert_file_exists "${TARGET}/.opencode/.harness-manifest" "opencode harness-manifest recorded"
@@ -226,7 +227,7 @@ fi
 
 # 10. post-install next-step hints
 hints="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=opencode node "$INSTALL_JS" 2>&1)"
-if grep -q '/setup-docs' <<<"$hints"; then ok "suggests /setup-docs"; else bad "missing /setup-docs hint"; fi
+if grep -q '/sddkit-setup-docs' <<<"$hints"; then ok "suggests /sddkit-setup-docs"; else bad "missing /sddkit-setup-docs hint"; fi
 if grep -qE 'brew install gh|gh is on PATH|cli.github.com' <<<"$hints"; then
   ok "suggests gh CLI"
 else
