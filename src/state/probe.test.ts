@@ -7,7 +7,7 @@ import { type ProbeDeps, probeOrchestrator, resolveOrcaCli } from "./probe.ts"
 const catalog = parseYaml(fs.readFileSync(new URL("../catalog.yaml", import.meta.url), "utf8"))
 
 const routes: OrcaRoutes = {
-  "sddkit-architect": { agent: "claude", id: "opus", effort: "medium" },
+  "sddkit-design": { agent: "claude", id: "opus", effort: "medium" },
   "sddkit-implementer": { agent: "cursor", id: "grok-4.7-high" },
 }
 
@@ -113,8 +113,9 @@ describe("orca routes", () => {
     const byAgent = orcaRoutesByAgent(catalog)
     expect(byAgent.sddkit).toBeUndefined()
     expect(byAgent["sddkit-plan"]).toBeUndefined()
-    expect(byAgent["sddkit-architect"]).toEqual({ agent: "claude", id: "opus", effort: "medium" })
-    expect(byAgent["sddkit-plan-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
+    expect(byAgent["sddkit-design"]).toEqual({ agent: "claude", id: "opus", effort: "medium" })
+    expect(byAgent["sddkit-design-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
+    expect(byAgent["sddkit-code-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
     expect(byAgent["sddkit-implementer"]).toEqual({ agent: "cursor", id: "grok-4.7-high" })
   })
 

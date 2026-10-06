@@ -37,7 +37,7 @@
   { "query": "create AGENTS.md and docs/ARCHITECTURE.md for this repo", "should_trigger": false },
   { "query": "why does `npm test` fail on CI with ERR_MODULE_NOT_FOUND but pass locally?", "should_trigger": false },
   { "query": "review PR #77 for security issues before i merge it", "should_trigger": false },
-  { "query": "explain what `sddkit-state decide --event skip-review` checks", "should_trigger": false },
+  { "query": "explain what `sddkit-state decide --event skip-design-critique` checks", "should_trigger": false },
   { "query": "rename the utils folder to lib and fix every import", "should_trigger": false },
   { "query": "document the PAYMENTS_API_KEY env var in src/payments/README.md", "should_trigger": false }
 ]

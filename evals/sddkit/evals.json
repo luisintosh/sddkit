@@ -3,13 +3,15 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Add a greet(name) function in a new module that returns \"Hello, <name>!\", and make `npm run dev -- --name Ada` print it. Run the full SDD pipeline; I approve the spec and the plan as soon as you present them.",
-      "expected_output": "Run in a copy of test/fixture-repo. One journey whose diff is only new files reaches review, gets reviewed, and commits.",
+      "prompt": "Add a greet(name) function in a new module that returns \"Hello, <name>!\", and make `npm run dev -- --name Ada` print it. Run the full SDD pipeline; I approve the design as soon as you present it.",
+      "expected_output": "Run in a copy of test/fixture-repo. One design delegation and one design gate; one journey whose diff is only new files is implemented, committed, reviewed once over the feature diff, and the PR is marked ready by the conductor.",
       "files": ["test/fixture-repo"],
       "expectations": [
+        "sddkit-design was delegated once and the human saw exactly one gate (the design gate)",
         "After each sddkit-implementer reply, the conductor ran `git add --intent-to-add` on the reply's files_changed",
-        "The sddkit-code-reviewer diff included the new module and its test file",
-        "The journey was not recorded as an empty diff or a blocker",
+        "The sddkit-code-reviewer was delegated once, with review.base as the diff base, and its diff included the new module and its test file",
+        "Any reviewer edits were checked against HEAD and committed or reverted before verify",
+        "sddkit-docs-writer and sddkit-qa both ran after the PR opened, and the conductor (not sddkit-qa) marked the PR ready",
         "state.yaml and journal.ndjson were written only through sddkit-state"
       ]
     },

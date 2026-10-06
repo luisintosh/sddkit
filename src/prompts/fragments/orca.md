@@ -12,8 +12,9 @@ invoked — never which specialist, the brief's content, the stage order, gates,
 orchestration command that accepts it (all below except `worker-release`).
 
 **Files.** `D=$(git rev-parse --git-common-dir)/sddkit/<slug>` (inside `.git`: never committed, shared by worktrees).
-For dispatch `<n>` of a stage, write the brief you would have sent natively to `$D/<stage>-<n>.brief.md`; the worker
-writes its reply to `$D/<stage>-<n>.reply.yaml`. The Task spec is always:
+For dispatch `<n>` of a specialist within a stage, write the brief you would have sent natively to
+`$D/<specialist>-<stage>-<n>.brief.md`; the worker writes its reply to `$D/<specialist>-<stage>-<n>.reply.yaml`. The
+Task spec is always:
 
 > Act as `<specialist>`: read `<agent file>` (repo root, else `$HOME`) and follow its body as your instructions; ignore
 > its frontmatter. Your brief is `<brief path>`. When done, write your YAML reply block — exactly what the agent file
@@ -37,7 +38,8 @@ Never use `worker-start --agent`: Orca would launch with its own settings instea
 
 Journal the launch command used — Orca records no model for a terminal you started. Record the handle: Orca will not
 close a terminal it did not create, so it is yours to close (see **Close**). Escalation: one tab per worktree
-(`path:<worktree>`), both started before waiting — a split pane always starts in your own worktree.
+(`path:<worktree>`), both started before waiting — a split pane always starts in your own worktree. Docs-sync ∥ QA (step
+9): start both workers, then **Wait** until both settle, processing each `worker_done` as it arrives.
 
 **Wait.** `ORCA orchestration check --wait --types "worker_done,escalation,question" --timeout-ms 900000 --json` (add
 `--ack <delivery_id>` from the second call on). Process every message before acking:
@@ -45,7 +47,7 @@ close a terminal it did not create, so it is yours to close (see **Close**). Esc
 - `question` → answer from state, spec, plan, or the brief with
   `ORCA orchestration reply --id <message_id> --body "..." --json`. Needs a human → ask the human (unattended → journal,
   record a blocker, reply that it is blocked).
-- `worker_done` → must name the dispatch you started. Read the reply file and apply it exactly as a native reply (reply
+- `worker_done` → must name a dispatch you started. Read the reply file and apply it exactly as a native reply (reply
   mapping unchanged). Missing or unparsable reply file, or `--outcome failed` → an empty reply: same
   re-delegate-once-then-blocker rule as the step that dispatched it. Either outcome → **Close** before acking or
   dispatching again.
@@ -66,8 +68,8 @@ opened — never `orca.pane` or anything else.
 recovery commands the receipt names, then **Close** the terminal you opened. Nothing left behind → patch
 `tools.orchestrator: native`, journal why, and delegate this and later stages natively; otherwise record a blocker.
 
-**Resume.** Before any dispatch, `ORCA orchestration worker-list --run <run_id> --json`. An unsettled dispatch for the
-current stage → go to **Wait**; never start a duplicate editor. Do not end your turn while
+**Resume.** Before any dispatch, `ORCA orchestration worker-list --run <run_id> --json`. Any unsettled dispatch in the
+run → go to **Wait** until every one settles; never start a duplicate editor. Do not end your turn while
 `worker-list --run <run_id> --terminal-state reclaimable --json` returns rows — **Close** them first. Terminals from an
 earlier session: `ORCA terminal list --json`; one titled `sddkit-<role> · <stage>` whose dispatch has settled → close
 it.

@@ -16,12 +16,13 @@ stop.
 
 ## Inputs
 
-- The journey brief from the conductor — that journey's **Test strategy** (path, command, `oracle` kind, `@S<n>`
-  coverage, Playwright add if any), **Implementation waypoints** (`file:symbol` targets, `reading:` list, observable
-  done-when), and the `@S<n>` scenario text. Prefer it over re-reading `plan.md` in full; read from disk only if the
-  brief is missing or ambiguous.
+- The journey brief from the conductor — one journey, or several in a batched brief. Per journey: its **Test strategy**
+  (path, command, `oracle` kind, `@S<n>` coverage, Playwright add if any), **Implementation waypoints** (`file:symbol`
+  targets, `reading:` list, observable done-when), and the `@S<n>` scenario text. Prefer the brief over re-reading
+  `plan.md` in full; read from disk only if the brief is missing or ambiguous. A batched brief is worked journey by
+  journey in its listed order, each red then green, within this one turn.
 - The brief's `reading:` list — read these before Grep/Glob; they're the pattern to imitate, the call sites, or the
-  config `sddkit-architect` already identified.
+  config `sddkit-design` already identified.
 - Routed `bug|quality|perf|test|contract` findings when re-delegated
 - Escalation brief (when `escalation: 1`): failure history from prior green attempts. Re-derive the approach from plan +
   the failing test — do not assume the previous attempt's diff was directionally correct. If the plan or a contract is
@@ -100,8 +101,8 @@ stop.
 
 ## Done when
 
-- Journey brief: the planned oracle exists, failed for the right reason before the implementation (or already existed
-  from an earlier pass in this run), then passes; the done-when line holds.
+- Journey brief: for every journey in the brief, the planned oracle exists, failed for the right reason before the
+  implementation (or already existed from an earlier pass in this run), then passes; each done-when line holds.
 - Verify-fix (no `@S<n>`): the named verify command is clean; no new acceptance test written. Reply `status: green`.
 - Routed findings or escalation: those findings are addressed or rebutted; the targeted test still passes. Reply
   `status: green`, never `done`.
@@ -113,7 +114,9 @@ status: green | done | opinion_gate | blocked
 # done = planned test already present and green, AND no routed findings / escalation / verify-fix — nothing written
 # blocked = you stopped on a blocker (wrong plan or contract, missing cited symbol); the reason is in blockers
 files_changed: [...]
-test_command: <cmd>
+test_commands: # one row per journey in the brief; [] for a verify-fix
+  - journey: J1
+    cmd: <cmd>
 tests_passing: <n>
 opinion_gate: <question | "">
 addressed_findings: [F1, ...] # when responding to routed findings

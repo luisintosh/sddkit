@@ -44,7 +44,7 @@ export const GOLDEN_MODELS = {
     execute: "grok-4.6[effort=high]",
   },
   claude: {
-    think: "sonnet[effort=xhigh]",
+    think: "opus[effort=medium]",
     execute: "sonnet[effort=high]",
   },
   codex: {
