@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 /**
  * Emit dist/opencode, dist/cursor, dist/claude, dist/codex, and dist/agents/skills.
  */

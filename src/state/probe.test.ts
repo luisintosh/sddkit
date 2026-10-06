@@ -1,7 +1,10 @@
-import { describe, expect, test } from "bun:test"
-import catalog from "../catalog.yaml"
+import * as fs from "node:fs"
+import { describe, expect, test } from "vitest"
+import { parse as parseYaml } from "yaml"
 import { orcaAgentFile, orcaLaunchCommand, orcaRoutesByAgent, type OrcaRoutes } from "./orca.ts"
 import { type ProbeDeps, probeOrchestrator, resolveOrcaCli } from "./probe.ts"
+
+const catalog = parseYaml(fs.readFileSync(new URL("../catalog.yaml", import.meta.url), "utf8"))
 
 const routes: OrcaRoutes = {
   "sddkit-architect": { agent: "claude", id: "opus", effort: "medium" },

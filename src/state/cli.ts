@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 import { execFile } from "node:child_process"
 import * as fs from "node:fs/promises"
 import * as os from "node:os"

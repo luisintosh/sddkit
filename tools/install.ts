@@ -105,7 +105,7 @@ function findPackageRoot(): string {
     if (parent === dir) break
     dir = parent
   }
-  die("could not find sddkit payload (manifest.txt + dist/) — run bun run build in the toolkit checkout")
+  die("could not find sddkit payload (manifest.txt + dist/) — run pnpm run build in the toolkit checkout")
 }
 
 function requirePayload(src: string) {
@@ -115,7 +115,7 @@ function requirePayload(src: string) {
     fsSync.existsSync(path.join(src, "dist", "bin", STATE_BIN))
   if (!ok) {
     die(
-      `${src} is missing dist/ + manifest.txt — clients copy a committed payload (run bun run build in the toolkit checkout)`,
+      `${src} is missing dist/ + manifest.txt — clients copy a committed payload (run pnpm run build in the toolkit checkout)`,
     )
   }
 }
