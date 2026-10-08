@@ -148,6 +148,5 @@ rebutted_findings: # findings you deliberately did not act on; omit when empty
 blockers: [...]
 ```
 ## Tool restrictions (Cursor)
-- Edit only: docs/feats/**.
 - Never edit: docs/feats/**/state.yaml, **/journal.ndjson.
 

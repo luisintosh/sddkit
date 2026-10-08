@@ -4,6 +4,14 @@
 # Permission maps: opencode applies the LAST matching pattern, so order is
 # load-bearing — broad rules first, narrow exceptions last. Reordering a block
 # silently changes what an agent may edit.
+#
+# Agent maps hold hard denies only — the ones that protect pipeline integrity
+# (frozen design inputs, conductor-owned state, git/tracker writes). Every agent
+# that can reach docs/feats/** repeats the state.yaml / journal.ndjson denies: a
+# global install writes no opencode.jsonc, so the agent map is the only guard
+# there. Role scope ("edit only docs/feats/**") lives in each prompt's
+# Restrictions, as it does for Claude and Cursor. No catch-all allow: "*": allow
+# or a bare `bash: allow` lands after the global map and cancels its denies.
 
 hosts:
   opencode:
@@ -93,11 +101,8 @@ agents:
       steps: 50
       permission:
         edit:
-          "*": deny
-          "docs/feats/**": allow
           "docs/feats/**/state.yaml": deny
           "**/journal.ndjson": deny
-        bash: allow
     cursor: {}
     # The conductor continues this agent after critique and design-gate edits, and those waits outlast Claude Code's
     # 5m subagent cache. 1h writes cost 2x, so set it only on agents that get continued.
@@ -115,16 +120,8 @@ agents:
       steps: 30
       permission:
         edit:
-          "*": deny
-          "docs/feats/**": allow
           "docs/feats/**/state.yaml": deny
           "**/journal.ndjson": deny
-        bash:
-          "*": deny
-          "git diff*": allow
-          "git show*": allow
-          "git log*": allow
-          "git status*": allow
     cursor: {}
 
   sddkit-implementer:
@@ -138,12 +135,9 @@ agents:
       steps: 60
       permission:
         edit:
-          "*": allow
           # Frozen inputs: spec, plan, contracts. Cucumber e2e *.feature lives
           # outside docs/feats/** and stays writable.
           "docs/feats/**": deny
-          "**/journal.ndjson": deny
-          ".opencode/**": deny
     cursor: {}
     # The conductor continues this agent after each failed targeted test and in the review fix round; the test runs in
     # between outlast Claude Code's 5m subagent cache.
@@ -162,19 +156,15 @@ agents:
       steps: 40
       permission:
         edit:
-          "*": allow
-          # Frozen inputs, conductor-owned state, git internals, and host/agent config stay out of reach.
+          # Frozen inputs, git internals, and host/agent config stay out of reach.
           "docs/feats/**": deny
-          "**/journal.ndjson": deny
           ".git/**": deny
           ".agents/**": deny
           ".claude/**": deny
           ".codex/**": deny
           ".cursor/**": deny
-          ".opencode/**": deny
         # Commands may run tests; git and tracker writes stay with the conductor.
         bash:
-          "*": allow
           "git add*": deny
           "git rm*": deny
           "git mv*": deny
@@ -200,9 +190,8 @@ agents:
       steps: 60
       permission:
         edit:
-          "*": deny
-          "/tmp/**": allow
-        bash: allow
+          "docs/feats/**/state.yaml": deny
+          "**/journal.ndjson": deny
     cursor: {}
 
   sddkit-docs-writer:
@@ -216,21 +205,8 @@ agents:
       steps: 30
       permission:
         edit:
-          "*": deny
-          "AGENTS.md": allow
-          "docs/**": allow
-          "**/README.md": allow
-          # Must stay last: the root README is the project's own and
-          # docs/feats/** is the conductor's, and only the trailing position
-          # keeps these denies ahead of the allows above.
-          "README.md": deny
+          # docs/feats/** is the conductor's.
           "docs/feats/**": deny
-        bash:
-          "*": deny
-          "git diff*": allow
-          "git show*": allow
-          "git log*": allow
-          "git status*": allow
     cursor: {}
 
   sddkit-epic:
@@ -245,23 +221,8 @@ agents:
       steps: 80
       permission:
         edit:
-          "*": deny
-          "docs/product/**": allow
-          "/tmp/**": allow
-        bash:
-          "*": ask
-          "git status*": allow
-          "git branch*": allow
-          "git remote*": allow
-          "git rev-parse*": allow
-          "git log*": allow
-          "git add docs/product*": allow
-          "git commit*": allow
-          "gh auth status*": allow
-          "gh repo view*": allow
-          "gh issue create*": allow
-          "gh issue view*": allow
-          "gh issue list*": allow
+          "docs/feats/**/state.yaml": deny
+          "**/journal.ndjson": deny
     cursor:
       skill: true
 

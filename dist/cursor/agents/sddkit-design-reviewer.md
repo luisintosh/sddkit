@@ -152,6 +152,5 @@ findings:
 notes: <one line, or "">
 ```
 ## Tool restrictions (Cursor)
-- Edit only: docs/feats/**.
 - Never edit: docs/feats/**/state.yaml, **/journal.ndjson.
 

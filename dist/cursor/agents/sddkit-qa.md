@@ -130,5 +130,5 @@ notes: <one line, or "">
 blockers: [...]
 ```
 ## Tool restrictions (Cursor)
-- Edit only: /tmp/**.
+- Never edit: docs/feats/**/state.yaml, **/journal.ndjson.
 

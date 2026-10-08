@@ -6,23 +6,8 @@ temperature: 0.4
 steps: 80
 permission:
   edit:
-    "*": deny
-    docs/product/**: allow
-    /tmp/**: allow
-  bash:
-    "*": ask
-    git status*: allow
-    git branch*: allow
-    git remote*: allow
-    git rev-parse*: allow
-    git log*: allow
-    git add docs/product*: allow
-    git commit*: allow
-    gh auth status*: allow
-    gh repo view*: allow
-    gh issue create*: allow
-    gh issue view*: allow
-    gh issue list*: allow
+    docs/feats/**/state.yaml: deny
+    "**/journal.ndjson": deny
 ---
 
 Product Owner planner: turns a raw idea into a clear goal and an approved feature roadmap. Explores the codebase to

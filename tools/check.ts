@@ -105,6 +105,29 @@ function failOnAsk(label: string, permission: unknown) {
   }
 }
 
+const CATCH_ALLS = new Set(["*", "**", "**/*"])
+
+/**
+ * Agent maps carry narrow hard denies. A catch-all allow (`bash: allow`, `"*": allow`, or a bare `permission: allow`)
+ * lands after the global map, cancelling its destructive-command and state-file denies. A catch-all deny only
+ * tightens, so it stays legal (a read-only agent is `edit: deny`).
+ */
+function failOnCatchAllAllow(label: string, permission: unknown) {
+  const loose = (value: unknown) => value === "allow" || value === "ask"
+  if (loose(permission)) fail(`${label}: permission is a bare "${permission}" — list narrow denies`)
+  if (!permission || typeof permission !== "object") return
+  for (const [tool, rules] of Object.entries(permission as Record<string, unknown>)) {
+    if (loose(rules)) fail(`${label}: permission "${tool}" is a bare "${rules}" — it cancels the global denies`)
+    else if (rules && typeof rules === "object") {
+      for (const [pattern, value] of Object.entries(rules as Record<string, unknown>)) {
+        if (CATCH_ALLS.has(pattern) && loose(value)) {
+          fail(`${label}: permission "${tool}.${pattern}" is "${value}" — it cancels the global denies`)
+        }
+      }
+    }
+  }
+}
+
 /** Key-sorted JSON so comparisons don't depend on YAML key order. */
 function stable(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null"
@@ -131,7 +154,14 @@ if (catalog) {
   for (const stale of ["implementer", "code-reviewer", "qa", "docs-writer"]) {
     if (catalog.agents?.[stale]) fail(`catalog: ${stale} must be renamed sddkit-${stale}`)
   }
-  for (const merged of ["sddkit-spec", "sddkit-architect", "sddkit-plan-reviewer", "spec", "architect", "plan-reviewer"]) {
+  for (const merged of [
+    "sddkit-spec",
+    "sddkit-architect",
+    "sddkit-plan-reviewer",
+    "spec",
+    "architect",
+    "plan-reviewer",
+  ]) {
     if (catalog.agents?.[merged]) fail(`catalog: ${merged} is merged into sddkit-design / sddkit-design-reviewer`)
   }
   for (const file of await readdir(path.join(root, "src", "prompts", "agents"))) {
@@ -152,6 +182,7 @@ if (catalog) {
       }
     }
     if (!ASK_ALLOWED.has(name)) failOnAsk(`catalog: agents.${name}`, a.opencode?.permission)
+    failOnCatchAllAllow(`catalog: agents.${name}`, a.opencode?.permission)
     const ttl = a.claude?.cache_ttl
     if (ttl !== undefined && !CACHE_TTLS.has(ttl)) {
       fail(`catalog: agents.${name}.claude.cache_ttl must be 5m or 1h, got ${ttl}`)

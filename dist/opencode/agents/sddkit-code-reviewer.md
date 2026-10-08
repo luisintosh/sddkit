@@ -6,17 +6,13 @@ temperature: 0.1
 steps: 40
 permission:
   edit:
-    "*": allow
     docs/feats/**: deny
-    "**/journal.ndjson": deny
     .git/**: deny
     .agents/**: deny
     .claude/**: deny
     .codex/**: deny
     .cursor/**: deny
-    .opencode/**: deny
   bash:
-    "*": allow
     git add*: deny
     git rm*: deny
     git mv*: deny

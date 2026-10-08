@@ -263,7 +263,7 @@ since that part is work only a human can do.
 ```
 
 The conductor applies subagent reply YAML through `patch`. OpenCode also denies direct edits to `state.yaml` /
-`journal.ndjson` in `opencode.jsonc`.
+`journal.ndjson`, both in each agent's permission map and, for project installs, in `opencode.jsonc`.
 
 ## Editing prompts
 
@@ -277,6 +277,14 @@ The conductor applies subagent reply YAML through `patch`. OpenCode also denies 
   then remove them.
 - `sddkit` never merges its own PR — that's the human's call, every time. That rule lives in the prompts, not the
   permission config: `gh pr merge` is allowed at the config level, so branch protection is your hard backstop.
+- OpenCode agent permission maps hold only narrow hard denies: `state.yaml` / `journal.ndjson` for every agent, frozen
+  `docs/feats/**` inputs for the implementer, code reviewer, and docs writer, and git internals, host config, and
+  git/tracker writes for the code reviewer. Everything else — what an agent may edit or run — is scoped by its prompt,
+  as on Claude and Cursor, and by your own config. An agent's rules win over global ones only for the patterns they
+  name; everything else falls through to your `opencode.json`.
+- Project installs also write `.opencode/opencode.jsonc`, whose global map denies destructive commands (`rm -rf`, force
+  push, `git reset --hard`, `sudo`, piping to a shell). A global install writes no `opencode.jsonc`, so those denies are
+  absent there unless your own `~/.config/opencode/opencode.json` adds them.
 - No permission is `ask`. An unattended `opencode run` has no responder for a bash/edit permission request, so a
   reachable `ask` would stall it indefinitely. Dangerous commands are hard denies instead — refused, so the agent
   adapts. `pnpm run check` enforces this; only `sddkit-epic`, which is interactive-only, is exempt.

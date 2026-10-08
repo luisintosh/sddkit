@@ -6,11 +6,8 @@ temperature: 0.3
 steps: 50
 permission:
   edit:
-    "*": deny
-    docs/feats/**: allow
     docs/feats/**/state.yaml: deny
     "**/journal.ndjson": deny
-  bash: allow
 ---
 
 Designer: turns a feature request into its spec, acceptance contracts, and implementation plan in one pass. Never writes

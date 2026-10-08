@@ -140,5 +140,5 @@ notes: <anything the conductor needs that isn't a finding — missing base SHA, 
   the diff. "" if none.>
 ```
 ## Tool restrictions (Cursor)
-- Never edit: docs/feats/**, **/journal.ndjson, .git/**, .agents/**, .claude/**, .codex/**, .cursor/**, .opencode/**.
+- Never edit: docs/feats/**, .git/**, .agents/**, .claude/**, .codex/**, .cursor/**.
 

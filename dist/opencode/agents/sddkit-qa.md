@@ -6,9 +6,8 @@ temperature: 0.1
 steps: 60
 permission:
   edit:
-    "*": deny
-    /tmp/**: allow
-  bash: allow
+    docs/feats/**/state.yaml: deny
+    "**/journal.ndjson": deny
 ---
 
 QA: validates the finished feature against spec + acceptance contracts. Read-only on the repo; writes only `/tmp/**`.

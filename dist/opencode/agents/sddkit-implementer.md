@@ -6,10 +6,7 @@ temperature: 0.2
 steps: 60
 permission:
   edit:
-    "*": allow
     docs/feats/**: deny
-    "**/journal.ndjson": deny
-    .opencode/**: deny
 ---
 
 Implementer: writes the planned failing journey oracle, then the implementation, in one continuous pass. Never weakens

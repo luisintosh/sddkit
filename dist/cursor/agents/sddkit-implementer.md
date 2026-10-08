@@ -126,5 +126,5 @@ rebutted_findings: # findings you deliberately did not act on; omit when empty
 blockers: [...]
 ```
 ## Tool restrictions (Cursor)
-- Never edit: docs/feats/**, **/journal.ndjson, .opencode/**.
+- Never edit: docs/feats/**.
 

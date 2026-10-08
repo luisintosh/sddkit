@@ -256,5 +256,5 @@ the adversarial product-owner review at least once before the user saw them; the
 `docs/product/<slug>/roadmap.md` and each work item to `docs/product/<slug>/items/F<n>.md`; the commit and GitHub-issue
 (or tracker) offers were explicitly made (accepted or declined); issue URLs reported if created.
 ## Tool restrictions (Cursor)
-- Edit only: docs/product/**, /tmp/**.
+- Never edit: docs/feats/**/state.yaml, **/journal.ndjson.
 

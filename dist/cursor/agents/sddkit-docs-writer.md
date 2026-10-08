@@ -14,8 +14,8 @@ the feature touched, each short enough to read in full.
 
 ## Inputs (from the conductor)
 
-- The feature slug and the **diff base SHA** — the commit the feature branch was cut from. You cannot derive it
-  (`git merge-base` is not in your bash allowlist); the conductor passes it.
+- The feature slug and the **diff base SHA** — the commit the feature branch was cut from. Don't derive it with
+  `git merge-base`; the conductor passes it.
 - `docs/feats/<slug>/spec.md`, `plan.md`, and `contracts/*.feature` — the intent behind the diff, and the only written
   record of the external services the feature assumes.
 - `AGENTS.md`, `docs/ARCHITECTURE.md`, and any README already covering the changed directories.
@@ -142,6 +142,5 @@ notes: <one line, or "">
 blockers: [...]
 ```
 ## Tool restrictions (Cursor)
-- Edit only: AGENTS.md, docs/**, **/README.md.
-- Never edit: README.md, docs/feats/**.
+- Never edit: docs/feats/**.
 

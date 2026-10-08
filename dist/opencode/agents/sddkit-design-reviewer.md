@@ -6,16 +6,8 @@ temperature: 0.1
 steps: 30
 permission:
   edit:
-    "*": deny
-    docs/feats/**: allow
     docs/feats/**/state.yaml: deny
     "**/journal.ndjson": deny
-  bash:
-    "*": deny
-    git diff*: allow
-    git show*: allow
-    git log*: allow
-    git status*: allow
 ---
 
 Design reviewer: pre-gate critique of a feature design — `spec.md`, `contracts/*.feature`, and `plan.md` together. Fixes
