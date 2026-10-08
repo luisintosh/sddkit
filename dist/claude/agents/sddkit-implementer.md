@@ -3,6 +3,8 @@ name: sddkit-implementer
 description: Writes the planned failing journey oracle, then the implementation, in one pass. Never weakens tests. Use when the conductor delegates implementation, an escalation re-derive, or a targeted-test fix.
 model: sonnet
 effort: high
+experimental:
+  cacheTtl: 1h
 tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 

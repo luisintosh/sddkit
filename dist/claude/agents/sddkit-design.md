@@ -3,6 +3,8 @@ name: sddkit-design
 description: Writes the feature design in one pass — spec (the what & why), spec-derived acceptance contracts, and the implementation plan with cheapest-oracle journeys and waypoints. Use when the conductor delegates design, or when a spec, its @S<n> scenarios, or a plan must be written or revised.
 model: opus
 effort: medium
+experimental:
+  cacheTtl: 1h
 tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 

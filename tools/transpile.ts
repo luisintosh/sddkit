@@ -33,6 +33,10 @@ type AgentCatalog = {
     readonly?: boolean
     skill?: boolean
   }
+  claude?: {
+    /** Only for agents the conductor continues: a longer TTL costs 2x per write and pays off only on reuse. */
+    cache_ttl?: "5m" | "1h"
+  }
 }
 
 type Catalog = {
@@ -312,6 +316,8 @@ async function emitClaude(catalog: Catalog) {
       model: formatClaudeModel(ref),
     }
     if (ref.effort) fm.effort = ref.effort
+    // Keeps a continued agent's prompt cache alive past the 5m subagent default; Claude Code < 2.1.248 ignores the key.
+    if (agent.claude?.cache_ttl) fm.experimental = { cacheTtl: agent.claude.cache_ttl }
     fm.tools = claudeTools(agent)
     await writeFile(path.join(outRoot, "agents", `${name}.md`), yamlFrontmatter(fm) + body)
   }

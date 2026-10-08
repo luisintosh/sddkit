@@ -66,7 +66,11 @@ type AgentCatalog = {
   description?: string
   opencode?: { mode?: string; temperature?: number; steps?: number; permission?: unknown }
   cursor?: { skill?: boolean }
+  claude?: { cache_ttl?: string }
 }
+
+/** Claude Code ignores any other `experimental.cacheTtl`, so a typo would silently fall back to the 5m default. */
+const CACHE_TTLS = new Set(["5m", "1h"])
 
 type Catalog = {
   hosts?: Record<string, { profiles?: Record<string, ModelRef> }>
@@ -148,6 +152,10 @@ if (catalog) {
       }
     }
     if (!ASK_ALLOWED.has(name)) failOnAsk(`catalog: agents.${name}`, a.opencode?.permission)
+    const ttl = a.claude?.cache_ttl
+    if (ttl !== undefined && !CACHE_TTLS.has(ttl)) {
+      fail(`catalog: agents.${name}.claude.cache_ttl must be 5m or 1h, got ${ttl}`)
+    }
     try {
       await stat(path.join(root, "src", "prompts", "agents", `${name}.md`))
     } catch {
@@ -321,7 +329,7 @@ if (catalog) {
         if (!m) {
           fail(`dist/claude/agents/${name}.md: missing frontmatter`)
         } else {
-          const fm = parseYaml(m[1]!) as { model?: string; effort?: string }
+          const fm = parseYaml(m[1]!) as { model?: string; effort?: string; experimental?: { cacheTtl?: string } }
           const want = resolveRef(catalog, "claude", agent.profile!)!
           const wantModel = formatClaudeModel(want)
           if (fm.model !== wantModel) {
@@ -329,6 +337,12 @@ if (catalog) {
           }
           if ((fm.effort ?? undefined) !== want.effort) {
             fail(`dist drift: claude ${name} effort ${fm.effort} != catalog ${want.effort} — run pnpm run build`)
+          }
+          const wantTtl = agent.claude?.cache_ttl
+          if (fm.experimental?.cacheTtl !== wantTtl) {
+            fail(
+              `dist drift: claude ${name} experimental.cacheTtl ${fm.experimental?.cacheTtl} != catalog ${wantTtl} — run pnpm run build`,
+            )
           }
         }
       } catch {

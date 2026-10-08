@@ -56,16 +56,25 @@ close a terminal it did not create, so it is yours to close (see **Close**). Esc
   record a blocker, reply that it is blocked).
 - `worker_done` → must name a dispatch you started. Read the reply file and apply it exactly as a native reply (reply
   mapping unchanged). Missing or unparsable reply file, or `--outcome failed` → an empty reply: same
-  re-delegate-once-then-blocker rule as the step that dispatched it. Either outcome → **Close** before acking or
-  dispatching again.
+  re-delegate-once-then-blocker rule as the step that dispatched it. Either outcome → **Close** (or keep it for
+  **Continue**) before acking or dispatching again.
 - `escalation` → treat as that specialist's blocker.
 
 A timeout or empty result is a checkpoint, not a failure: keep waiting. After three empty waits,
 `ORCA orchestration worker-list --run <run_id> --json` and follow each row's `projection.nextAction`. Never stop,
 abandon, retry, or release a worker without positive proof (`exited` liveness or a settled `worker_done`).
 
-**Close.** Once a specialist is done its pane goes away — whatever the outcome, before the next dispatch:
-`ORCA orchestration worker-release --dispatch <dispatch_id> --json` — it comes back `state: retained`,
+**Continue.** When the next dispatch continues the same specialist (see **Continue vs new**), do not **Close** after its
+`worker_done`: keep the handle and its pane, write the next brief with only what changed, then
+`ORCA orchestration task-create --spec "<spec>" --run <run_id> --json` and
+`ORCA orchestration worker-start --task <task_id> --terminal <handle> --worktree <as when opened> --run <run_id> --json`
+— the same agent session takes the new Task with its context intact. Skip the split/create, rename, and `tui-idle`
+steps; `--model`/`--effort` are neither needed nor allowed with `--terminal`. Reuse fails → **Close** that handle and
+dispatch a new worker. Once the loop ends (slice committed, review settled, the next dispatch is a new specialist) or
+before any pause that ends your turn (a gate, a blocker), **Close** as usual.
+
+**Close.** Once a specialist is done and not continued, its pane goes away — whatever the outcome, before the next
+dispatch: `ORCA orchestration worker-release --dispatch <dispatch_id> --json` — it comes back `state: retained`,
 `reason: external_terminal` because you started the terminal — then `ORCA terminal close --terminal <handle> --json`.
 Also close a terminal at once when no worker took it: `tui-idle` wait timed out, or `worker-start --terminal` failed.
 After a `worker-stop` or `worker-abandon` (positive exit proof only), close it the same way. Close only handles you

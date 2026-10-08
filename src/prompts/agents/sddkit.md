@@ -128,7 +128,7 @@ on-disk artifacts — never restart completed stages.
    `humanDecisions`, `openQuestions`, and `oracles` (every journey's `oracle`). Omit no key. Follow stdout:
    - `skip: true` → journal the skip.
    - `skip: false` → delegate `sddkit-design-reviewer` with the original request verbatim. It fixes what it can in
-     place. Unresolved `blocker|major` findings → re-delegate `sddkit-design` once with those findings verbatim.
+     place. Unresolved `blocker|major` findings → continue `sddkit-design` once with those findings verbatim.
 
    Add `design_critique` to `completed`.
 
@@ -140,7 +140,7 @@ on-disk artifacts — never restart completed stages.
      (Conventional Commit); patch `review.base` to that commit's SHA and `review.findings: []`; if `pr.url` is set,
      `git push`. Continue to step 5 (a QA design delta continues to its reset in step 9). Approving the design approves
      a named Playwright add — no second ask.
-   - Edits requested, or a different listed approach picked → re-delegate `sddkit-design` naming the change, then
+   - Edits requested, or a different listed approach picked → continue `sddkit-design` naming the change, then
      re-present.
 
 5. **implementation** — `stage: implementation`. Read `plan.md`'s Test strategy: parse the fenced `journeys:` YAML block
@@ -158,24 +158,23 @@ on-disk artifacts — never restart completed stages.
    - **Track new files.** After every `sddkit-implementer` reply (step 7 verify-fixes too), run
      `git add --intent-to-add -- <files_changed>`. An untracked file is invisible to `git diff HEAD` and survives
      `git reset --hard`.
-   - `slice_phase: green` → delegate `sddkit-implementer` with the slice's brief(s). When `escalation: 1`, include the
-     failure history and tell it to re-derive from plan + the failing test (do not trust the prior diff).
+   - `slice_phase: green` → delegate a new `sddkit-implementer` with the slice's brief(s). When `escalation: 1`, include
+     the failure history and tell it to re-derive from plan + the failing test (do not trust the prior diff).
      - Opinion gate raised → patch `pending_gate: opinion`, append `opinion gate (impl): <question>` to `blockers`,
-       pause. On the answer, clear `pending_gate` and drop that blocker, then re-delegate with the decision in the
-       brief.
+       pause. On the answer, clear `pending_gate` and drop that blocker, then continue it with the decision.
      - `status: blocked` → patch its `blockers` and pause; never advance.
      - `status: done` with `files_changed: []` is a no-op success **only** when every planned test file is already in
-       the tree; on first arrival it is always wrong — re-delegate once stating that no test was written, then record a
+       the tree; on first arrival it is always wrong — continue it once stating that no test was written, then record a
        blocker if it repeats.
      - `status: green|done` → patch `slice_phase: targeted_test`.
    - `slice_phase: targeted_test` → run `AGENTS.md` typecheck then lint when not `n/a` (failures in files this slice
      touched count; pre-existing failures in untouched files do not), then every journey command in the slice.
-     - Pass → **commit**: `git diff HEAD` must be non-empty (an empty diff is not a pass — re-delegate once with that
+     - Pass → **commit**: `git diff HEAD` must be non-empty (an empty diff is not a pass — continue it once with that
        fact, then blocker and pause). Conventional Commit of the slice's files plus state. Read `completed_slices` and
        patch the full array plus each journey id in the slice. Clear `current_slice` / `slice_phase`. If `pr.url` is
        set, `git push`. Slices remain → start the next (do not zero `escalation`). All done → add `implementation` to
        `completed`, continue to step 6.
-     - Counted failure → patch `green_attempts` +1 and re-delegate `sddkit-implementer` with only the failing command
+     - Counted failure → patch `green_attempts` +1 and continue `sddkit-implementer` with only the failing command
        names + first error lines (≤40 lines), never the full raw output, and `slice_phase: green`.
      - **`green_attempts` reaching 2 with `escalation: 0` → clean-tree escalation:**
        1. `sddkit-state show <slug>` and keep `current_slice`.
@@ -183,17 +182,17 @@ on-disk artifacts — never restart completed stages.
           previous slice commit). Never stash or commit the failed tree onto the feature branch.
        3. One patch: `current_slice` (kept), `slice_phase: green`, `green_attempts: 0`, `escalation: 1`.
        4. If `git worktree add` succeeds, add two worktrees at that SHA and run the `AGENTS.md` install command in each.
-          Delegate `sddkit-implementer` in each, one after the other, with the escalation brief plus the worktree's
-          absolute path as its working directory; run the slice's journey commands in each; copy back the green tree
-          with the smaller `git diff --stat`; remove the worktrees. Worktrees unavailable → one implementer pass on the
-          reset tree.
+          Delegate a new `sddkit-implementer` in each, one after the other, with the escalation brief plus the
+          worktree's absolute path as its working directory; run the slice's journey commands in each; copy back the
+          green tree with the smaller `git diff --stat`; remove the worktrees. Worktrees unavailable → one implementer
+          pass on the reset tree.
        5. Continue at `slice_phase: targeted_test`. A failure there while `escalation` is 1 → record blockers and pause.
 
 6. **review** — `stage: review`, once per feature. Read `review.iterations`, patch it +1, and send that number as
    `iteration`. `git status --porcelain` must list only `state.yaml` and `journal.ndjson`; anything else → blocker,
-   pause. Delegate `sddkit-code-reviewer` with: base `review.base`, the diff command
-   `git diff <review.base> -- . ':(exclude)docs/feats/<slug>'`, every journey brief, and on iteration 2 the prior
-   findings. After its reply:
+   pause. Delegate a new `sddkit-code-reviewer` (never continued — each iteration is independent) with: base
+   `review.base`, the diff command `git diff <review.base> -- . ':(exclude)docs/feats/<slug>'`, every journey brief, and
+   on iteration 2 the prior findings. After its reply:
    1. **Check edits.** Reviewer paths = `git diff --name-only HEAD` plus `git ls-files --others --exclude-standard`,
       minus `state.yaml` and `journal.ndjson`. Revert a path, and move every `fixed` record anchored to it into
       `findings`, when it is under `docs/feats/**`, equals a journey `test_path`, or is absent from
@@ -205,8 +204,8 @@ on-disk artifacts — never restart completed stages.
    4. **Route.** `minor` findings → append to `review.deferred_findings` (read + full array). `notes` naming a spec or
       plan gap → journal it and pause for the human, naming the gap. `blocker|major` findings → patch `review.findings`,
       then:
-      - `review.iterations` is 1 → fix round: delegate `sddkit-implementer` with the findings verbatim (no new oracle),
-        run typecheck, lint, and every journey command (a failure re-delegates with the error lines; a second failure →
+      - `review.iterations` is 1 → fix round: continue `sddkit-implementer` with the findings verbatim (no new oracle),
+        run typecheck, lint, and every journey command (a failure continues it with the error lines; a second failure →
         blockers, pause), commit, and repeat step 6 (iteration 2, scoped to the prior findings plus the fix commit).
       - `review.iterations` is 2 → record the findings as blockers and pause.
    5. No `blocker|major` left → patch `review.findings: []`, add `review` to `completed`, continue to step 7.
@@ -215,11 +214,12 @@ on-disk artifacts — never restart completed stages.
    (`pass|fail`) and `verification.commands` as one `"<command> — pass|fail|n/a"` string per command (a flat string
    list; genuinely absent commands are `n/a`). Add `verify` to `completed` once the run is green.
 
-   On failure, delegate `sddkit-implementer` with a verify-fix brief: `current_slice: verify-fix-<n>` (`<n>` = 1, 2, …
-   within this verify pass), `slice_phase: green`. The targeted command is the failing verify command; **no** `@S<n>`
-   scenarios — no new acceptance test. Do not touch `escalation`; a local `green_attempts` caps at 2, then blockers. A
-   `status: green` reply means that command is clean; `status: blocked` → patch its `blockers` and pause. Commit the
-   verify-fix files plus state; if `pr.url` is set, `git push`. Clear `current_slice` / `slice_phase`, then re-verify.
+   On failure, delegate `sddkit-implementer` (continue it on a retry of the same verify-fix) with a verify-fix brief:
+   `current_slice: verify-fix-<n>` (`<n>` = 1, 2, … within this verify pass), `slice_phase: green`. The targeted command
+   is the failing verify command; **no** `@S<n>` scenarios — no new acceptance test. Do not touch `escalation`; a local
+   `green_attempts` caps at 2, then blockers. A `status: green` reply means that command is clean; `status: blocked` →
+   patch its `blockers` and pause. Commit the verify-fix files plus state; if `pr.url` is set, `git push`. Clear
+   `current_slice` / `slice_phase`, then re-verify.
 
 8. **pr** — `stage: pr`. `git push -u origin <branch>`, then open a draft PR with `tools.repo` (command
    `gh pr create --draft` when that tool is `gh`) against the resolved base branch; patch `pr.url`. GitHub issue-linked

@@ -99,6 +99,10 @@ agents:
           "**/journal.ndjson": deny
         bash: allow
     cursor: {}
+    # The conductor continues this agent after critique and design-gate edits, and those waits outlast Claude Code's
+    # 5m subagent cache. 1h writes cost 2x, so set it only on agents that get continued.
+    claude:
+      cache_ttl: 1h
 
   sddkit-design-reviewer:
     profile: review
@@ -141,6 +145,10 @@ agents:
           "**/journal.ndjson": deny
           ".opencode/**": deny
     cursor: {}
+    # The conductor continues this agent after each failed targeted test and in the review fix round; the test runs in
+    # between outlast Claude Code's 5m subagent cache.
+    claude:
+      cache_ttl: 1h
 
   sddkit-code-reviewer:
     profile: critique

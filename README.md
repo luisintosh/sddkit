@@ -106,10 +106,11 @@ before:
   install both the Claude and Cursor hosts
 
 If the conductor itself runs in an Orca terminal, each specialist opens in a split pane to its right, titled
-`<specialist> · <stage>`, and the conductor closes it once the specialist settles. Otherwise workers open as Orca tabs,
-closed the same way. The conductor launches every worker itself, so workers skip approval prompts (Claude auto mode,
-Cursor `--yolo`) and an unattended run never stalls on one. Briefs and replies pass through `.git/sddkit/<slug>/`, so
-they never land in the diff. Opt out with `SDDKIT_ORCHESTRATOR=native`.
+`<specialist> · <stage>`, and the conductor closes it once the specialist settles (a specialist being continued keeps
+its pane until the retry loop ends). Otherwise workers open as Orca tabs, closed the same way. The conductor launches
+every worker itself, so workers skip approval prompts (Claude auto mode, Cursor `--yolo`) and an unattended run never
+stalls on one. Briefs and replies pass through `.git/sddkit/<slug>/`, so they never land in the diff. Opt out with
+`SDDKIT_ORCHESTRATOR=native`.
 
 ## Install
 
@@ -227,6 +228,15 @@ initialize → design (spec + contracts + plan) → design critique (fixes in pl
 
 **Escalation:** if a slice's targeted tests fail twice, `git reset --hard` to the slice base and re-run
 `sddkit-implementer` (optionally two worktrees; keep the smaller green diff). One rung; then pause for a human.
+
+**Retries continue the same specialist.** A targeted-test retry, a verify-fix retry, the review fix round, and design
+edits after critique or the gate go back to the specialist that did the work, with its context intact, instead of a
+fresh one: Claude Code `SendMessage`, Cursor resume by agent ID, Codex `send_input`, OpenCode `task_id`, and under Orca
+the same worker terminal (`worker-start --terminal`), whose pane stays open until the loop ends. The provider's prompt
+cache then covers everything the specialist already read. Escalation, review iteration 2, and every reviewer, QA, and
+docs pass stay fresh. On Claude Code, `sddkit-design` and `sddkit-implementer` request a 1-hour cache
+(`experimental.cacheTtl`, set by `claude.cache_ttl` in `src/catalog.yaml`; Claude Code v2.1.248+) so the cache outlives
+the test runs and gate waits between those turns.
 
 **QA:** findings route by category (`sddkit-state decide --event qa-route`) — impl-only to a verify-fix, spec/plan-only
 to a design delta (always presents the design gate), mixed runs the design delta and drops stale impl findings for the
