@@ -4,7 +4,7 @@
     "should_trigger": true
   },
   {
-    "query": "Run the SDD pipeline for GitHub issue #42 in acme/billing. Scope is exactly that issue's Definition of Done. Base: main.",
+    "query": "Run the SDD pipeline for GitHub issue #42 in acme/billing. Scope is exactly that issue's Acceptance criteria. Base: main.",
     "should_trigger": true
   },
   { "query": "continue the csv-export feature, i approved the plan last night", "should_trigger": true },

@@ -170,7 +170,7 @@ rename. A fresh run flags these and asks before scaffolding state; an unattended
 always runs the full pipeline regardless.
 
 Name a GitHub issue (`gh issue view` number or URL), or another tracker's work item if a substitute is connected, and
-`sddkit` links to it: scope comes from its Definition of Done, the slug is derived from the issue title, and completion
+`sddkit` links to it: scope comes from its Acceptance criteria, the slug is derived from the issue title, and completion
 prints a **handoff** when the tracker is GitHub — a paste-ready invocation for the roadmap's next feature, plus anything
 this run learned that the next one needs.
 
@@ -181,11 +181,13 @@ this run learned that the next one needs.
 **Cursor:** run the `/sddkit-plan` skill (it inherits your session model — use your most capable one for this).
 
 Explores the codebase to answer what it can before asking anything, refines the idea into a measurable goal, explores
-candidate approaches, then writes a feature roadmap — each feature with a Definition of Done and dependency-derived
-parallel/sequential waves — to `docs/product/<slug>/roadmap.md`. Offers to commit it and to create GitHub issues (one
-epic + one per feature, wired with `Blocked by #N`). Standalone — doesn't touch the SDD pipeline; each resulting feature
-is meant to be run through `sddkit` on its own. Ends by printing a paste-ready invocation for the roadmap's first
-feature.
+candidate approaches, then writes an epic-level feature roadmap with dependency-derived parallel/sequential waves to
+`docs/product/<slug>/roadmap.md`, and one work item per feature to `docs/product/<slug>/items/F<n>.md` — outcome title,
+user story, context, optional proposed solution (mermaid), Given/When/Then acceptance criteria, out of scope, and
+dependencies/risks/open questions — each reviewed by an adversarial product-owner subagent before you approve it. Offers
+to commit it and to create GitHub issues (one epic + one per feature, wired with `Blocked by #N`). Standalone — doesn't
+touch the SDD pipeline; each resulting feature is meant to be run through `sddkit` on its own. Ends by printing a
+paste-ready invocation for the roadmap's first feature.
 
 ### Run a Roadmap
 
