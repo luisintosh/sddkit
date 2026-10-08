@@ -15,7 +15,7 @@ once; tests use Vitest and bundles use esbuild.
 any `src/` change run `pnpm run build` before commit; CI fails if they drift.
 
 New catalog agents must be named `sddkit-<role>` so they cannot collide with host built-ins (Cursor's `code-reviewer`,
-and similarly generic IDs on Codex/Claude/OpenCode). The conductor (`sddkit`) and planner (`sddkit-plan`) already follow
+and similarly generic IDs on Codex/Claude/OpenCode). The conductor (`sddkit`) and planner (`sddkit-epic`) already follow
 that rule.
 
 ## Hygiene (`pnpm run check`)

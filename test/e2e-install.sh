@@ -56,7 +56,7 @@ LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all \
   node "$INSTALL_JS" >/dev/null
 
 assert_file_exists "${TARGET}/.opencode/agents/sddkit.md" "opencode sddkit agent installed"
-assert_file_exists "${TARGET}/.opencode/agents/sddkit-plan.md" "opencode sddkit-plan agent installed"
+assert_file_exists "${TARGET}/.opencode/agents/sddkit-epic.md" "opencode sddkit-epic agent installed"
 assert_file_exists "${TARGET}/.opencode/opencode.jsonc" "opencode.jsonc installed"
 assert_file_absent "${TARGET}/.opencode/plugins/sdd-guard.ts" "plugin not installed"
 assert_file_exists "${TARGET}/.cursor/agents/sddkit-implementer.md" "cursor implementer installed"
@@ -69,7 +69,7 @@ else
   ok "claude skills are a copy, not a symlink"
 fi
 assert_file_exists "${TARGET}/.agents/skills/sddkit/SKILL.md" "sddkit skill installed under .agents"
-assert_file_exists "${TARGET}/.agents/skills/sddkit-plan/SKILL.md" "sddkit-plan skill installed under .agents"
+assert_file_exists "${TARGET}/.agents/skills/sddkit-epic/SKILL.md" "sddkit-epic skill installed under .agents"
 assert_file_exists "${TARGET}/.agents/skills/sddkit-setup-docs/SKILL.md" "sddkit-setup-docs skill installed under .agents"
 assert_file_exists "${TARGET}/.agents/skills/sddkit/references/reply-mapping.md" "sddkit reply-mapping reference installed"
 assert_file_exists "${TARGET}/.agents/skills/sddkit/references/orca.md" "sddkit orca reference installed"
@@ -123,6 +123,14 @@ else
   bad "should report delete: $prune_output"
 fi
 assert_file_absent "${TARGET}/.opencode/agents/sddkit-qa.md" "sddkit-qa.md removed after upstream deletion"
+
+# 4b. prune a whole skill (rename) leaves no empty folder behind
+rm -r "${UPSTREAM}/dist/agents/skills/sddkit-epic"
+HARNESS_ROOT="$UPSTREAM" node "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
+LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" >/dev/null 2>&1
+if [[ ! -e "${TARGET}/.agents/skills/sddkit-epic" ]]; then ok "removed skill folder pruned from .agents/skills"; else bad "empty skill folder left in .agents/skills"; fi
+if [[ ! -e "${TARGET}/.claude/skills/sddkit-epic" ]]; then ok "removed skill folder pruned from .claude/skills"; else bad "empty skill folder left in .claude/skills"; fi
+assert_file_exists "${TARGET}/.agents/skills/sddkit/SKILL.md" "other skills kept after prune"
 
 # 5. doctor
 BARE="${WORK}/no-git-no-agents"

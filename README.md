@@ -44,11 +44,11 @@ docs/feats/<feature>/
   contracts/*.feature
   plan.md
 docs/product/<slug>/
-  roadmap.md             optional, written by sddkit-plan
+  roadmap.md             optional, written by sddkit-epic
 src/<domain>/README.md   domain doc, written by sddkit-docs-writer at docs-sync
 docs/domains/<domain>.md same, for a domain too cross-cutting to own a directory
 .agents/bin/sddkit-state.mjs    installed by npx/bunx sddkit
-.agents/skills/          sddkit, sddkit-plan + sddkit-setup-docs
+.agents/skills/          sddkit, sddkit-epic + sddkit-setup-docs
 .opencode/               OpenCode agents + opencode.jsonc
 .cursor/agents/          Cursor specialists
 .claude/agents/          Claude Code specialists
@@ -59,7 +59,7 @@ docs/domains/<domain>.md same, for a domain too cross-cutting to own a directory
 ## Models
 
 Models live in `src/catalog.yaml` as a host × profile matrix. Agents declare a `profile`; emitters format the host's
-entry. Skills (`sddkit`, `sddkit-plan`) inherit the session model — run `/sddkit` on Grok 4.6 Extra High, Claude sonnet,
+entry. Skills (`sddkit`, `sddkit-epic`) inherit the session model — run `/sddkit` on Grok 4.6 Extra High, Claude sonnet,
 or Codex terra.
 
 | profile    | OpenCode                      | Cursor                         | Claude                  | Codex                  |
@@ -81,7 +81,7 @@ or Codex terra.
 | `sddkit-code-reviewer`   | `critique` |
 | `sddkit-qa`              | `validate` |
 | `sddkit-docs-writer`     | `write`    |
-| `sddkit-plan`            | `think`    |
+| `sddkit-epic`            | `think`    |
 
 Checked in CI against `src/catalog.yaml` and emitted frontmatter / Codex TOML.
 
@@ -176,9 +176,9 @@ this run learned that the next one needs.
 
 ### Plan a Product (optional)
 
-**OpenCode:** Tab-switch to the `sddkit-plan` agent and describe the idea.
+**OpenCode:** Tab-switch to the `sddkit-epic` agent and describe the idea.
 
-**Cursor:** run the `/sddkit-plan` skill (it inherits your session model — use your most capable one for this).
+**Cursor:** run the `/sddkit-epic` skill (it inherits your session model — use your most capable one for this).
 
 Explores the codebase to answer what it can before asking anything, refines the idea into a measurable goal, explores
 candidate approaches, then writes an epic-level feature roadmap with dependency-derived parallel/sequential waves to
@@ -268,4 +268,4 @@ The conductor applies subagent reply YAML through `patch`. OpenCode also denies 
   permission config: `gh pr merge` is allowed at the config level, so branch protection is your hard backstop.
 - No permission is `ask`. An unattended `opencode run` has no responder for a bash/edit permission request, so a
   reachable `ask` would stall it indefinitely. Dangerous commands are hard denies instead — refused, so the agent
-  adapts. `pnpm run check` enforces this; only `sddkit-plan`, which is interactive-only, is exempt.
+  adapts. `pnpm run check` enforces this; only `sddkit-epic`, which is interactive-only, is exempt.

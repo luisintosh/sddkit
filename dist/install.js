@@ -1421,8 +1421,22 @@ async function applyOp(op) {
   await fs.copyFile(op.src, op.dest);
   if (op.chmod !== void 0) await fs.chmod(op.dest, op.chmod);
 }
+async function pruneEmptyDirs(start, destRoot) {
+  let dir = start;
+  while (dir.startsWith(`${destRoot}${path.sep}`)) {
+    try {
+      await fs.rmdir(dir);
+    } catch {
+      return;
+    }
+    dir = path.dirname(dir);
+  }
+}
 async function applyTree(plan) {
-  for (const op of plan.ops) await applyOp(op);
+  for (const op of plan.ops) {
+    await applyOp(op);
+    if (op.kind === "delete") await pruneEmptyDirs(path.dirname(op.dest), plan.destRoot);
+  }
   await fs.mkdir(plan.destRoot, { recursive: true });
   await fs.writeFile(path.join(plan.destRoot, ".harness-manifest"), plan.manifestBody);
 }
@@ -1591,8 +1605,8 @@ function suggestNextSteps() {
     log("  2. gh is on PATH \u2014 run 'gh auth login' if you aren't logged in");
   }
   log("");
-  log("Optional: sddkit-plan \u2014 Product Owner planner (/sddkit-plan skill, or the");
-  log("  OpenCode sddkit-plan agent) turns a raw idea into a feature roadmap at");
+  log("Optional: sddkit-epic \u2014 Product Owner planner (/sddkit-epic skill, or the");
+  log("  OpenCode sddkit-epic agent) turns a raw idea into a feature roadmap at");
   log("  docs/product/<slug>/roadmap.md. Run each feature through sddkit one at a");
   log("  time \u2014 it hands you the next feature's invocation when one is done.");
   log("");

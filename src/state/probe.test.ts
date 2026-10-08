@@ -112,7 +112,7 @@ describe("orca routes", () => {
   test("catalog routes every dispatched specialist, never the conductor or planner", () => {
     const byAgent = orcaRoutesByAgent(catalog)
     expect(byAgent.sddkit).toBeUndefined()
-    expect(byAgent["sddkit-plan"]).toBeUndefined()
+    expect(byAgent["sddkit-epic"]).toBeUndefined()
     expect(byAgent["sddkit-design"]).toEqual({ agent: "claude", id: "opus", effort: "medium" })
     expect(byAgent["sddkit-design-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
     expect(byAgent["sddkit-code-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })

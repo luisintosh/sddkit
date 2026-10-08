@@ -84,7 +84,7 @@ function resolveRef(catalog: Catalog, host: Host, profile: string): ModelRef | u
  * qualify: an "ask" anywhere else can be reached by an unattended `opencode run`
  * with no human to answer it, stalling that run indefinitely. See tools/transpile.ts.
  */
-const ASK_ALLOWED = new Set(["sddkit-plan"])
+const ASK_ALLOWED = new Set(["sddkit-epic"])
 
 /** Every permission value in a nested map, flattened to "path -> value" pairs. */
 function permissionValues(node: unknown, path: string[] = []): [string, string][] {

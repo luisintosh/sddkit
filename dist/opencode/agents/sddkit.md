@@ -1,5 +1,5 @@
 ---
-description: Drives the end-to-end spec-driven development (SDD) feature pipeline — sequences stages, manages human-in-the-loop gates, routes review findings, keeps docs in sync. Use when the user asks to implement a feature, run SDD, or resume/continue a pipeline. Treats a normal feature request as a request to run the full workflow. Not for product or roadmap planning (sddkit-plan) or one-line edits such as a typo or a version bump.
+description: Drives the end-to-end spec-driven development (SDD) feature pipeline — sequences stages, manages human-in-the-loop gates, routes review findings, keeps docs in sync. Use when the user asks to implement a feature, run SDD, or resume/continue a pipeline. Treats a normal feature request as a request to run the full workflow. Not for product or roadmap planning (sddkit-epic) or one-line edits such as a typo or a version bump.
 mode: primary
 model: opencode-go/qwen3.7-plus
 temperature: 0.2

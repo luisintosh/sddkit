@@ -1,5 +1,5 @@
 ---
-name: sddkit-plan
+name: sddkit-epic
 description: Product Owner planner. Refines a raw idea into a measurable goal, then writes a feature roadmap at docs/product/<slug>/roadmap.md. Use when the user asks to plan a product, write a roadmap, or turn an idea into sequenced features. Standalone — does not run the SDD pipeline.
 ---
 

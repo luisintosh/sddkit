@@ -293,8 +293,24 @@ async function applyOp(op: FileOp): Promise<void> {
   if (op.chmod !== undefined) await fs.chmod(op.dest, op.chmod)
 }
 
+// Removes directories a delete left empty (e.g. a renamed skill's folder), up to destRoot.
+async function pruneEmptyDirs(start: string, destRoot: string): Promise<void> {
+  let dir = start
+  while (dir.startsWith(`${destRoot}${path.sep}`)) {
+    try {
+      await fs.rmdir(dir)
+    } catch {
+      return
+    }
+    dir = path.dirname(dir)
+  }
+}
+
 async function applyTree(plan: TreePlan): Promise<void> {
-  for (const op of plan.ops) await applyOp(op)
+  for (const op of plan.ops) {
+    await applyOp(op)
+    if (op.kind === "delete") await pruneEmptyDirs(path.dirname(op.dest), plan.destRoot)
+  }
   await fs.mkdir(plan.destRoot, { recursive: true })
   await fs.writeFile(path.join(plan.destRoot, ".harness-manifest"), plan.manifestBody)
 }
@@ -504,8 +520,8 @@ function suggestNextSteps() {
     log("  2. gh is on PATH — run 'gh auth login' if you aren't logged in")
   }
   log("")
-  log("Optional: sddkit-plan — Product Owner planner (/sddkit-plan skill, or the")
-  log("  OpenCode sddkit-plan agent) turns a raw idea into a feature roadmap at")
+  log("Optional: sddkit-epic — Product Owner planner (/sddkit-epic skill, or the")
+  log("  OpenCode sddkit-epic agent) turns a raw idea into a feature roadmap at")
   log("  docs/product/<slug>/roadmap.md. Run each feature through sddkit one at a")
   log("  time — it hands you the next feature's invocation when one is done.")
   log("")
