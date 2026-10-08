@@ -91,11 +91,12 @@ When [Orca](https://github.com/stablyai/orca) is running, the conductor dispatch
 worker instead of the host's subagent, on any host. The CLI and model per profile come from `orchestrators.orca` in
 `src/catalog.yaml`:
 
-| specialist                                              | worker                                                       |
-| ------------------------------------------------------- | ------------------------------------------------------------ |
-| `sddkit-design`                                         | `claude --model opus --effort medium --permission-mode auto` |
-| `sddkit-design-reviewer`, `sddkit-code-reviewer`        | `claude --model sonnet --effort high --permission-mode auto` |
-| `sddkit-implementer`, `sddkit-qa`, `sddkit-docs-writer` | `cursor-agent --model grok-4.7-high --yolo`                  |
+| specialist                                       | worker                                                       |
+| ------------------------------------------------ | ------------------------------------------------------------ |
+| `sddkit-design`                                  | `claude --model opus --effort medium --permission-mode auto` |
+| `sddkit-design-reviewer`, `sddkit-code-reviewer` | `claude --model sonnet --effort high --permission-mode auto` |
+| `sddkit-implementer`                             | `cursor-agent --model grok-4.7-low --yolo`                   |
+| `sddkit-qa`, `sddkit-docs-writer`                | `cursor-agent --model grok-4.7-high --yolo`                  |
 
 At initialize the conductor runs `sddkit-state probe orchestrator`. All of these must hold, or it delegates natively as
 before:

@@ -116,7 +116,7 @@ describe("orca routes", () => {
     expect(byAgent["sddkit-design"]).toEqual({ agent: "claude", id: "opus", effort: "medium" })
     expect(byAgent["sddkit-design-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
     expect(byAgent["sddkit-code-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
-    expect(byAgent["sddkit-implementer"]).toEqual({ agent: "cursor", id: "grok-4.7-high" })
+    expect(byAgent["sddkit-implementer"]).toEqual({ agent: "cursor", id: "grok-4.7-low" })
   })
 
   test("launch commands pick the model and skip approval prompts", () => {

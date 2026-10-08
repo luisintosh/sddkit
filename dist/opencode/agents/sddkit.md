@@ -84,7 +84,7 @@ invoked — never which specialist, the brief's content, the stage order, gates,
 | --- | --- | --- | --- |
 | `sddkit-design` | think | `claude --model opus --effort medium --permission-mode auto` | `.claude/agents/sddkit-design.md` |
 | `sddkit-design-reviewer` | review | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-design-reviewer.md` |
-| `sddkit-implementer` | execute | `cursor-agent --model grok-4.7-high --yolo` | `.cursor/agents/sddkit-implementer.md` |
+| `sddkit-implementer` | execute | `cursor-agent --model grok-4.7-low --yolo` | `.cursor/agents/sddkit-implementer.md` |
 | `sddkit-code-reviewer` | critique | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-code-reviewer.md` |
 | `sddkit-qa` | validate | `cursor-agent --model grok-4.7-high --yolo` | `.cursor/agents/sddkit-qa.md` |
 | `sddkit-docs-writer` | write | `cursor-agent --model grok-4.7-high --yolo` | `.cursor/agents/sddkit-docs-writer.md` |

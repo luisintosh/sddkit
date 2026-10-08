@@ -53,7 +53,7 @@ orchestrators:
       think: { agent: claude, id: opus, effort: medium }
       critique: { agent: claude, id: sonnet, effort: high }
       review: { agent: claude, id: sonnet, effort: high }
-      execute: { agent: cursor, id: grok-4.7-high }
+      execute: { agent: cursor, id: grok-4.7-low }
       validate: { agent: cursor, id: grok-4.7-high }
       write: { agent: cursor, id: grok-4.7-high }
 
