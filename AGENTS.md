@@ -36,9 +36,10 @@ installs into a _consuming_ repo or `$HOME` (`.opencode/`, `.cursor/agents/`, `.
 
 ## Code style
 
-Biome lints `src/**/*.ts` and `tools/**/*.ts` (`pnpm run lint`, `pnpm run lint:fix`). Prettier formats those same files
-plus all `**/*.md` (`pnpm run format`). Shell scripts are covered by `bash -n` + `shellcheck` only. Both are configured
-to match the conventions already in the tree, so keep to them:
+Biome lints and formats `src/**/*.ts`, `tools/**/*.ts`, and the JSON files (`pnpm run lint`, `pnpm run lint:fix`).
+Prettier formats only Markdown and YAML (`**/*.{md,yaml,yml}`). `pnpm run format` runs both and `pnpm run format:check`
+verifies both. Shell scripts are covered by `bash -n` and `shellcheck` only. Both are configured to match the
+conventions already in the tree, so keep to them:
 
 - No semicolons, double quotes, 2-space indent.
 - `.ts` extension in relative imports (`import { deepMerge } from "./merge.ts"`).

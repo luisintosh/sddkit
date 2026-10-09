@@ -25,7 +25,8 @@
     "release": "node tools/release.ts",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
-    "format": "prettier --write ."
+    "format": "biome format --write . && prettier --write \"**/*.{md,yaml,yml}\"",
+    "format:check": "biome format . && prettier --check \"**/*.{md,yaml,yml}\""
   },
   "dependencies": {
     "@clack/prompts": "^1.7.0",

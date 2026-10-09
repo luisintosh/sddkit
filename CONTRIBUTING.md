@@ -36,6 +36,8 @@ Requires a prior `pnpm run build`. Validates:
 ```bash
 pnpm run build
 pnpm run check
+pnpm run lint
+pnpm run format:check
 find . -name '*.sh' -not -path './node_modules/*' -not -path './test/fixture-repo/node_modules/*' -print0 | xargs -0 -n1 bash -n
 find . -name '*.sh' -not -path './node_modules/*' -not -path './test/fixture-repo/node_modules/*' -print0 | xargs -0 shellcheck
 pnpm test

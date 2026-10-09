@@ -25,6 +25,21 @@ jobs:
           find . -name '*.sh' -not -path './node_modules/*' -print0 \
             | xargs -0 shellcheck
 
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Biome lint
+        run: pnpm run lint
+      - name: Format check (Biome for code and JSON, Prettier for Markdown and YAML)
+        run: pnpm run format:check
+
   check:
     runs-on: ubuntu-latest
     steps:
