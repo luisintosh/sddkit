@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/** Install the SDD harness into a repository (project) or $HOME (global). */
+/** Install solodev into a repository (project) or $HOME (global). */
 import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
 import * as fsSync from "node:fs"
@@ -14,7 +14,7 @@ type Host = (typeof HOSTS)[number]
 type Scope = "project" | "global"
 type Manifest = Map<string, string>
 
-const REPO_NAME = "sddkit"
+const REPO_NAME = "solodev"
 
 function log(message: string) {
   console.error(message)
@@ -93,7 +93,7 @@ type TreePlan = {
   manifestBody: string
 }
 
-const STATE_BIN = "sddkit-state.mjs"
+const STATE_BIN = "quest-state.mjs"
 
 function findPackageRoot(): string {
   let dir = path.dirname(fileURLToPath(import.meta.url))
@@ -105,7 +105,7 @@ function findPackageRoot(): string {
     if (parent === dir) break
     dir = parent
   }
-  die("could not find sddkit payload (manifest.txt + dist/) — run pnpm run build in the toolkit checkout")
+  die("could not find solodev payload (manifest.txt + dist/) — run pnpm run build in the toolkit checkout")
 }
 
 function requirePayload(src: string) {
@@ -150,7 +150,7 @@ function shouldPrompt(scope: string, target: string): boolean {
 
 async function promptInteractive(targetDir: string): Promise<{ scope: Scope; target: string }> {
   const detected = detect()
-  p.intro("SDD harness installer")
+  p.intro("solodev installer")
 
   const scope = await p.select({
     message: "Install where?",
@@ -431,9 +431,13 @@ async function planBin(opts: {
     }
   }
 
-  const leftovers = [path.join(destDir, "sddkit-state"), path.join(destDir, "sddkit-state.js")]
+  const leftovers = [
+    path.join(destDir, "quest-state"),
+    path.join(destDir, "quest-state.js"),
+    path.join(destDir, "sddkit-state.mjs"),
+  ]
   if (opts.scope === "project") {
-    leftovers.push(path.join(opts.targetDir, "bin", "sddkit-state"), path.join(opts.targetDir, "bin", "sdd-state"))
+    leftovers.push(path.join(opts.targetDir, "bin", "quest-state"), path.join(opts.targetDir, "bin", "sdd-state"))
   }
   for (const leftover of leftovers) {
     if (!fsSync.existsSync(leftover)) continue
@@ -455,7 +459,7 @@ function planLegacyCursorSkills(scope: Scope, targetDir: string, home: string): 
   const dest = scope === "global" ? path.join(home, ".cursor", "skills") : path.join(targetDir, ".cursor", "skills")
   const ops: FileOp[] = []
   if (!fsSync.existsSync(dest)) return ops
-  for (const name of ["sddkit", "sddkit-plan", "setup-docs"]) {
+  for (const name of ["sddkit", "sddkit-plan", "sddkit-epic", "sddkit-setup-docs", "setup-docs"]) {
     const pth = path.join(dest, name)
     if (!fsSync.existsSync(pth)) continue
     ops.push({
@@ -483,11 +487,11 @@ function doctor(targetDir: string, home: string) {
   else log(`  [warn] ${targetDir} is not a git repository`)
 
   if (fsSync.existsSync(path.join(targetDir, "AGENTS.md"))) log("  [ok]   AGENTS.md present")
-  else log("  [warn] AGENTS.md missing — run /sddkit-setup-docs first")
+  else log("  [warn] AGENTS.md missing — run /arise-setup-docs first")
 
   log("  paths:")
   log(`    skills          ${targetDir}/.agents/skills/  or  ${home}/.agents/skills/`)
-  log(`    sddkit-state    ${targetDir}/.agents/bin/  or  ${home}/.agents/bin/`)
+  log(`    quest-state    ${targetDir}/.agents/bin/  or  ${home}/.agents/bin/`)
   log(`    cursor agents   ${targetDir}/.cursor/agents/  or  ${home}/.cursor/agents/`)
   log(`    claude agents   ${targetDir}/.claude/agents/  or  ${home}/.claude/agents/`)
   log(`    claude skills   ${targetDir}/.claude/skills/  or  ${home}/.claude/skills/`)
@@ -495,11 +499,11 @@ function doctor(targetDir: string, home: string) {
   log(`    opencode        ${targetDir}/.opencode/  or  ${home}/.config/opencode/agents/ (no jsonc)`)
 
   const stateBin = stateBinInUse(targetDir, home)
-  if (stateBin) log(`  [ok]   sddkit-state: ${stateBin}`)
-  else log("  [warn] sddkit-state missing — re-run the installer")
+  if (stateBin) log(`  [ok]   quest-state: ${stateBin}`)
+  else log("  [warn] quest-state missing — re-run the installer")
   if (stateBin) {
-    // Same .agents/ root as sddkit-state: the conductor resolves review checklists from there.
-    const checklists = path.join(path.dirname(path.dirname(stateBin)), "sddkit", "checklists")
+    // Same .agents/ root as quest-state: the conductor resolves review checklists from there.
+    const checklists = path.join(path.dirname(path.dirname(stateBin)), "solodev", "checklists")
     const missing = ["contract", "health", "design"].filter(
       (area) => !fsSync.existsSync(path.join(checklists, `review-${area}.md`)),
     )
@@ -507,8 +511,8 @@ function doctor(targetDir: string, home: string) {
     else log(`  [warn] review checklists missing (${missing.join(", ")}) in ${checklists} — re-run the installer`)
   }
 
-  if (onPath("node")) log("  [ok]   node is on PATH (needed to run sddkit-state)")
-  else log("  [warn] node not found — install Node.js 20+ to run sddkit-state")
+  if (onPath("node")) log("  [ok]   node is on PATH (needed to run quest-state)")
+  else log("  [warn] node not found — install Node.js 20+ to run quest-state")
 
   const gh = ghStatus()
   if (gh === "ok") log("  [ok]   gh installed and authenticated")
@@ -520,7 +524,7 @@ function doctor(targetDir: string, home: string) {
 
 function suggestNextSteps() {
   log("Next steps:")
-  log("  1. /sddkit-setup-docs — scaffold AGENTS.md + docs/ARCHITECTURE.md + CONSTITUTION")
+  log("  1. /arise-setup-docs — scaffold AGENTS.md + docs/ARCHITECTURE.md + CONSTITUTION")
   if (!onPath("gh")) {
     log("  2. Install gh (required by the pipeline):")
     log("       brew install gh && gh auth login")
@@ -529,16 +533,16 @@ function suggestNextSteps() {
     log("  2. gh is on PATH — run 'gh auth login' if you aren't logged in")
   }
   log("")
-  log("Optional: sddkit-epic — Product Owner planner (/sddkit-epic skill, or the")
-  log("  OpenCode sddkit-epic agent) turns a raw idea into a feature roadmap at")
-  log("  docs/product/<slug>/roadmap.md. Run each feature through sddkit one at a")
+  log("Optional: arise-plan — Product Owner planner (/arise-plan skill, or the")
+  log("  OpenCode arise-plan agent) turns a raw idea into a feature roadmap at")
+  log("  docs/product/<slug>/roadmap.md. Run each feature through arise one at a")
   log("  time — it hands you the next feature's invocation when one is done.")
   log("")
   log("Optional: rtk (filters noisy bash output for agents)")
   log("  brew install rtk   # or see https://github.com/rtk-ai/rtk")
   log("  rtk init --opencode   # OpenCode")
-  log("  # Quick start: exclude git diff/show from rewriting so sddkit-code-reviewer")
-  log("  # and sddkit-docs-writer see full diffs — in ~/.config/rtk/config.toml:")
+  log("  # Quick start: exclude git diff/show from rewriting so shadow-code-reviewer")
+  log("  # and shadow-docs-writer see full diffs — in ~/.config/rtk/config.toml:")
   log("  #   [hooks]")
   log('  #   exclude_commands = ["git diff", "git show"]')
   log("")
@@ -548,7 +552,7 @@ async function stagePayload(payloadDir: string): Promise<{ stageDir: string; man
   const raw = await fs.readFile(path.join(payloadDir, "manifest.txt"), "utf8")
   if (!raw.trim()) die("manifest.txt is empty")
   const manifest = parseManifest(raw)
-  const stageDir = await fs.mkdtemp(path.join(os.tmpdir(), "sddkit-install-"))
+  const stageDir = await fs.mkdtemp(path.join(os.tmpdir(), "solodev-install-"))
   let fileCount = 0
   try {
     for (const [relPath, expectedHash] of manifest) {
@@ -708,7 +712,7 @@ async function main() {
 
     log("")
     log(
-      "Done. Invoke .agents/bin/sddkit-state.mjs (or $HOME/.agents/bin/sddkit-state.mjs) so the conductor can checkpoint state.",
+      "Done. Invoke .agents/bin/quest-state.mjs (or $HOME/.agents/bin/quest-state.mjs) so the conductor can checkpoint state.",
     )
     log("")
     suggestNextSteps()

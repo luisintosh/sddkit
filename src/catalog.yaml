@@ -13,7 +13,7 @@
 # Restrictions, as it does for Claude and Cursor. No catch-all allow: "*": allow
 # or a bare `bash: allow` lands after the global map and cancels its denies.
 #
-# The one allow class: `external_directory` for the sddkit install under ~/.agents. opencode defaults it to "ask", so on
+# The one allow class: `external_directory` for the solodev install under ~/.agents. opencode defaults it to "ask", so on
 # a global install an unattended run would stall the first time an agent reads a checklist or reference there, or runs
 # the state CLI. Keep these patterns narrow — never "**".
 
@@ -55,7 +55,7 @@ hosts:
       validate: { id: gpt-6.1-sol, effort: high }
       write: { id: gpt-6-luna, effort: medium }
 
-# Optional supervised dispatch. When `sddkit-state probe orchestrator` finds Orca
+# Optional supervised dispatch. When `quest-state probe orchestrator` finds Orca
 # plus the routed CLIs, the conductor starts each specialist as an Orca worker on
 # the CLI/model below instead of the host's own subagent. `conduct` is absent:
 # the conductor is never dispatched. Cursor ids carry their effort.
@@ -70,13 +70,13 @@ orchestrators:
       write: { agent: cursor, id: grok-4.7-high }
 
 agents:
-  sddkit:
+  arise:
     profile: conduct
     description: >-
       Drives the end-to-end spec-driven development (SDD) feature pipeline — sequences stages, manages human-in-the-loop
       gates, routes review findings, keeps docs in sync. Use when the user asks to implement a feature, run SDD, or
       resume/continue a pipeline. Treats a normal feature request as a request to run the full workflow. Not for product
-      or roadmap planning (sddkit-epic) or one-line edits such as a typo or a version bump.
+      or roadmap planning (arise-plan) or one-line edits such as a typo or a version bump.
     opencode:
       mode: primary
       temperature: 0.2
@@ -92,11 +92,11 @@ agents:
           "git reset --hard HEAD": allow
         external_directory:
           "~/.agents/bin/**": allow
-          "~/.agents/sddkit/**": allow
+          "~/.agents/solodev/**": allow
     cursor:
       skill: true
 
-  sddkit-design:
+  shadow-design:
     profile: think
     description: >-
       Writes the feature design in one pass — spec (the what & why), spec-derived acceptance contracts, and the
@@ -116,7 +116,7 @@ agents:
     claude:
       cache_ttl: 1h
 
-  sddkit-design-reviewer:
+  shadow-design-reviewer:
     profile: design-review
     description: >-
       Independent critique of a feature design (spec, contracts, plan) before its gate. Fixes unambiguous issues in
@@ -131,7 +131,7 @@ agents:
           "**/journal.ndjson": deny
     cursor: {}
 
-  sddkit-implementer:
+  shadow-implementer:
     profile: execute
     description: >-
       Writes the planned failing journey oracle, then the implementation, in one pass. Never weakens tests. Use when the
@@ -151,7 +151,7 @@ agents:
     claude:
       cache_ttl: 1h
 
-  sddkit-code-reviewer:
+  shadow-code-reviewer:
     profile: code-review
     description: >-
       Report-only review of one area of the feature implementation diff — contract, health, or design — against the
@@ -184,10 +184,10 @@ agents:
           "git stash*": deny
           "gh *": deny
         external_directory:
-          "~/.agents/sddkit/**": allow
+          "~/.agents/solodev/**": allow
     cursor: {}
 
-  sddkit-qa:
+  shadow-qa:
     profile: validate
     description: >-
       Validates the implementation against spec + acceptance contracts. Prefers the committed journey oracle;
@@ -203,7 +203,7 @@ agents:
           "**/journal.ndjson": deny
     cursor: {}
 
-  sddkit-docs-writer:
+  shadow-docs-writer:
     profile: write
     description: >-
       Writes the human-facing docs a finished feature leaves behind — the owning domain's README, plus AGENTS.md and
@@ -218,7 +218,7 @@ agents:
           "docs/feats/**": deny
     cursor: {}
 
-  sddkit-epic:
+  arise-plan:
     profile: think
     description: >-
       Product Owner planner. Refines a raw idea into a measurable goal, then writes a feature roadmap at
@@ -236,14 +236,14 @@ agents:
       skill: true
 
 commands:
-  sddkit-setup-docs:
+  arise-setup-docs:
     description: >-
       Scaffolds AGENTS.md, docs/ARCHITECTURE.md, docs/CONSTITUTION.md, and docs/feats/. Run by the user as
-      /sddkit-setup-docs.
+      /arise-setup-docs.
 
 opencode_config:
   model: opencode-go/glm-5.3
   small_model: opencode-go/deepseek-v4.1-flash
-  default_agent: sddkit
+  default_agent: arise
   instructions:
     - AGENTS.md

@@ -1,10 +1,10 @@
 {
-  "name": "sddkit",
+  "name": "solodev",
   "private": true,
   "type": "module",
-  "description": "Spec-driven development harness for OpenCode, Cursor, Claude Code, and Codex — prompts, transpile, sddkit-state CLI.",
+  "description": "Spec-driven development harness for OpenCode, Cursor, Claude Code, and Codex — prompts, transpile, quest-state CLI.",
   "bin": {
-    "sddkit": "./dist/install.js"
+    "solodev": "./dist/install.js"
   },
   "files": [
     "dist",

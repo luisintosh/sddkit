@@ -90,7 +90,7 @@ async function main() {
   await run("git", ["push", "origin", "HEAD"])
   await run("git", ["push", "origin", tag])
   await run("gh", ["release", "create", tag, "--title", tag, "--generate-notes", "--verify-tag"])
-  console.error(`release: published ${tag} — pin with npx/bunx github:luisintosh/sddkit#${tag}`)
+  console.error(`release: published ${tag} — pin with npx/bunx github:luisintosh/solodev#${tag}`)
 }
 
 await main()

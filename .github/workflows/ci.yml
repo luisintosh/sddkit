@@ -80,9 +80,9 @@ jobs:
       - name: Build payload
         run: |
           pnpm run build
-          tar -czf sddkit-dist.tar.gz dist manifest.txt
+          tar -czf solodev-dist.tar.gz dist manifest.txt
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.event.release.tag_name }}
-        run: gh release upload "$TAG" sddkit-dist.tar.gz --clobber
+        run: gh release upload "$TAG" solodev-dist.tar.gz --clobber

@@ -31,7 +31,7 @@ export const EVENTS = [
 export type TransitionEvent = (typeof EVENTS)[number]
 
 function refuse(event: string, why: string): never {
-  throw new Error(`sddkit-state: transition ${event} refused — ${why}`)
+  throw new Error(`quest-state: transition ${event} refused — ${why}`)
 }
 
 function withUnique(list: string[], items: string[]): string[] {
@@ -139,11 +139,11 @@ export function transition(state: SddState, event: string, input: Record<string,
       }
     }
     default:
-      throw new Error(`sddkit-state: unknown transition event "${event}" (one of ${EVENTS.join(", ")})`)
+      throw new Error(`quest-state: unknown transition event "${event}" (one of ${EVENTS.join(", ")})`)
   }
 }
 
-/** `$(git rev-parse --git-common-dir)/sddkit/<feature>/snapshot` — inside .git, so `git reset --hard` leaves it. */
+/** `$(git rev-parse --git-common-dir)/solodev/<feature>/snapshot` — inside .git, so `git reset --hard` leaves it. */
 export async function snapshotDir(root: string, feature: string): Promise<string> {
   const commonDir = await new Promise<string>((resolve, reject) => {
     execFile(
@@ -151,10 +151,10 @@ export async function snapshotDir(root: string, feature: string): Promise<string
       ["-C", root, "rev-parse", "--path-format=absolute", "--git-common-dir"],
       { timeout: 15_000 },
       (err, stdout) =>
-        err ? reject(new Error(`sddkit-state: not a git repository at ${root}`)) : resolve(stdout.trim()),
+        err ? reject(new Error(`quest-state: not a git repository at ${root}`)) : resolve(stdout.trim()),
     )
   })
-  return path.join(commonDir, "sddkit", feature, "snapshot")
+  return path.join(commonDir, "solodev", feature, "snapshot")
 }
 
 /** Saves state.yaml and journal.ndjson where `git reset --hard` cannot reach them. */
@@ -183,7 +183,7 @@ export async function runTransition(
     try {
       raw = await fs.readFile(path.join(dir, "state.yaml"), "utf8")
     } catch {
-      refuse(event, `no snapshot at ${dir} — run \`sddkit-state snapshot ${feature}\` before git reset --hard`)
+      refuse(event, `no snapshot at ${dir} — run \`quest-state snapshot ${feature}\` before git reset --hard`)
     }
     current = normalized(parseYaml(raw), "snapshot")
     restoredFrom = dir

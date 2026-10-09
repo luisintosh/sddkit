@@ -5,9 +5,9 @@ file.
 
 ## What this is
 
-sddkit ships no runtime app. It ships agent prompts plus a small state CLI that `npx`/`bunx github:luisintosh/sddkit`
+solodev ships no runtime app. It ships agent prompts plus a small state CLI that `npx`/`bunx github:luisintosh/solodev`
 installs into a _consuming_ repo or `$HOME` (`.opencode/`, `.cursor/agents/`, `.claude/`, `.codex/agents/`,
-`.agents/skills/`, `.agents/bin/sddkit-state.mjs`). Nothing here runs against this repo's own code.
+`.agents/skills/`, `.agents/bin/quest-state.mjs`). Nothing here runs against this repo's own code.
 
 ## Generation model
 

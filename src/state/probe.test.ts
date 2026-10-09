@@ -7,8 +7,8 @@ import { type ProbeDeps, probeOrchestrator, resolveOrcaCli } from "./probe.ts"
 const catalog = parseYaml(fs.readFileSync(new URL("../catalog.yaml", import.meta.url), "utf8"))
 
 const routes: OrcaRoutes = {
-  "sddkit-design": { agent: "claude", id: "opus", effort: "medium" },
-  "sddkit-implementer": { agent: "cursor", id: "grok-4.7-high" },
+  "shadow-design": { agent: "claude", id: "opus", effort: "medium" },
+  "shadow-implementer": { agent: "cursor", id: "grok-4.7-high" },
 }
 
 const readyStatus = JSON.stringify({
@@ -45,11 +45,11 @@ describe("probeOrchestrator", () => {
     expect(result.pane).toBe("")
   })
 
-  test("SDDKIT_ORCHESTRATOR=native opts out before probing", async () => {
+  test("SOLODEV_ORCHESTRATOR=native opts out before probing", async () => {
     let called = false
     const result = await probeOrchestrator(
       deps({
-        env: { SDDKIT_ORCHESTRATOR: "native" },
+        env: { SOLODEV_ORCHESTRATOR: "native" },
         exec: async () => {
           called = true
           return { code: 0, stdout: readyStatus }
@@ -86,10 +86,10 @@ describe("probeOrchestrator", () => {
   test("agent file in $HOME counts; missing everywhere → native", async () => {
     const homeOnly = await probeOrchestrator(deps({ exists: async (p) => p.startsWith("/home/u/") }), routes)
     expect(homeOnly.orchestrator).toBe("orca")
-    const none = await probeOrchestrator(deps({ exists: async (p) => !p.endsWith("sddkit-implementer.md") }), routes)
+    const none = await probeOrchestrator(deps({ exists: async (p) => !p.endsWith("shadow-implementer.md") }), routes)
     expect(none).toMatchObject({
       orchestrator: "native",
-      reason: ".cursor/agents/sddkit-implementer.md not installed in repo or $HOME",
+      reason: ".cursor/agents/shadow-implementer.md not installed in repo or $HOME",
     })
   })
 
@@ -111,15 +111,15 @@ describe("resolveOrcaCli", () => {
 describe("orca routes", () => {
   test("catalog routes every dispatched specialist, never the conductor or planner", () => {
     const byAgent = orcaRoutesByAgent(catalog)
-    expect(byAgent.sddkit).toBeUndefined()
-    expect(byAgent["sddkit-epic"]).toBeUndefined()
-    expect(byAgent["sddkit-design"]).toEqual({ agent: "claude", id: "opus", effort: "medium" })
-    expect(byAgent["sddkit-design-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
-    expect(byAgent["sddkit-code-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
+    expect(byAgent.arise).toBeUndefined()
+    expect(byAgent["arise-plan"]).toBeUndefined()
+    expect(byAgent["shadow-design"]).toEqual({ agent: "claude", id: "opus", effort: "medium" })
+    expect(byAgent["shadow-design-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
+    expect(byAgent["shadow-code-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
     for (const area of ["contract", "health", "design"]) {
-      expect(byAgent[`sddkit-code-reviewer-${area}`]).toBeUndefined()
+      expect(byAgent[`shadow-code-reviewer-${area}`]).toBeUndefined()
     }
-    expect(byAgent["sddkit-implementer"]).toEqual({ agent: "cursor", id: "grok-4.7-low" })
+    expect(byAgent["shadow-implementer"]).toEqual({ agent: "cursor", id: "grok-4.7-low" })
   })
 
   test("launch commands pick the model and skip approval prompts", () => {
@@ -127,6 +127,6 @@ describe("orca routes", () => {
     const grok = { agent: "cursor", id: "grok-4.7-high" } as const
     expect(orcaLaunchCommand(opus)).toBe("claude --model opus --effort medium --permission-mode auto")
     expect(orcaLaunchCommand(grok)).toBe("cursor-agent --model grok-4.7-high --yolo")
-    expect(orcaAgentFile("cursor", "sddkit-qa")).toBe(".cursor/agents/sddkit-qa.md")
+    expect(orcaAgentFile("cursor", "shadow-qa")).toBe(".cursor/agents/shadow-qa.md")
   })
 })

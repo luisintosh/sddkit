@@ -50,12 +50,12 @@ function identity(value: unknown): string {
 
 function listAt(state: Record<string, unknown>, at: string[], op: string): unknown[] {
   const current = getAt(state, at)
-  if (!Array.isArray(current)) throw new Error(`sddkit-state: --${op} ${at.join(".")} is not a list in state.yaml`)
+  if (!Array.isArray(current)) throw new Error(`quest-state: --${op} ${at.join(".")} is not a list in state.yaml`)
   return current
 }
 
 function asList(value: unknown, at: string[], op: string): unknown[] {
-  if (!Array.isArray(value)) throw new Error(`sddkit-state: --${op} ${at.join(".")} must be a YAML list`)
+  if (!Array.isArray(value)) throw new Error(`quest-state: --${op} ${at.join(".")} must be a YAML list`)
   return value
 }
 
@@ -87,11 +87,11 @@ export function applyOps<T extends Record<string, unknown>>(state: T, ops: Patch
   }
   for (const [at, value] of leaves(ops.inc ?? {})) {
     if (typeof value !== "number" || !Number.isInteger(value)) {
-      throw new Error(`sddkit-state: --inc ${at.join(".")} must be an integer`)
+      throw new Error(`quest-state: --inc ${at.join(".")} must be an integer`)
     }
     const current = getAt(out, at)
     if (typeof current !== "number" || !Number.isInteger(current)) {
-      throw new Error(`sddkit-state: --inc ${at.join(".")} is not an integer in state.yaml`)
+      throw new Error(`quest-state: --inc ${at.join(".")} is not an integer in state.yaml`)
     }
     setAt(out, at, current + value)
   }

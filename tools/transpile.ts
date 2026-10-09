@@ -102,7 +102,7 @@ type Target = "skill" | "opencode" | "plain"
 const HOSTS = ["claude", "cursor", "codex", "opencode"] as const
 
 // Conductor fragments loaded on demand. Skills link a sibling references/<file>; the OpenCode agent points at the copy
-// installed under <root>/.agents/sddkit/references/, beside the checklists.
+// installed under <root>/.agents/solodev/references/, beside the checklists.
 const REFERENCES = ["reply-mapping.md", "handoff.md", "orca.md", "escalation.md", "dispute.md", "design-delta.md"]
 
 // Reference fragments pulled in with a plain {{include:}}: the include becomes this pointer. The others are named at
@@ -131,7 +131,7 @@ function refLocation(file: string, target: Target): string {
   if (!REFERENCES.includes(file)) throw new Error(`transpile: ${file} is not a conductor reference`)
   if (target === "skill") return `[references/${file}](references/${file})`
   if (target === "opencode") {
-    return `\`<root>/.agents/sddkit/references/${file}\` (\`<root>\`: the \`.agents/\` root that holds your \`sddkit-state\`)`
+    return `\`<root>/.agents/solodev/references/${file}\` (\`<root>\`: the \`.agents/\` root that holds your \`quest-state\`)`
   }
   throw new Error(`transpile: {{ref:${file}}} used in a plain prompt`)
 }
@@ -326,13 +326,13 @@ async function emitOpencode(catalog: Catalog) {
     await writeFile(path.join(outRoot, "agents", `${name}.md`), yamlFrontmatter(fm) + body)
   }
   // Installed through the always-on .agents tree, so global and project installs both resolve them from <root>.
-  const refDir = path.join(distDir, "agents", "sddkit", "references")
+  const refDir = path.join(distDir, "agents", "solodev", "references")
   await rmrf(refDir)
   await writeReferences(catalog, refs, refDir)
 }
 
-// Per-area review checklists, installed to <agentsRoot>/sddkit/checklists/. The conductor passes the absolute path of
-// one to each sddkit-code-reviewer run; the header line lets the reviewer reject a wrong file.
+// Per-area review checklists, installed to <agentsRoot>/solodev/checklists/. The conductor passes the absolute path of
+// one to each shadow-code-reviewer run; the header line lets the reviewer reject a wrong file.
 const REVIEW_CHECKLISTS: Record<string, string[]> = {
   contract: ["fragments/review-contract.md"],
   health: ["fragments/review-health.md"],
@@ -340,14 +340,14 @@ const REVIEW_CHECKLISTS: Record<string, string[]> = {
 }
 
 async function emitReviewChecklists(catalog: Catalog) {
-  const outRoot = path.join(distDir, "agents", "sddkit", "checklists")
+  const outRoot = path.join(distDir, "agents", "solodev", "checklists")
   await rmrf(outRoot)
   for (const [area, fragments] of Object.entries(REVIEW_CHECKLISTS)) {
     const parts: string[] = []
     for (const rel of fragments) parts.push((await readPrompt(rel, catalog)).trim())
     await writeFile(
       path.join(outRoot, `review-${area}.md`),
-      `# sddkit review checklist: ${area}\n\n${parts.join("\n\n")}\n`,
+      `# solodev review checklist: ${area}\n\n${parts.join("\n\n")}\n`,
     )
   }
 }
@@ -457,7 +457,7 @@ async function main() {
   await emitClaude(catalog)
   await emitCodex(catalog)
   console.log(
-    "transpile: wrote dist/opencode, dist/cursor, dist/claude, dist/codex, dist/agents/skills, and dist/agents/sddkit/{checklists,references}",
+    "transpile: wrote dist/opencode, dist/cursor, dist/claude, dist/codex, dist/agents/skills, and dist/agents/solodev/{checklists,references}",
   )
 }
 

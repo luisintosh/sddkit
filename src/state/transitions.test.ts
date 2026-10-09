@@ -14,7 +14,7 @@ import { runSnapshot, runTransition, transition } from "./transitions.ts"
 let root: string
 
 beforeEach(async () => {
-  root = await fs.mkdtemp(path.join(os.tmpdir(), "sddkit-transitions-test-"))
+  root = await fs.mkdtemp(path.join(os.tmpdir(), "solodev-transitions-test-"))
 })
 
 afterEach(async () => {
@@ -22,7 +22,7 @@ afterEach(async () => {
 })
 
 function state(over: Record<string, unknown> = {}): SddState {
-  const r = validateState({ ...scaffoldState("feat", "sddkit"), ...over })
+  const r = validateState({ ...scaffoldState("feat", "arise"), ...over })
   if (!r.success) throw new Error(r.error)
   return r.data
 }

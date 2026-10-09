@@ -30,7 +30,7 @@ export function resolveOrcaCli(env: ProbeDeps["env"], platform: string): string 
 export async function probeOrchestrator(deps: ProbeDeps, routes: OrcaRoutes): Promise<ProbeResult> {
   const native = (reason: string, cli = ""): ProbeResult => ({ orchestrator: "native", cli, pane: "", reason })
 
-  if (deps.env.SDDKIT_ORCHESTRATOR === "native") return native("SDDKIT_ORCHESTRATOR=native")
+  if (deps.env.SOLODEV_ORCHESTRATOR === "native") return native("SOLODEV_ORCHESTRATOR=native")
   if (!Object.keys(routes).length) return native("catalog has no orca routes")
 
   const cli = resolveOrcaCli(deps.env, deps.platform)

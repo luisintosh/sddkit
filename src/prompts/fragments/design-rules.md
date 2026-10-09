@@ -1,6 +1,6 @@
 ## Design rules
 
-What a sound design contains — `sddkit-design` writes to these rules and `sddkit-design-reviewer` checks against them.
+What a sound design contains — `shadow-design` writes to these rules and `shadow-design-reviewer` checks against them.
 
 ### Spec (`spec.md`)
 
@@ -21,7 +21,7 @@ What a sound design contains — `sddkit-design` writes to these rules and `sddk
   the upstream dependency failing, the limit being hit.
 - Every scenario carries a stable ID: `@S1`, `@S2`, …. IDs are append-only — never renumbered or reused; plans, briefs,
   and tests cite them.
-- Scenarios are externally reachable: `sddkit-qa` validates from outside the system, so a scenario observable only
+- Scenarios are externally reachable: `shadow-qa` validates from outside the system, so a scenario observable only
   through a private internal cannot be validated end-to-end.
 - After the design gate, contracts change only through an explicit conductor re-delegation.
 

@@ -64,7 +64,7 @@ export function nextStep(feature: string, state: SddState): NextStep {
           : "5"
     return at(
       "opinion",
-      "an sddkit-implementer opinion gate is unanswered; the question is in blockers — ask the human",
+      "an shadow-implementer opinion gate is unanswered; the question is in blockers — ask the human",
       {
         phase: "opinion",
         resume_step: resume,
@@ -81,7 +81,7 @@ export function nextStep(feature: string, state: SddState): NextStep {
       )
     case "design":
       if (state.delta.pending)
-        return at("9-delta", "design delta pending: re-delegate sddkit-design with delta.findings")
+        return at("9-delta", "design delta pending: re-delegate shadow-design with delta.findings")
       if (!done("design")) return at("2", "design not written yet")
       if (!done("design_critique")) return at("3", "design written; critique not run")
       return at("4", "design and critique done; present the gate")
@@ -132,8 +132,8 @@ export function nextStep(feature: string, state: SddState): NextStep {
 
 export async function runNext(root: string, feature: string | undefined): Promise<NextStep> {
   const slug = feature || (await resolveNewestFeature(root))
-  if (!slug) throw new Error("sddkit-state: no feature under docs/feats/ to resume")
+  if (!slug) throw new Error("quest-state: no feature under docs/feats/ to resume")
   const raw = await readState(root, slug)
-  if (!raw) throw new Error(`sddkit-state: docs/feats/${slug}/state.yaml does not exist`)
+  if (!raw) throw new Error(`quest-state: docs/feats/${slug}/state.yaml does not exist`)
   return nextStep(slug, normalized(raw, "state.yaml"))
 }

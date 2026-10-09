@@ -72,7 +72,7 @@ type AgentCatalog = {
 
 /** Claude Code ignores any other `experimental.cacheTtl`, so a typo would silently fall back to the 5m default. */
 const CACHE_TTLS = new Set(["5m", "1h"])
-// sddkit-code-reviewer runs once per area against dist/agents/sddkit/checklists/review-<area>.md.
+// shadow-code-reviewer runs once per area against dist/agents/solodev/checklists/review-<area>.md.
 const REVIEW_AREAS = ["contract", "health", "design"] as const
 
 type Catalog = {
@@ -91,7 +91,7 @@ function resolveRef(catalog: Catalog, host: Host, profile: string): ModelRef | u
  * qualify: an "ask" anywhere else can be reached by an unattended `opencode run`
  * with no human to answer it, stalling that run indefinitely. See tools/transpile.ts.
  */
-const ASK_ALLOWED = new Set(["sddkit-epic"])
+const ASK_ALLOWED = new Set(["arise-plan"])
 
 /** Every permission value in a nested map, flattened to "path -> value" pairs. */
 function permissionValues(node: unknown, path: string[] = []): [string, string][] {
@@ -150,26 +150,26 @@ try {
 const agentNames = catalog ? Object.keys(catalog.agents || {}).sort() : []
 
 if (catalog) {
-  if (!catalog.agents?.sddkit) fail("catalog: missing agents.sddkit")
-  else if (catalog.agents.sddkit.opencode?.mode !== "primary") fail("catalog: sddkit.opencode.mode must be primary")
+  if (!catalog.agents?.arise) fail("catalog: missing agents.arise")
+  else if (catalog.agents.arise.opencode?.mode !== "primary") fail("catalog: arise.opencode.mode must be primary")
   if (catalog.agents?.["implementer-pro"]) fail("catalog: implementer-pro must be removed")
   if (catalog.agents?.tester) fail("catalog: tester must be removed")
   for (const stale of ["implementer", "code-reviewer", "qa", "docs-writer"]) {
-    if (catalog.agents?.[stale]) fail(`catalog: ${stale} must be renamed sddkit-${stale}`)
+    if (catalog.agents?.[stale]) fail(`catalog: ${stale} must be renamed shadow-${stale}`)
   }
   for (const merged of [
-    "sddkit-spec",
-    "sddkit-architect",
-    "sddkit-plan-reviewer",
+    "shadow-spec",
+    "shadow-architect",
+    "shadow-plan-reviewer",
     "spec",
     "architect",
     "plan-reviewer",
   ]) {
-    if (catalog.agents?.[merged]) fail(`catalog: ${merged} is merged into sddkit-design / sddkit-design-reviewer`)
+    if (catalog.agents?.[merged]) fail(`catalog: ${merged} is merged into shadow-design / shadow-design-reviewer`)
   }
   for (const area of REVIEW_AREAS) {
-    if (catalog.agents?.[`sddkit-code-reviewer-${area}`]) {
-      fail(`catalog: sddkit-code-reviewer-${area} is merged into sddkit-code-reviewer (area checklists)`)
+    if (catalog.agents?.[`shadow-code-reviewer-${area}`]) {
+      fail(`catalog: shadow-code-reviewer-${area} is merged into shadow-code-reviewer (area checklists)`)
     }
   }
   for (const file of await readdir(path.join(root, "src", "prompts", "agents"))) {
@@ -177,8 +177,8 @@ if (catalog) {
     if (!catalog.agents?.[name]) fail(`src/prompts/agents/${file} has no catalog agent`)
   }
   for (const name of agentNames) {
-    if (name !== "sddkit" && !name.startsWith("sddkit-")) {
-      fail(`catalog: agents.${name} must be "sddkit" or start with "sddkit-"`)
+    if (name !== "arise" && name !== "arise-plan" && !name.startsWith("shadow-")) {
+      fail(`catalog: agents.${name} must be "arise", "arise-plan", or start with "shadow-"`)
     }
     const a = catalog.agents![name]!
     if (!a.description?.trim()) fail(`catalog: agents.${name}.description required`)
@@ -258,20 +258,20 @@ if (catalog) {
       if (ORCA_UNDISPATCHED.has(name) || !profile) continue
       if (!routes[profile]) fail(`catalog: orchestrators.orca.profiles.${profile} required for agents.${name}`)
     }
-    const skillDir = path.join(root, "dist", "agents", "skills", "sddkit")
+    const skillDir = path.join(root, "dist", "agents", "skills", "arise")
     try {
       const conductor = await readFile(path.join(skillDir, "SKILL.md"), "utf8")
       if (!conductor.includes("](references/orca.md)"))
         fail("dist: conductor skill does not point at references/orca.md")
     } catch {
-      fail("dist/agents/skills/sddkit/SKILL.md missing — run pnpm run build")
+      fail("dist/agents/skills/arise/SKILL.md missing — run pnpm run build")
     }
     try {
       const dispatch = await readFile(path.join(skillDir, "references", "orca.md"), "utf8")
       if (dispatch.includes("{{orca:")) fail("dist: references/orca.md has an unresolved {{orca:...}} placeholder")
       if (!dispatch.includes("## Orca dispatch")) fail("dist: references/orca.md is missing the Orca dispatch section")
     } catch {
-      fail("dist/agents/skills/sddkit/references/orca.md missing — run pnpm run build")
+      fail("dist/agents/skills/arise/references/orca.md missing — run pnpm run build")
     }
   }
   for (const cmd of Object.keys(catalog.commands || {})) {
@@ -289,10 +289,10 @@ if (catalog) {
 }
 
 for (const area of REVIEW_AREAS) {
-  const rel = `dist/agents/sddkit/checklists/review-${area}.md`
+  const rel = `dist/agents/solodev/checklists/review-${area}.md`
   try {
     const first = (await readFile(path.join(root, rel), "utf8")).split("\n")[0]
-    if (first !== `# sddkit review checklist: ${area}`) fail(`${rel}: first line must name area ${area}`)
+    if (first !== `# solodev review checklist: ${area}`) fail(`${rel}: first line must name area ${area}`)
   } catch {
     fail(`${rel} missing — run pnpm run build`)
   }
@@ -425,17 +425,17 @@ if (catalog) {
 }
 
 try {
-  const stateBin = await readFile(path.join(root, "dist", "bin", "sddkit-state.mjs"), "utf8")
+  const stateBin = await readFile(path.join(root, "dist", "bin", "quest-state.mjs"), "utf8")
   if (!stateBin.startsWith("#!/usr/bin/env node\n")) {
-    fail("dist/bin/sddkit-state.mjs missing node shebang — run pnpm run build")
+    fail("dist/bin/quest-state.mjs missing node shebang — run pnpm run build")
   }
 } catch {
-  fail("dist/bin/sddkit-state.mjs missing — run pnpm run build")
+  fail("dist/bin/quest-state.mjs missing — run pnpm run build")
 }
-for (const stale of ["sddkit-state", "sddkit-state.js"]) {
+for (const stale of ["quest-state", "quest-state.js"]) {
   try {
     await stat(path.join(root, "dist", "bin", stale))
-    fail(`dist/bin/${stale} should be sddkit-state.mjs — run pnpm run build`)
+    fail(`dist/bin/${stale} should be quest-state.mjs — run pnpm run build`)
   } catch {
     // leftover names must not be tracked
   }
@@ -502,21 +502,21 @@ if (catalog) {
 // Contracts are checked against the built prompts (check runs after build), so phrases may live in fragments or in the
 // conductor's on-demand references and still count.
 {
-  const skillDir = path.join(root, "dist", "agents", "skills", "sddkit")
+  const skillDir = path.join(root, "dist", "agents", "skills", "arise")
   const readOr = async (file: string) => readFile(file, "utf8").catch(() => "")
   const refNames = await readdir(path.join(skillDir, "references")).catch(() => [] as string[])
   const conductor = [
     await readOr(path.join(skillDir, "SKILL.md")),
     ...(await Promise.all(refNames.map((f) => readOr(path.join(skillDir, "references", f))))),
   ].join("\n")
-  const design = await readOr(path.join(root, "dist", "claude", "agents", "sddkit-design.md"))
-  const reviewer = await readOr(path.join(root, "dist", "claude", "agents", "sddkit-design-reviewer.md"))
+  const design = await readOr(path.join(root, "dist", "claude", "agents", "shadow-design.md"))
+  const reviewer = await readOr(path.join(root, "dist", "claude", "agents", "shadow-design-reviewer.md"))
   const contracts: [string, string, string][] = [
     [design, "cheapest sensor that can fail", "design cheapest-oracle menu"],
     [design, "at most 3 journeys", "design journey cap"],
     [design, "fenced YAML block", "design on-disk journeys"],
     [reviewer, "cheapest sensor that can fail", "design reviewer shares the design rules"],
-    [conductor, "sddkit-state decide", "conductor sddkit-state decide"],
+    [conductor, "quest-state decide", "conductor quest-state decide"],
     [conductor, "skip-design-critique", "conductor skip-design-critique"],
     [conductor, "oracles", "conductor decide oracles"],
     [conductor, "batch-journeys", "conductor batch-journeys"],
@@ -525,17 +525,17 @@ if (catalog) {
     [conductor, "qa-route", "conductor qa-route"],
     [conductor, "this cycle's", "conductor qa-route yaml source"],
     [conductor, "git reset --hard", "conductor clean-tree escalation"],
-    [conductor, "sddkit-state snapshot", "conductor snapshot before reset"],
+    [conductor, "quest-state snapshot", "conductor snapshot before reset"],
     [conductor, "--event escalate", "conductor escalate restores the snapshot"],
     [conductor, "QA findings are not always specify", "conductor QA not-always-specify"],
     [conductor, "never collapse a multi-journey", "conductor journey parse"],
-    [conductor, "sddkit-state next", "conductor resume via next"],
+    [conductor, "quest-state next", "conductor resume via next"],
     [conductor, "--event design-approved", "conductor design approval transition"],
     [conductor, "--event design-delta", "conductor design-delta transition"],
     [conductor, "review-merge", "conductor review merge"],
     [conductor, "review.fix_pending", "conductor fix-round resume marker"],
     [conductor, "--intent-to-add", "conductor tracks new files"],
-    [conductor, "sddkit-state version", "conductor CLI protocol check"],
+    [conductor, "quest-state version", "conductor CLI protocol check"],
     [conductor, "absolute path", "conductor absolute checklist paths"],
   ]
   for (const [body, phrase, label] of contracts) {
@@ -543,15 +543,15 @@ if (catalog) {
   }
 
   // Every reference a pointer names ships beside the skill, and every reference the OpenCode agent names ships under
-  // dist/agents/sddkit/references/ (installed to <root>/.agents/sddkit/references/).
+  // dist/agents/solodev/references/ (installed to <root>/.agents/solodev/references/).
   const skill = await readOr(path.join(skillDir, "SKILL.md"))
   for (const m of skill.matchAll(/\]\(references\/([\w.-]+)\)/g)) {
     if (!refNames.includes(m[1]!)) fail(`dist: conductor skill points at references/${m[1]}, which was not emitted`)
   }
-  const ocDir = path.join(root, "dist", "agents", "sddkit", "references")
+  const ocDir = path.join(root, "dist", "agents", "solodev", "references")
   const ocRefs = await readdir(ocDir).catch(() => [] as string[])
-  const ocConductor = await readOr(path.join(root, "dist", "opencode", "agents", "sddkit.md"))
-  for (const m of ocConductor.matchAll(/<root>\/\.agents\/sddkit\/references\/([\w.-]+)/g)) {
+  const ocConductor = await readOr(path.join(root, "dist", "opencode", "agents", "arise.md"))
+  for (const m of ocConductor.matchAll(/<root>\/\.agents\/solodev\/references\/([\w.-]+)/g)) {
     if (!ocRefs.includes(m[1]!)) fail(`dist: opencode conductor points at references/${m[1]}, which was not emitted`)
   }
   if (ocConductor.includes("**Dispatch.**"))
@@ -571,7 +571,7 @@ async function expectedManifestEntries() {
     ...(await walkFiles(path.join(root, "dist", "claude"))),
     ...(await walkFiles(path.join(root, "dist", "codex"))),
     ...(await walkFiles(path.join(root, "dist", "agents"))),
-    path.join(root, "dist", "bin", "sddkit-state.mjs"),
+    path.join(root, "dist", "bin", "quest-state.mjs"),
   ]
   const entries: [string, string][] = []
   for (const abs of files.sort()) {
@@ -630,7 +630,7 @@ if (manifestRaw !== undefined) {
     if (!current.startsWith("#!/usr/bin/env node\n")) {
       fail("dist/install.js missing node shebang — run pnpm run build")
     }
-    const tmp = path.join(os.tmpdir(), `sddkit-install-check-${process.pid}.js`)
+    const tmp = path.join(os.tmpdir(), `solodev-install-check-${process.pid}.js`)
     try {
       await run(process.execPath, [path.join(root, "tools", "build-install.ts"), "--outfile", tmp])
       const expected = await readFile(tmp, "utf8")

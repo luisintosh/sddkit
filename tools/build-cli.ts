@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Build portable Node ESM bundle into dist/bin/sddkit-state.mjs.
+ * Build portable Node ESM bundle into dist/bin/quest-state.mjs.
  */
 import * as fs from "node:fs/promises"
 import * as path from "node:path"
@@ -11,7 +11,7 @@ import { parse as parseYaml } from "yaml"
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const outDir = path.join(root, "dist", "bin")
 const entry = path.join(root, "src", "state", "cli.ts")
-const outJs = path.join(outDir, "sddkit-state.mjs")
+const outJs = path.join(outDir, "quest-state.mjs")
 
 /** Inline `import x from "*.yaml"` as parsed JSON. */
 const yamlPlugin: Plugin = {
@@ -43,7 +43,7 @@ const js = await fs.readFile(outJs, "utf8")
 const body = js.replace(/^#!.*\n/, "")
 await fs.writeFile(outJs, `#!/usr/bin/env node\n${body}`, { mode: 0o755 })
 await fs.chmod(outJs, 0o755)
-await fs.rm(path.join(outDir, "sddkit-state"), { force: true })
-await fs.rm(path.join(outDir, "sddkit-state.js"), { force: true })
+await fs.rm(path.join(outDir, "quest-state"), { force: true })
+await fs.rm(path.join(outDir, "quest-state.js"), { force: true })
 
-console.log("build-cli: wrote portable dist/bin/sddkit-state.mjs")
+console.log("build-cli: wrote portable dist/bin/quest-state.mjs")

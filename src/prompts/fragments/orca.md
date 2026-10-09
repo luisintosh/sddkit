@@ -8,14 +8,14 @@ invoked — never which specialist, the brief's content, the stage order, gates,
 {{orca:routes}}
 
 **Run.** First dispatch of a feature with `orca.run_id` empty →
-`ORCA orchestration run-create --objective "sddkit <slug>" --json`; patch `orca.run_id`. Pass `--run <run_id>` to every
+`ORCA orchestration run-create --objective "arise <slug>" --json`; patch `orca.run_id`. Pass `--run <run_id>` to every
 orchestration command that accepts it (all below except `worker-release`).
 
-**Files.** `D=$(git rev-parse --git-common-dir)/sddkit/<slug>` (inside `.git`: never committed, shared by worktrees).
+**Files.** `D=$(git rev-parse --git-common-dir)/solodev/<slug>` (inside `.git`: never committed, shared by worktrees).
 For dispatch `<n>` of a specialist within a stage, write the brief you would have sent natively to
 `$D/<specialist>-<stage>-<n>.brief.md`; the worker writes its reply to `$D/<specialist>-<stage>-<n>.reply.yaml`. Step 6
-runs one specialist three times at once, so its names carry the area — `sddkit-code-reviewer-review-<area>-<n>` — and
-its terminal title is `sddkit-code-reviewer · review · <area>`; the brief keeps the absolute `checklist` path. The Task
+runs one specialist three times at once, so its names carry the area — `shadow-code-reviewer-review-<area>-<n>` — and
+its terminal title is `shadow-code-reviewer · review · <area>`; the brief keeps the absolute `checklist` path. The Task
 spec is always:
 
 > Act as `<specialist>`: read `<absolute agent file>` and follow its body as your instructions; ignore its frontmatter.
@@ -24,9 +24,9 @@ spec is always:
 > `--report-path <reply path>`: `--outcome succeeded` when the reply is written, `failed` only when you could not
 > produce one.
 
-`<absolute agent file>` is the table's agent file resolved in the scope of your `sddkit-state` root (state CLI rule):
+`<absolute agent file>` is the table's agent file resolved in the scope of your `quest-state` root (state CLI rule):
 `<repo>/<agent file>` for a project install, else `$HOME/<agent file>` (Codex: `${CODEX_HOME:-$HOME/.codex}/agents/…`).
-`test -f` it before dispatching; missing → blocker `agent file missing at <path> — re-run the sddkit installer`. Never
+`test -f` it before dispatching; missing → blocker `agent file missing at <path> — re-run the solodev installer`. Never
 let a worker search for it.
 
 **Dispatch.** You always start the worker yourself with the table's launch command — it pins the model and skips the
@@ -88,5 +88,5 @@ recovery commands the receipt names, then **Close** the terminal you opened. Not
 **Resume.** Before any dispatch, `ORCA orchestration worker-list --run <run_id> --json`. Any unsettled dispatch in the
 run → go to **Wait** until every one settles; never start a duplicate editor. Do not end your turn while
 `worker-list --run <run_id> --terminal-state reclaimable --json` returns rows — **Close** them first. Terminals from an
-earlier session: `ORCA terminal list --json`; one titled `sddkit-<role> · <stage>` whose dispatch has settled → close
+earlier session: `ORCA terminal list --json`; one titled `shadow-<role> · <stage>` whose dispatch has settled → close
 it.

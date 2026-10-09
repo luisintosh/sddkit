@@ -84,6 +84,6 @@ export function runDecide(event: string, input: Record<string, unknown>): string
       return `batch: ${batchJourneys({ oracles, playwrightAdd: input.playwrightAdd !== false })}\n`
     }
     default:
-      throw new Error(`sddkit-state: unknown decide event "${event}"`)
+      throw new Error(`quest-state: unknown decide event "${event}"`)
   }
 }

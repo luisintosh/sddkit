@@ -1,17 +1,31 @@
-# sddkit
+# Solodev
 
 **Spec-driven development for coding agents.** Describe a feature, approve one design, and get back a reviewed, tested,
 documented pull request, on [OpenCode](https://opencode.ai), [Cursor](https://cursor.com),
 [Claude Code](https://code.claude.com), or [Codex](https://developers.openai.com/codex).
 
-sddkit installs a team of specialist agents and a small state CLI into your repo. A conductor agent runs them through a
-fixed pipeline: design, critique, implement against failing tests, parallel review, QA, docs, PR. You step in once, at
-the design gate.
+solodev installs a team of specialist agents (the shadows) and a small state CLI into your repo. A conductor agent,
+`arise`, runs them through a fixed pipeline: design, critique, implement against failing tests, parallel review, QA,
+docs, PR. You step in once, at the design gate.
+
+Once installed, one command starts it all:
+
+```text
+/arise Add CSV export to the accounts page
+```
+
+## The name
+
+solodev takes its name from the anime _Solo Leveling_, where one hunter commands an army of shadows that does the
+fighting. It is the same shape here: you are the solo dev. One command, `/arise`, summons a team of shadows, specialist
+agents (`shadow-design`, `shadow-implementer`, `shadow-qa`, and so on) that each do one job and report back to the
+conductor. `quest-state` keeps the quest log, so any session knows where a feature stands. You give the order and
+approve one design; the shadows return a reviewed, tested, documented pull request.
 
 ## Why
 
 A single agent asked to "build feature X" tends to drift. It guesses at scope, writes tests that pass by construction,
-reviews its own work, and loses track of where it was when the context runs out. sddkit addresses this with structure:
+reviews its own work, and loses track of where it was when the context runs out. solodev addresses this with structure:
 
 - **One approved design.** A spec, `@S<n>`-tagged acceptance contracts, and a plan, written before any code and approved
   by you.
@@ -23,84 +37,7 @@ reviews its own work, and loses track of where it was when the context runs out.
   where the feature stands and pick up from there.
 - **Bounded failure.** If tests fail twice, the slice resets to a clean tree and gets re-derived once. If it fails
   again, the pipeline pauses for you instead of thrashing.
-- **You stay in charge.** sddkit opens the PR and marks it ready. It never merges.
-
-## How it works
-
-```mermaid
-flowchart TD
-  req(["Feature request<br/>or GitHub issue"]):::human
-  init["sddkit · initialize<br/>verify gh · feat/slug<br/>state init · probe"]:::conductor
-  state[("state.yaml + journal<br/>via sddkit-state only")]:::state
-  design["sddkit-design<br/>spec · contracts · plan<br/>≤ 3 journeys"]:::agent
-  critique["sddkit-design-reviewer<br/>fixes in place"]:::agent
-  gate{{"⏸ Design gate<br/>human approval"}}:::human
-
-  req --> init --> design
-  init -.- state
-  design --> critique --> gate
-  design -.->|skip-design-critique| gate
-  gate -->|"edits · same specialist"| design
-
-  subgraph impl["Implementation · one slice per journey"]
-    implementer["sddkit-implementer<br/>failing oracle → impl"]:::agent
-    sensors{"targeted tests<br/>green?"}:::conductor
-    escalate["escalate · one rung<br/>snapshot · reset · re-derive"]:::conductor
-    implementer --> sensors
-    sensors -->|"red · retry same specialist"| implementer
-    sensors -->|red twice| escalate --> implementer
-  end
-
-  gate -->|approved| implementer
-  escalate -.->|still red| pause{{"⏸ pause for human"}}:::human
-  sensors -->|green| commit["commit"]:::conductor
-
-  subgraph review["Review · parallel, report-only"]
-    direction LR
-    rc["sddkit-code-reviewer<br/>contract"]:::agent
-    rh["sddkit-code-reviewer<br/>health"]:::agent
-    rd["sddkit-code-reviewer<br/>design"]:::agent
-  end
-
-  commit --> rc & rh & rd
-  rc & rh & rd --> merge[("sddkit-state<br/>review-merge")]:::state
-  merge --> triage{"blocker /<br/>major?"}:::conductor
-  triage -->|iteration 1| fix["sddkit-implementer<br/>fix round"]:::agent
-  fix -->|delta-scoped review| review
-  triage -->|survives iteration 2| dispute{{"⏸ dispute<br/>apply · defer · drop"}}:::human
-  triage -.->|spec / plan gap| design
-  triage -->|clean| verify
-  dispute --> verify
-
-  verify["verify<br/>+ verify-fix retries"]:::conductor --> pr["open draft PR"]:::conductor
-  pr --> docs["sddkit-docs-writer<br/>domain README · docs"]:::agent
-  pr --> qa["sddkit-qa<br/>oracle · agent-browser<br/>evidence on PR"]:::agent
-  qa -->|impl findings| verify
-  qa -.->|"spec / plan findings<br/>design delta"| design
-  docs & qa --> finalize["finalize PR<br/>Setup required · ready"]:::conductor
-  finalize --> done(["complete → handoff<br/>next roadmap feature"]):::human
-
-  classDef human fill:#fde68a,stroke:#b45309,color:#1f2937
-  classDef conductor fill:#e0e7ff,stroke:#4338ca,color:#1e1b4b
-  classDef agent fill:#d1fae5,stroke:#047857,color:#064e3b
-  classDef state fill:#f3f4f6,stroke:#6b7280,color:#111827
-  style impl fill:transparent,stroke:#9ca3af,stroke-dasharray:5 5
-  style review fill:transparent,stroke:#9ca3af,stroke-dasharray:5 5
-```
-
-Blue steps are run by the `sddkit` conductor itself, green are specialist subagents (or Orca workers), yellow are where
-a human acts, and grey is state written only through `sddkit-state`. Dotted edges are conditional paths.
-
-| Stage          | Who                                    | What happens                                                                                                                                                                                   |
-| -------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Design         | `sddkit-design`                        | Writes `spec.md`, `contracts/*.feature`, and `plan.md` with at most three journeys, each tied to the cheapest test that can fail it.                                                           |
-| Critique       | `sddkit-design-reviewer`               | Fixes unambiguous issues in place and reports only what needs you. Skipped for trivially safe designs.                                                                                         |
-| Design gate    | you                                    | The one approval, never skipped.                                                                                                                                                               |
-| Implementation | `sddkit-implementer`                   | Writes each journey's failing test, then the code. Retries go back to the same specialist so it keeps its context (and the prompt cache).                                                      |
-| Review         | `sddkit-code-reviewer` ×3, in parallel | Contract, health, and design reviews against per-area checklists. Blockers get one fix round and a delta re-review; anything left becomes a dispute for you to settle.                         |
-| Verify and PR  | conductor                              | Full verification, then a draft PR.                                                                                                                                                            |
-| Docs and QA    | `sddkit-docs-writer` ∥ `sddkit-qa`     | Docs update the touched domain's README. QA checks the spec and contracts, using [agent-browser](https://github.com/vercel-labs/agent-browser) for UI paths, and posts its evidence on the PR. |
-| Finalize       | conductor                              | Adds `## Setup required` (env vars, external services) to the PR body, marks it ready, and prints a handoff for the next feature.                                                              |
+- **You stay in charge.** solodev opens the PR and marks it ready. It never merges.
 
 ## Quick start
 
@@ -109,9 +46,7 @@ a human acts, and grey is state written only through `sddkit-state`. Dotted edge
 From the root of the repository you want to work on:
 
 ```bash
-npx -y github:luisintosh/sddkit
-# or
-bunx github:luisintosh/sddkit
+npx -y github:luisintosh/solodev
 ```
 
 The installer asks for a **scope** (this repo or `$HOME`) and the **hosts** to install for (Cursor, Claude Code, Codex,
@@ -127,37 +62,128 @@ MCP, skill, or CLI). [rtk](https://github.com/rtk-ai/rtk) is optional.
 ### 2. Set up project docs (once)
 
 ```text
-/sddkit-setup-docs
+/arise-setup-docs
 ```
 
 This creates `AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/CONSTITUTION.md`, and `docs/feats/` if they are missing.
 `AGENTS.md` must list your install, dev, build, test, lint, and typecheck commands, plus how to run a single test file.
 
-### 3. Build a feature
+### 3. Plan a whole product (optional)
 
-- **OpenCode:** `sddkit` is the default agent, so just describe the feature.
-- **Cursor, Claude Code, Codex:** run `/sddkit` on your most capable session model, then describe the feature.
-
-Name a GitHub issue to scope the run from its acceptance criteria. sddkit creates `feat/<slug>`, runs the pipeline,
-stops at the design gate, and finishes with a ready PR. To resume an interrupted run, ask it to continue.
-
-Skip sddkit for changes with no behavior to specify, such as a typo, a version bump, or a pure rename. It flags those
-and asks before starting.
-
-### 4. Plan a whole product (optional)
-
-Run `/sddkit-epic` (on OpenCode, Tab-switch to the `sddkit-epic` agent) and describe the idea. It explores the codebase,
+Run `/arise-plan` (on OpenCode, Tab-switch to the `arise-plan` agent) and describe the idea. It explores the codebase,
 turns the idea into a measurable goal, and writes `docs/product/<slug>/roadmap.md` with dependency-ordered waves and one
 work item per feature, each reviewed by an adversarial product-owner subagent. It can also open the GitHub issues, wired
 with `Blocked by #N`.
 
-To work through a roadmap, run one `sddkit` per feature. Each run ends by printing a paste-ready invocation for the next
+Then build the roadmap one feature at a time with `/arise`, below.
+
+### 4. Build a feature with `/arise`
+
+**It's the command you run to build anything.** Everything else in solodev exists to support it.
+
+```text
+/arise Add CSV export to the accounts page
+```
+
+Or name a GitHub issue to scope the run from its acceptance criteria:
+
+```text
+/arise #42
+```
+
+- **OpenCode:** `arise` is the default agent, so skip the slash and just describe the feature.
+- **Cursor, Claude Code, Codex:** run `/arise` on your most capable session model, then describe the feature.
+
+`arise` creates `feat/<slug>`, runs the pipeline (see [How it works](#how-it-works)), stops at the design gate, and
+finishes with a ready PR. To resume an interrupted run, ask it to continue.
+
+Working through a roadmap? Run one `arise` per feature. Each run ends by printing a paste-ready invocation for the next
 one, carrying forward only what that run needs. Paste it into a fresh chat to continue.
+
+Skip `arise` for changes with no behavior to specify, such as a typo, a version bump, or a pure rename. It flags those
+and asks before starting.
+
+## How it works
+
+```mermaid
+flowchart TD
+  req(["Feature request<br/>or GitHub issue"]):::human
+  init["arise · initialize<br/>verify gh · feat/slug<br/>state init · probe"]:::conductor
+  state[("state.yaml + journal<br/>via quest-state only")]:::state
+  design["shadow-design<br/>spec · contracts · plan<br/>≤ 3 journeys"]:::agent
+  critique["shadow-design-reviewer<br/>fixes in place"]:::agent
+  gate{{"⏸ Design gate<br/>human approval"}}:::human
+
+  req --> init --> design
+  init -.- state
+  design --> critique --> gate
+  design -.->|skip-design-critique| gate
+  gate -->|"edits · same specialist"| design
+
+  subgraph impl["Implementation · one slice per journey"]
+    implementer["shadow-implementer<br/>failing oracle → impl"]:::agent
+    sensors{"targeted tests<br/>green?"}:::conductor
+    escalate["escalate · one rung<br/>snapshot · reset · re-derive"]:::conductor
+    implementer --> sensors
+    sensors -->|"red · retry same specialist"| implementer
+    sensors -->|red twice| escalate --> implementer
+  end
+
+  gate -->|approved| implementer
+  escalate -.->|still red| pause{{"⏸ pause for human"}}:::human
+  sensors -->|green| commit["commit"]:::conductor
+
+  subgraph review["Review · parallel, report-only"]
+    direction LR
+    rc["shadow-code-reviewer<br/>contract"]:::agent
+    rh["shadow-code-reviewer<br/>health"]:::agent
+    rd["shadow-code-reviewer<br/>design"]:::agent
+  end
+
+  commit --> rc & rh & rd
+  rc & rh & rd --> merge[("quest-state<br/>review-merge")]:::state
+  merge --> triage{"blocker /<br/>major?"}:::conductor
+  triage -->|iteration 1| fix["shadow-implementer<br/>fix round"]:::agent
+  fix -->|delta-scoped review| review
+  triage -->|survives iteration 2| dispute{{"⏸ dispute<br/>apply · defer · drop"}}:::human
+  triage -.->|spec / plan gap| design
+  triage -->|clean| verify
+  dispute --> verify
+
+  verify["verify<br/>+ verify-fix retries"]:::conductor --> pr["open draft PR"]:::conductor
+  pr --> docs["shadow-docs-writer<br/>domain README · docs"]:::agent
+  pr --> qa["shadow-qa<br/>oracle · agent-browser<br/>evidence on PR"]:::agent
+  qa -->|impl findings| verify
+  qa -.->|"spec / plan findings<br/>design delta"| design
+  docs & qa --> finalize["finalize PR<br/>Setup required · ready"]:::conductor
+  finalize --> done(["complete → handoff<br/>next roadmap feature"]):::human
+
+  classDef human fill:#fde68a,stroke:#b45309,color:#1f2937
+  classDef conductor fill:#e0e7ff,stroke:#4338ca,color:#1e1b4b
+  classDef agent fill:#d1fae5,stroke:#047857,color:#064e3b
+  classDef state fill:#f3f4f6,stroke:#6b7280,color:#111827
+  style impl fill:transparent,stroke:#9ca3af,stroke-dasharray:5 5
+  style review fill:transparent,stroke:#9ca3af,stroke-dasharray:5 5
+```
+
+Blue steps are run by the `arise` conductor itself, green are specialist subagents (or Orca workers), yellow are where a
+human acts, and grey is state written only through `quest-state`. Dotted edges are conditional paths.
+
+| Stage          | Who                                    | What happens                                                                                                                                                                                   |
+| -------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Design         | `shadow-design`                        | Writes `spec.md`, `contracts/*.feature`, and `plan.md` with at most three journeys, each tied to the cheapest test that can fail it.                                                           |
+| Critique       | `shadow-design-reviewer`               | Fixes unambiguous issues in place and reports only what needs you. Skipped for trivially safe designs.                                                                                         |
+| Design gate    | you                                    | The one approval, never skipped.                                                                                                                                                               |
+| Implementation | `shadow-implementer`                   | Writes each journey's failing test, then the code. Retries go back to the same specialist so it keeps its context (and the prompt cache).                                                      |
+| Review         | `shadow-code-reviewer` ×3, in parallel | Contract, health, and design reviews against per-area checklists. Blockers get one fix round and a delta re-review; anything left becomes a dispute for you to settle.                         |
+| Verify and PR  | conductor                              | Full verification, then a draft PR.                                                                                                                                                            |
+| Docs and QA    | `shadow-docs-writer` ∥ `shadow-qa`     | Docs update the touched domain's README. QA checks the spec and contracts, using [agent-browser](https://github.com/vercel-labs/agent-browser) for UI paths, and posts its evidence on the PR. |
+| Finalize       | conductor                              | Adds `## Setup required` (env vars, external services) to the PR body, marks it ready, and prints a handoff for the next feature.                                                              |
 
 ## Models
 
-Every agent declares a profile, and `src/catalog.yaml` maps each profile to a model per host. The `sddkit` and
-`sddkit-epic` skills inherit your session model.
+Every agent declares a profile, and `src/catalog.yaml` maps each profile to a model per host. The `arise` and
+`arise-plan` skills inherit your session model.
 
 | profile         | OpenCode                               | Cursor                           | Claude                  | Codex                |
 | --------------- | -------------------------------------- | -------------------------------- | ----------------------- | -------------------- |
@@ -171,14 +197,14 @@ Every agent declares a profile, and `src/catalog.yaml` maps each profile to a mo
 
 | agent                    | profile         |
 | ------------------------ | --------------- |
-| `sddkit`                 | `conduct`       |
-| `sddkit-design`          | `think`         |
-| `sddkit-design-reviewer` | `design-review` |
-| `sddkit-implementer`     | `execute`       |
-| `sddkit-code-reviewer`   | `code-review`   |
-| `sddkit-qa`              | `validate`      |
-| `sddkit-docs-writer`     | `write`         |
-| `sddkit-epic`            | `think`         |
+| `arise`                  | `conduct`       |
+| `shadow-design`          | `think`         |
+| `shadow-design-reviewer` | `design-review` |
+| `shadow-implementer`     | `execute`       |
+| `shadow-code-reviewer`   | `code-review`   |
+| `shadow-qa`              | `validate`      |
+| `shadow-docs-writer`     | `write`         |
+| `arise-plan`             | `think`         |
 
 CI checks both tables against `src/catalog.yaml`.
 
@@ -190,17 +216,17 @@ host subagent:
 
 | specialist                                       | worker                                                       |
 | ------------------------------------------------ | ------------------------------------------------------------ |
-| `sddkit-design`                                  | `claude --model opus --effort medium --permission-mode auto` |
-| `sddkit-design-reviewer`, `sddkit-code-reviewer` | `claude --model sonnet --effort high --permission-mode auto` |
-| `sddkit-implementer`                             | `cursor-agent --model grok-4.7-low --yolo`                   |
-| `sddkit-qa`, `sddkit-docs-writer`                | `cursor-agent --model grok-4.7-high --yolo`                  |
+| `shadow-design`                                  | `claude --model opus --effort medium --permission-mode auto` |
+| `shadow-design-reviewer`, `shadow-code-reviewer` | `claude --model sonnet --effort high --permission-mode auto` |
+| `shadow-implementer`                             | `cursor-agent --model grok-4.7-low --yolo`                   |
+| `shadow-qa`, `shadow-docs-writer`                | `cursor-agent --model grok-4.7-high --yolo`                  |
 
 Workers open as split panes (or tabs) titled `<specialist> · <stage>` and close once they finish. Briefs and replies
-pass through `.git/sddkit/<slug>/`, so they never reach the diff. Set `SDDKIT_ORCHESTRATOR=native` to opt out.
+pass through `.git/solodev/<slug>/`, so they never reach the diff. Set `SOLODEV_ORCHESTRATOR=native` to opt out.
 
 ## Directory overview
 
-### What sddkit adds to your repo
+### What solodev adds to your repo
 
 ```text
 AGENTS.md                       commands and conventions agents follow
@@ -208,25 +234,25 @@ docs/
   ARCHITECTURE.md
   CONSTITUTION.md               rules every design is checked against
   feats/<feature>/
-    state.yaml                  pipeline checkpoint (written only by sddkit-state)
+    state.yaml                  pipeline checkpoint (written only by quest-state)
     journal.ndjson              append-only audit trail
     spec.md                     what and why
     contracts/*.feature         @S<n> acceptance scenarios
     plan.md                     journeys, oracles, waypoints
-  product/<slug>/roadmap.md     optional, from sddkit-epic
-src/<domain>/README.md          domain docs, kept current by sddkit-docs-writer
-.agents/bin/sddkit-state.mjs    state CLI
-.agents/skills/                 sddkit, sddkit-epic, sddkit-setup-docs
-.agents/sddkit/checklists/      per-area review checklists
+  product/<slug>/roadmap.md     optional, from arise-plan
+src/<domain>/README.md          domain docs, kept current by shadow-docs-writer
+.agents/bin/quest-state.mjs    state CLI
+.agents/skills/                 arise, arise-plan, arise-setup-docs
+.agents/solodev/checklists/      per-area review checklists
 .claude/  .cursor/agents/  .codex/agents/  .opencode/    host-specific agents
 ```
 
 The conductor writes all state through the CLI. You can use it to inspect a run:
 
 ```bash
-.agents/bin/sddkit-state.mjs show <feature>      # current state
-.agents/bin/sddkit-state.mjs next <feature>      # where a resume would continue
-.agents/bin/sddkit-state.mjs validate <feature>
+.agents/bin/quest-state.mjs show <feature>      # current state
+.agents/bin/quest-state.mjs next <feature>      # where a resume would continue
+.agents/bin/quest-state.mjs validate <feature>
 ```
 
 ### This repository
@@ -235,9 +261,9 @@ The conductor writes all state through the CLI. You can use it to inspect a run:
 src/
   catalog.yaml          host × profile models, per-agent settings  ← source of truth
   prompts/agents/       agent prompt bodies                         ← source of truth
-  prompts/commands/     sddkit-setup-docs
+  prompts/commands/     arise-setup-docs
   prompts/fragments/    shared includes
-  state/                sddkit-state CLI
+  state/                quest-state CLI
 tools/                  transpile, build, install, hygiene check
 evals/                  prompt-behavior and trigger evals
 test/                   e2e install script, fixture repo
@@ -249,7 +275,7 @@ Prompts are written once and transpiled into each host's format by `pnpm run bui
 
 ## Safety notes
 
-- sddkit never merges its own PR. That rule lives in the prompts, so use branch protection as your hard backstop.
+- solodev never merges its own PR. That rule lives in the prompts, so use branch protection as your hard backstop.
 - Only the CLI writes `state.yaml` and `journal.ndjson`. OpenCode also denies direct edits to them in its permission
   config.
 - Project installs for OpenCode deny destructive commands (`rm -rf`, force push, `git reset --hard`, `sudo`, piping to a

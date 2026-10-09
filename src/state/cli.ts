@@ -20,20 +20,20 @@ export const PROTOCOL = 2
 
 function usage(): never {
   console.error(`Usage:
-  sddkit-state init <feature>
-  sddkit-state patch <feature> --yaml '<yaml>'
-  sddkit-state patch <feature> --file <path>
-  sddkit-state patch <feature>   # YAML patch on stdin
-  sddkit-state patch <feature> [--yaml '<yaml>'] [--drop '<yaml>'] [--append '<yaml>'] [--inc '<yaml>']
-  sddkit-state show <feature>
-  sddkit-state validate <feature>
-  sddkit-state next [<feature>]
-  sddkit-state snapshot <feature>
-  sddkit-state transition <feature> --event ${EVENTS.join("|")} [--yaml '...']
-  sddkit-state review-merge <feature> --file <replies.yaml> | --yaml '...'
-  sddkit-state decide <feature> --event qa-route|skip-design-critique|batch-journeys --yaml '...'
-  sddkit-state probe orchestrator
-  sddkit-state version`)
+  quest-state init <feature>
+  quest-state patch <feature> --yaml '<yaml>'
+  quest-state patch <feature> --file <path>
+  quest-state patch <feature>   # YAML patch on stdin
+  quest-state patch <feature> [--yaml '<yaml>'] [--drop '<yaml>'] [--append '<yaml>'] [--inc '<yaml>']
+  quest-state show <feature>
+  quest-state validate <feature>
+  quest-state next [<feature>]
+  quest-state snapshot <feature>
+  quest-state transition <feature> --event ${EVENTS.join("|")} [--yaml '...']
+  quest-state review-merge <feature> --file <replies.yaml> | --yaml '...'
+  quest-state decide <feature> --event qa-route|skip-design-critique|batch-journeys --yaml '...'
+  quest-state probe orchestrator
+  quest-state version`)
   process.exit(2)
 }
 
@@ -44,7 +44,7 @@ function rootDir(): string {
 function asMapping(raw: string, what: string): Record<string, unknown> {
   const parsed = parseYaml(raw)
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error(`sddkit-state: ${what} must be a YAML mapping`)
+    throw new Error(`quest-state: ${what} must be a YAML mapping`)
   }
   return parsed as Record<string, unknown>
 }
@@ -54,7 +54,7 @@ function flagMapping(args: string[], flag: string): Record<string, unknown> | un
   const idx = args.indexOf(flag)
   if (idx === -1) return undefined
   const raw = args[idx + 1]
-  if (!raw) throw new Error(`sddkit-state: ${flag} requires a value`)
+  if (!raw) throw new Error(`quest-state: ${flag} requires a value`)
   return asMapping(raw, flag)
 }
 
@@ -64,12 +64,12 @@ async function readPatch(args: string[], optional = false): Promise<Record<strin
   const fileIdx = args.indexOf("--file")
   if (fileIdx !== -1) {
     const filePath = args[fileIdx + 1]
-    if (!filePath) throw new Error("sddkit-state: --file requires a path")
+    if (!filePath) throw new Error("quest-state: --file requires a path")
     return asMapping(await fs.readFile(filePath, "utf8"), "patch")
   }
   if (optional) return {}
   if (process.stdin.isTTY) {
-    throw new Error("sddkit-state: patch requires --yaml, --file, or YAML on stdin")
+    throw new Error("quest-state: patch requires --yaml, --file, or YAML on stdin")
   }
   const chunks: Buffer[] = []
   for await (const chunk of process.stdin) chunks.push(chunk as Buffer)
@@ -146,7 +146,7 @@ async function main(): Promise<void> {
       case "transition": {
         const eventIdx = rest.indexOf("--event")
         const event = eventIdx !== -1 ? rest[eventIdx + 1] : undefined
-        if (!event) throw new Error("sddkit-state: transition requires --event")
+        if (!event) throw new Error("quest-state: transition requires --event")
         console.log(await runTransition(root, feature!, event, await readPatch(rest, true)))
         break
       }
@@ -159,7 +159,7 @@ async function main(): Promise<void> {
       case "show": {
         const state = await readState(root, feature!)
         if (!state) {
-          console.error(`sddkit-state: docs/feats/${feature}/state.yaml does not exist`)
+          console.error(`quest-state: docs/feats/${feature}/state.yaml does not exist`)
           process.exit(1)
         }
         const normalized = validateState(state)
@@ -169,7 +169,7 @@ async function main(): Promise<void> {
       case "validate": {
         const state = await readState(root, feature!)
         if (!state) {
-          console.error(`sddkit-state: docs/feats/${feature}/state.yaml does not exist`)
+          console.error(`quest-state: docs/feats/${feature}/state.yaml does not exist`)
           process.exit(1)
         }
         const result = validateState(state)
@@ -183,7 +183,7 @@ async function main(): Promise<void> {
       case "decide": {
         const eventIdx = rest.indexOf("--event")
         const event = eventIdx !== -1 ? rest[eventIdx + 1] : undefined
-        if (!event) throw new Error("sddkit-state: decide requires --event")
+        if (!event) throw new Error("quest-state: decide requires --event")
         const input = await readPatch(rest)
         process.stdout.write(runDecide(event, input))
         break

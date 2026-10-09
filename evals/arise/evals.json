@@ -1,0 +1,74 @@
+{
+  "skill_name": "arise",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Add a greet(name) function in a new module that returns \"Hello, <name>!\", and make `npm run dev -- --name Ada` print it. Run the full SDD pipeline; I approve the design as soon as you present it.",
+      "expected_output": "Run in a copy of test/fixture-repo. One design delegation and one design gate; one journey whose diff is only new files is implemented, committed, reviewed once over the feature diff, and the PR is marked ready by the conductor.",
+      "files": ["test/fixture-repo"],
+      "expectations": [
+        "shadow-design was delegated once and the human saw exactly one gate (the design gate)",
+        "After each shadow-implementer reply, the conductor ran `git add --intent-to-add` on the reply's files_changed",
+        "shadow-code-reviewer was delegated three times in parallel, once per area (contract, health, design), each with an absolute checklist path under the same .agents/ root as quest-state, review.base as the diff base, and a diff that included the new module and its test file",
+        "No reviewer edited the tree (any stray edit was reverted), and the three replies were merged into one review.findings list before verify",
+        "shadow-docs-writer and shadow-qa both ran after the PR opened, and the conductor (not shadow-qa) marked the PR ready",
+        "state.yaml and journal.ndjson were written only through quest-state"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Add a --version flag to the CLI that prints the package.json version.",
+      "expected_output": "Run in a copy of test/fixture-repo with AGENTS.md deleted. The conductor stops at initialize and hands the setup to the human.",
+      "files": ["test/fixture-repo"],
+      "expectations": [
+        "The conductor stopped before running `quest-state init`",
+        "The reply tells the human to run /arise-setup-docs themselves, then re-invoke the pipeline",
+        "AGENTS.md was not created"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "bump vitest to ^2.2.0",
+      "expected_output": "Run in a copy of test/fixture-repo with a human present. The triage floor classifies the request as below the floor and asks before scaffolding.",
+      "files": ["test/fixture-repo"],
+      "expectations": [
+        "The conductor classified the request as below the triage floor",
+        "It asked whether to run the full pipeline or leave it as a direct edit",
+        "No docs/feats/ directory or state.yaml exists before the human answers"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Add a fetchWeather(city) function in a new module that calls https://example.com/weather?city=<city> and returns the JSON body. Run the full SDD pipeline; I approve the design as soon as you present it.",
+      "expected_output": "Run in a copy of test/fixture-repo seeded with an identical `withRetry`-style wrapper (3 attempts, 200ms backoff) pasted inline in src/users.js and src/orders.js, each executed by a test. The implementer writes a third inline copy; the design reviewer sweeps the repo and files one Decorator finding.",
+      "files": ["test/fixture-repo"],
+      "expectations": [
+        "The shadow-code-reviewer (area design) returned a `major` `quality` finding whose fix starts `Decorator:` and lists the new module under `In diff` and src/users.js and src/orders.js under `Migrate now`",
+        "shadow-implementer applied the finding: one shared retry wrapper now serves all three sites, and it did not rebut",
+        "No `Tech debt:` record was added to review.deferred_findings"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Add a fetchWeather(city) function in a new module that calls https://example.com/weather?city=<city> with 5 retries and returns the JSON body. Run the full SDD pipeline; I approve the design as soon as you present it.",
+      "expected_output": "Run in a copy of test/fixture-repo seeded with two inline retry wrappers that differ in policy: src/users.js retries 3 times on any error, src/orders.js retries only on HTTP 429 with no backoff. The wrappers look alike but do not share intent.",
+      "files": ["test/fixture-repo"],
+      "expectations": [
+        "The shadow-code-reviewer (area design) filed no Decorator finding naming src/users.js or src/orders.js",
+        "src/users.js and src/orders.js are unchanged in the feature diff"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Add a fetchWeather(city) function in a new module that calls https://example.com/weather?city=<city> and returns the JSON body. Run the full SDD pipeline; I approve the design as soon as you present it.",
+      "expected_output": "Run in a copy of test/fixture-repo seeded with the same inline retry wrapper in six files under src/, each executed by a test. Migrating all of them exceeds the 5-file cap, so the remainder becomes tech debt.",
+      "files": ["test/fixture-repo"],
+      "expectations": [
+        "The Decorator finding lists at most 5 outside files under `Migrate now` and the rest under `Tech debt:`",
+        "review.deferred_findings holds a `minor` record whose fix starts `Tech debt: Decorator`",
+        "The final summary suggests filing a tech-debt ticket with a paste-ready title and body",
+        "No issue or ticket was created by the conductor"
+      ]
+    }
+  ]
+}

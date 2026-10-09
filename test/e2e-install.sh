@@ -29,12 +29,12 @@ assert_eq() {
 # Ensure dist + manifest exist
 (cd "$REPO_ROOT" && pnpm run build >/dev/null)
 
-assert_file_exists "${REPO_ROOT}/dist/claude/agents/sddkit-design.md" "transpile emits claude design agent"
-assert_file_exists "${REPO_ROOT}/dist/codex/agents/sddkit-design.toml" "transpile emits codex design agent"
-if grep -q 'spawn_agent' "${REPO_ROOT}/dist/agents/skills/sddkit/SKILL.md"; then
-  ok "sddkit skill documents Codex spawn_agent"
+assert_file_exists "${REPO_ROOT}/dist/claude/agents/shadow-design.md" "transpile emits claude design agent"
+assert_file_exists "${REPO_ROOT}/dist/codex/agents/shadow-design.toml" "transpile emits codex design agent"
+if grep -q 'spawn_agent' "${REPO_ROOT}/dist/agents/skills/arise/SKILL.md"; then
+  ok "arise skill documents Codex spawn_agent"
 else
-  bad "sddkit skill missing Codex spawn_agent delegation"
+  bad "arise skill missing Codex spawn_agent delegation"
 fi
 
 assert_file_exists "${REPO_ROOT}/dist/install.js" "build emits npx/bunx installer"
@@ -55,40 +55,40 @@ LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all \
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all \
   node "$INSTALL_JS" >/dev/null
 
-assert_file_exists "${TARGET}/.opencode/agents/sddkit.md" "opencode sddkit agent installed"
-assert_file_exists "${TARGET}/.opencode/agents/sddkit-epic.md" "opencode sddkit-epic agent installed"
+assert_file_exists "${TARGET}/.opencode/agents/arise.md" "opencode arise agent installed"
+assert_file_exists "${TARGET}/.opencode/agents/arise-plan.md" "opencode arise-plan agent installed"
 assert_file_exists "${TARGET}/.opencode/opencode.jsonc" "opencode.jsonc installed"
 assert_file_absent "${TARGET}/.opencode/plugins/sdd-guard.ts" "plugin not installed"
-assert_file_exists "${TARGET}/.cursor/agents/sddkit-implementer.md" "cursor implementer installed"
-assert_file_exists "${TARGET}/.claude/agents/sddkit-design.md" "claude design agent installed"
-assert_file_exists "${TARGET}/.claude/skills/sddkit/SKILL.md" "claude skills copy installed"
-assert_file_exists "${TARGET}/.codex/agents/sddkit-design.toml" "codex design agent installed"
-if [[ -L "${TARGET}/.claude/skills/sddkit/SKILL.md" ]]; then
+assert_file_exists "${TARGET}/.cursor/agents/shadow-implementer.md" "cursor implementer installed"
+assert_file_exists "${TARGET}/.claude/agents/shadow-design.md" "claude design agent installed"
+assert_file_exists "${TARGET}/.claude/skills/arise/SKILL.md" "claude skills copy installed"
+assert_file_exists "${TARGET}/.codex/agents/shadow-design.toml" "codex design agent installed"
+if [[ -L "${TARGET}/.claude/skills/arise/SKILL.md" ]]; then
   bad "claude skills must be a copy, not a symlink"
 else
   ok "claude skills are a copy, not a symlink"
 fi
-assert_file_exists "${TARGET}/.agents/skills/sddkit/SKILL.md" "sddkit skill installed under .agents"
-assert_file_exists "${TARGET}/.agents/skills/sddkit-epic/SKILL.md" "sddkit-epic skill installed under .agents"
-assert_file_exists "${TARGET}/.agents/skills/sddkit-setup-docs/SKILL.md" "sddkit-setup-docs skill installed under .agents"
-assert_file_exists "${TARGET}/.agents/skills/sddkit/references/reply-mapping.md" "sddkit reply-mapping reference installed"
-assert_file_exists "${TARGET}/.agents/skills/sddkit/references/orca.md" "sddkit orca reference installed"
-assert_file_exists "${TARGET}/.agents/skills/sddkit/references/handoff.md" "sddkit handoff reference installed"
+assert_file_exists "${TARGET}/.agents/skills/arise/SKILL.md" "arise skill installed under .agents"
+assert_file_exists "${TARGET}/.agents/skills/arise-plan/SKILL.md" "arise-plan skill installed under .agents"
+assert_file_exists "${TARGET}/.agents/skills/arise-setup-docs/SKILL.md" "arise-setup-docs skill installed under .agents"
+assert_file_exists "${TARGET}/.agents/skills/arise/references/reply-mapping.md" "arise reply-mapping reference installed"
+assert_file_exists "${TARGET}/.agents/skills/arise/references/orca.md" "arise orca reference installed"
+assert_file_exists "${TARGET}/.agents/skills/arise/references/handoff.md" "arise handoff reference installed"
 for ref in escalation dispute design-delta; do
-  assert_file_exists "${TARGET}/.agents/skills/sddkit/references/${ref}.md" "sddkit ${ref} reference installed"
+  assert_file_exists "${TARGET}/.agents/skills/arise/references/${ref}.md" "arise ${ref} reference installed"
 done
 for ref in orca handoff escalation dispute design-delta; do
-  assert_file_exists "${TARGET}/.agents/sddkit/references/${ref}.md" "opencode ${ref} reference beside sddkit-state"
+  assert_file_exists "${TARGET}/.agents/solodev/references/${ref}.md" "opencode ${ref} reference beside quest-state"
 done
-if grep -q '<root>/.agents/sddkit/references/orca.md' "${TARGET}/.opencode/agents/sddkit.md"; then
+if grep -q '<root>/.agents/solodev/references/orca.md' "${TARGET}/.opencode/agents/arise.md"; then
   ok "opencode conductor points at the installed orca reference"
 else
-  bad "opencode conductor does not point at <root>/.agents/sddkit/references/orca.md"
+  bad "opencode conductor does not point at <root>/.agents/solodev/references/orca.md"
 fi
 assert_file_absent "${TARGET}/.cursor/skills/sddkit/SKILL.md" "legacy .cursor/skills/sddkit not installed"
-assert_file_exists "${TARGET}/.agents/bin/sddkit-state.mjs" "sddkit-state installed under .agents/bin"
+assert_file_exists "${TARGET}/.agents/bin/quest-state.mjs" "quest-state installed under .agents/bin"
 for area in contract health design; do
-  assert_file_exists "${TARGET}/.agents/sddkit/checklists/review-${area}.md" "review-${area} checklist beside sddkit-state"
+  assert_file_exists "${TARGET}/.agents/solodev/checklists/review-${area}.md" "review-${area} checklist beside quest-state"
 done
 assert_file_exists "${TARGET}/.opencode/.harness-manifest" "opencode harness-manifest recorded"
 assert_file_exists "${TARGET}/.cursor/agents/.harness-manifest" "cursor harness-manifest recorded under agents leaf"
@@ -111,11 +111,11 @@ else
 fi
 
 # 3. local modify + overwrite (no backup)
-before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit.md" | awk '{print $1}')"
-echo "LOCAL EDIT" >> "${TARGET}/.opencode/agents/sddkit.md"
+before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/arise.md" | awk '{print $1}')"
+echo "LOCAL EDIT" >> "${TARGET}/.opencode/agents/arise.md"
 
 modify_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" 2>&1)"
-if grep -q "overwrite opencode/agents/sddkit.md" <<<"$modify_output"; then
+if grep -q "overwrite opencode/agents/arise.md" <<<"$modify_output"; then
   ok "reports locally-modified opencode agent"
 else
   bad "should report locally-modified file: $modify_output"
@@ -124,36 +124,36 @@ fi
 backup_copy="$(find "${TARGET}/.opencode" -path '*/.backup-*' | head -1)"
 if [[ -z "$backup_copy" ]]; then ok "did not create a .backup-* directory"; else bad "unexpected backup: $backup_copy"; fi
 
-after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit.md" | awk '{print $1}')"
+after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/arise.md" | awk '{print $1}')"
 assert_eq "$after_hash" "$before_hash" "locally-modified file restored to upstream"
 
 # 4. prune upstream file
-rm "${UPSTREAM}/dist/opencode/agents/sddkit-qa.md"
+rm "${UPSTREAM}/dist/opencode/agents/shadow-qa.md"
 HARNESS_ROOT="$UPSTREAM" node "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
 
 prune_output="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" 2>&1)"
-if grep -q "delete    opencode/agents/sddkit-qa.md" <<<"$prune_output"; then
-  ok "reports delete of opencode/agents/sddkit-qa.md"
+if grep -q "delete    opencode/agents/shadow-qa.md" <<<"$prune_output"; then
+  ok "reports delete of opencode/agents/shadow-qa.md"
 else
   bad "should report delete: $prune_output"
 fi
-assert_file_absent "${TARGET}/.opencode/agents/sddkit-qa.md" "sddkit-qa.md removed after upstream deletion"
+assert_file_absent "${TARGET}/.opencode/agents/shadow-qa.md" "shadow-qa.md removed after upstream deletion"
 
 # 4a. update from the split reviewers removes their agent files
-printf 'old\n' > "${TARGET}/.claude/agents/sddkit-code-reviewer-contract.md"
-split_hash="$(shasum -a 256 "${TARGET}/.claude/agents/sddkit-code-reviewer-contract.md" | awk '{print $1}')"
-printf '%s  sddkit-code-reviewer-contract.md\n' "$split_hash" >> "${TARGET}/.claude/agents/.harness-manifest"
+printf 'old\n' > "${TARGET}/.claude/agents/shadow-code-reviewer-contract.md"
+split_hash="$(shasum -a 256 "${TARGET}/.claude/agents/shadow-code-reviewer-contract.md" | awk '{print $1}')"
+printf '%s  shadow-code-reviewer-contract.md\n' "$split_hash" >> "${TARGET}/.claude/agents/.harness-manifest"
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" >/dev/null 2>&1
-assert_file_absent "${TARGET}/.claude/agents/sddkit-code-reviewer-contract.md" "split reviewer agent removed on update"
-assert_file_exists "${TARGET}/.claude/agents/sddkit-code-reviewer.md" "single code reviewer installed"
+assert_file_absent "${TARGET}/.claude/agents/shadow-code-reviewer-contract.md" "split reviewer agent removed on update"
+assert_file_exists "${TARGET}/.claude/agents/shadow-code-reviewer.md" "single code reviewer installed"
 
 # 4b. prune a whole skill (rename) leaves no empty folder behind
-rm -r "${UPSTREAM}/dist/agents/skills/sddkit-epic"
+rm -r "${UPSTREAM}/dist/agents/skills/arise-plan"
 HARNESS_ROOT="$UPSTREAM" node "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" >/dev/null 2>&1
-if [[ ! -e "${TARGET}/.agents/skills/sddkit-epic" ]]; then ok "removed skill folder pruned from .agents/skills"; else bad "empty skill folder left in .agents/skills"; fi
-if [[ ! -e "${TARGET}/.claude/skills/sddkit-epic" ]]; then ok "removed skill folder pruned from .claude/skills"; else bad "empty skill folder left in .claude/skills"; fi
-assert_file_exists "${TARGET}/.agents/skills/sddkit/SKILL.md" "other skills kept after prune"
+if [[ ! -e "${TARGET}/.agents/skills/arise-plan" ]]; then ok "removed skill folder pruned from .agents/skills"; else bad "empty skill folder left in .agents/skills"; fi
+if [[ ! -e "${TARGET}/.claude/skills/arise-plan" ]]; then ok "removed skill folder pruned from .claude/skills"; else bad "empty skill folder left in .claude/skills"; fi
+assert_file_exists "${TARGET}/.agents/skills/arise/SKILL.md" "other skills kept after prune"
 
 # 5. doctor
 BARE="${WORK}/no-git-no-agents"
@@ -167,20 +167,20 @@ fi
 # 6. checksum mismatch aborts
 TAMPERED="${WORK}/tampered-upstream"
 cp -R "$UPSTREAM" "$TAMPERED"
-echo "TAMPERED" >> "${TAMPERED}/dist/opencode/agents/sddkit-design.md"
+echo "TAMPERED" >> "${TAMPERED}/dist/opencode/agents/shadow-design.md"
 
-before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit-design.md" | awk '{print $1}')"
+before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/shadow-design.md" | awk '{print $1}')"
 set +e
 LOCAL_SOURCE="$TAMPERED" TARGET_DIR="$TARGET" INSTALL_TARGET=opencode node "$INSTALL_JS" >/dev/null 2>&1
 rc=$?
 set -e
 if [[ $rc -ne 0 ]]; then ok "checksum mismatch exits non-zero"; else bad "checksum mismatch should abort"; fi
-after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/sddkit-design.md" | awk '{print $1}')"
+after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/shadow-design.md" | awk '{print $1}')"
 assert_eq "$after_hash" "$before_hash" "no partial write after checksum mismatch"
 
-# 7. doctor mentions sddkit-state
+# 7. doctor mentions quest-state
 doctor_output="$(TARGET_DIR="$TARGET" node "$INSTALL_JS" --doctor 2>&1)"
-if grep -q 'sddkit-state' <<<"$doctor_output"; then ok "doctor reports sddkit-state"; else bad "doctor sddkit-state: $doctor_output"; fi
+if grep -q 'quest-state' <<<"$doctor_output"; then ok "doctor reports quest-state"; else bad "doctor quest-state: $doctor_output"; fi
 if grep -q 'rtk' <<<"$doctor_output"; then
   bad "doctor should not mention rtk install (suggestion is post-install only)"
 else
@@ -196,64 +196,68 @@ rm -rf "${UPSTREAM}/dist"
 cp -R "${REPO_ROOT}/dist" "${UPSTREAM}/dist"
 cp "${REPO_ROOT}/manifest.txt" "$UPSTREAM/"
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor node "$INSTALL_JS" >/dev/null
-assert_file_exists "${TARGET2}/.cursor/agents/sddkit-design.md" "cursor-only installs .cursor"
-assert_file_absent "${TARGET2}/.opencode/agents/sddkit.md" "cursor-only skips .opencode"
-assert_file_absent "${TARGET2}/.claude/agents/sddkit-design.md" "cursor-only skips .claude"
-assert_file_absent "${TARGET2}/.codex/agents/sddkit-design.toml" "cursor-only skips .codex"
-assert_file_exists "${TARGET2}/.agents/bin/sddkit-state.mjs" "cursor-only still installs sddkit-state"
-assert_file_exists "${TARGET2}/.agents/skills/sddkit/SKILL.md" "cursor-only installs shared skills"
-assert_file_exists "${TARGET2}/.agents/sddkit/checklists/review-design.md" "cursor-only installs review checklists"
+assert_file_exists "${TARGET2}/.cursor/agents/shadow-design.md" "cursor-only installs .cursor"
+assert_file_absent "${TARGET2}/.opencode/agents/arise.md" "cursor-only skips .opencode"
+assert_file_absent "${TARGET2}/.claude/agents/shadow-design.md" "cursor-only skips .claude"
+assert_file_absent "${TARGET2}/.codex/agents/shadow-design.toml" "cursor-only skips .codex"
+assert_file_exists "${TARGET2}/.agents/bin/quest-state.mjs" "cursor-only still installs quest-state"
+assert_file_exists "${TARGET2}/.agents/skills/arise/SKILL.md" "cursor-only installs shared skills"
+assert_file_exists "${TARGET2}/.agents/solodev/checklists/review-design.md" "cursor-only installs review checklists"
 
 # 8b. prune leftover ./bin and .cursor/skills
-mkdir -p "${TARGET2}/bin" "${TARGET2}/.cursor/skills/sddkit" "${TARGET2}/.agents/bin"
-echo leftover > "${TARGET2}/bin/sddkit-state"
-echo leftover > "${TARGET2}/.agents/bin/sddkit-state"
-echo leftover > "${TARGET2}/.agents/bin/sddkit-state.js"
+mkdir -p "${TARGET2}/bin" "${TARGET2}/.cursor/skills/sddkit" "${TARGET2}/.cursor/skills/sddkit-epic" "${TARGET2}/.agents/bin"
+echo leftover > "${TARGET2}/bin/quest-state"
+echo leftover > "${TARGET2}/.agents/bin/quest-state"
+echo leftover > "${TARGET2}/.agents/bin/quest-state.js"
+echo leftover > "${TARGET2}/.agents/bin/sddkit-state.mjs"
+echo leftover > "${TARGET2}/.cursor/skills/sddkit-epic/SKILL.md"
 echo leftover > "${TARGET2}/.cursor/skills/sddkit/SKILL.md"
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor node "$INSTALL_JS" >/dev/null
-assert_file_absent "${TARGET2}/bin/sddkit-state" "reinstall prunes leftover ./bin/sddkit-state"
-assert_file_absent "${TARGET2}/.agents/bin/sddkit-state" "reinstall prunes extensionless sddkit-state"
-assert_file_absent "${TARGET2}/.agents/bin/sddkit-state.js" "reinstall prunes leftover sddkit-state.js"
-assert_file_exists "${TARGET2}/.agents/bin/sddkit-state.mjs" "mjs CLI remains after leftover prune"
+assert_file_absent "${TARGET2}/bin/quest-state" "reinstall prunes leftover ./bin/quest-state"
+assert_file_absent "${TARGET2}/.agents/bin/quest-state" "reinstall prunes extensionless quest-state"
+assert_file_absent "${TARGET2}/.agents/bin/quest-state.js" "reinstall prunes leftover quest-state.js"
+assert_file_absent "${TARGET2}/.agents/bin/sddkit-state.mjs" "reinstall prunes pre-rename sddkit-state.mjs"
+assert_file_absent "${TARGET2}/.cursor/skills/sddkit-epic/SKILL.md" "reinstall prunes pre-rename .cursor/skills/sddkit-epic"
+assert_file_exists "${TARGET2}/.agents/bin/quest-state.mjs" "mjs CLI remains after leftover prune"
 assert_file_absent "${TARGET2}/.cursor/skills/sddkit/SKILL.md" "reinstall prunes leftover .cursor/skills/sddkit"
 
-# 9. sddkit-state CLI smoke (CJS nearest package.json must not break ESM .mjs)
-chmod +x "${TARGET}/.agents/bin/sddkit-state.mjs"
+# 9. quest-state CLI smoke (CJS nearest package.json must not break ESM .mjs)
+chmod +x "${TARGET}/.agents/bin/quest-state.mjs"
 if command -v node >/dev/null 2>&1; then
   printf '%s\n' '{"name":"consumer","type":"commonjs"}' > "${TARGET}/package.json"
-  (cd "$TARGET" && .agents/bin/sddkit-state.mjs init smoke-feat >/dev/null)
-  assert_file_exists "${TARGET}/docs/feats/smoke-feat/state.yaml" "sddkit-state init writes state.yaml"
-  (cd "$TARGET" && .agents/bin/sddkit-state.mjs patch smoke-feat --yaml 'stage: design' >/dev/null)
+  (cd "$TARGET" && .agents/bin/quest-state.mjs init smoke-feat >/dev/null)
+  assert_file_exists "${TARGET}/docs/feats/smoke-feat/state.yaml" "quest-state init writes state.yaml"
+  (cd "$TARGET" && .agents/bin/quest-state.mjs patch smoke-feat --yaml 'stage: design' >/dev/null)
   if grep -q 'stage: design' "${TARGET}/docs/feats/smoke-feat/state.yaml"; then
-    ok "sddkit-state patch updates stage"
+    ok "quest-state patch updates stage"
   else
-    bad "sddkit-state patch did not update stage"
+    bad "quest-state patch did not update stage"
   fi
-  decide_out="$(cd "$TARGET" && .agents/bin/sddkit-state.mjs decide smoke-feat --event qa-route --yaml 'findings: [{category: bug}]')"
+  decide_out="$(cd "$TARGET" && .agents/bin/quest-state.mjs decide smoke-feat --event qa-route --yaml 'findings: [{category: bug}]')"
   if grep -q 'route: impl' <<<"$decide_out"; then
-    ok "sddkit-state decide qa-route"
+    ok "quest-state decide qa-route"
   else
-    bad "sddkit-state decide qa-route: $decide_out"
+    bad "quest-state decide qa-route: $decide_out"
   fi
-  skip_design="$(cd "$TARGET" && .agents/bin/sddkit-state.mjs decide smoke-feat --event skip-design-critique --yaml $'onlyViableApproach: true\nplaywrightFallback: false\nconstitutionBlocker: false\nhumanDecisions: []\nopenQuestions: []\noracles: [boundary]')"
+  skip_design="$(cd "$TARGET" && .agents/bin/quest-state.mjs decide smoke-feat --event skip-design-critique --yaml $'onlyViableApproach: true\nplaywrightFallback: false\nconstitutionBlocker: false\nhumanDecisions: []\nopenQuestions: []\noracles: [boundary]')"
   if grep -q 'skip: true' <<<"$skip_design"; then
-    ok "sddkit-state decide skip-design-critique"
+    ok "quest-state decide skip-design-critique"
   else
-    bad "sddkit-state decide skip-design-critique: $skip_design"
+    bad "quest-state decide skip-design-critique: $skip_design"
   fi
-  batch="$(cd "$TARGET" && .agents/bin/sddkit-state.mjs decide smoke-feat --event batch-journeys --yaml $'oracles: [boundary, golden]\nplaywrightAdd: false')"
+  batch="$(cd "$TARGET" && .agents/bin/quest-state.mjs decide smoke-feat --event batch-journeys --yaml $'oracles: [boundary, golden]\nplaywrightAdd: false')"
   if grep -q 'batch: true' <<<"$batch"; then
-    ok "sddkit-state decide batch-journeys"
+    ok "quest-state decide batch-journeys"
   else
-    bad "sddkit-state decide batch-journeys: $batch"
+    bad "quest-state decide batch-journeys: $batch"
   fi
 else
-  bad "node required for sddkit-state smoke test"
+  bad "node required for quest-state smoke test"
 fi
 
 # 10. post-install next-step hints
 hints="$(LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=opencode node "$INSTALL_JS" 2>&1)"
-if grep -q '/sddkit-setup-docs' <<<"$hints"; then ok "suggests /sddkit-setup-docs"; else bad "missing /sddkit-setup-docs hint"; fi
+if grep -q '/arise-setup-docs' <<<"$hints"; then ok "suggests /arise-setup-docs"; else bad "missing /arise-setup-docs hint"; fi
 if grep -qE 'brew install gh|gh is on PATH|cli.github.com' <<<"$hints"; then
   ok "suggests gh CLI"
 else
@@ -291,37 +295,37 @@ mkdir -p "$GLOBAL_TARGET"
 HOME="$FAKE_HOME" INSTALL_SCOPE=global INSTALL_TARGET=all \
   LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$GLOBAL_TARGET" node "$INSTALL_JS" >/dev/null
 
-assert_file_exists "${FAKE_HOME}/.agents/skills/sddkit/SKILL.md" "global skills land in ~/.agents"
-assert_file_exists "${FAKE_HOME}/.agents/bin/sddkit-state.mjs" "global sddkit-state lands in ~/.agents/bin"
-assert_file_exists "${FAKE_HOME}/.agents/sddkit/checklists/review-contract.md" "global checklists land beside ~/.agents/bin"
-assert_file_exists "${FAKE_HOME}/.agents/sddkit/references/escalation.md" "global references land beside ~/.agents/bin"
-assert_file_absent "${GLOBAL_TARGET}/.agents/sddkit/checklists/review-contract.md" "global install does not write checklists into TARGET_DIR"
-assert_file_exists "${FAKE_HOME}/.cursor/agents/sddkit-implementer.md" "global cursor agents leaf"
+assert_file_exists "${FAKE_HOME}/.agents/skills/arise/SKILL.md" "global skills land in ~/.agents"
+assert_file_exists "${FAKE_HOME}/.agents/bin/quest-state.mjs" "global quest-state lands in ~/.agents/bin"
+assert_file_exists "${FAKE_HOME}/.agents/solodev/checklists/review-contract.md" "global checklists land beside ~/.agents/bin"
+assert_file_exists "${FAKE_HOME}/.agents/solodev/references/escalation.md" "global references land beside ~/.agents/bin"
+assert_file_absent "${GLOBAL_TARGET}/.agents/solodev/checklists/review-contract.md" "global install does not write checklists into TARGET_DIR"
+assert_file_exists "${FAKE_HOME}/.cursor/agents/shadow-implementer.md" "global cursor agents leaf"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global install keeps planted cursor agent"
-assert_file_exists "${FAKE_HOME}/.claude/agents/sddkit-design.md" "global claude agents leaf"
-assert_file_exists "${FAKE_HOME}/.claude/skills/sddkit/SKILL.md" "global claude skills copy"
-assert_file_exists "${FAKE_HOME}/.codex/agents/sddkit-design.toml" "global codex agents leaf"
-assert_file_exists "${FAKE_HOME}/.config/opencode/agents/sddkit.md" "global opencode agents only"
-assert_file_absent "${GLOBAL_TARGET}/.claude/agents/sddkit-design.md" "global install does not write claude into TARGET_DIR"
-assert_file_absent "${GLOBAL_TARGET}/.agents/skills/sddkit/SKILL.md" "global install does not write skills into TARGET_DIR"
+assert_file_exists "${FAKE_HOME}/.claude/agents/shadow-design.md" "global claude agents leaf"
+assert_file_exists "${FAKE_HOME}/.claude/skills/arise/SKILL.md" "global claude skills copy"
+assert_file_exists "${FAKE_HOME}/.codex/agents/shadow-design.toml" "global codex agents leaf"
+assert_file_exists "${FAKE_HOME}/.config/opencode/agents/arise.md" "global opencode agents only"
+assert_file_absent "${GLOBAL_TARGET}/.claude/agents/shadow-design.md" "global install does not write claude into TARGET_DIR"
+assert_file_absent "${GLOBAL_TARGET}/.agents/skills/arise/SKILL.md" "global install does not write skills into TARGET_DIR"
 assert_eq "$(cat "${FAKE_HOME}/.config/opencode/opencode.jsonc")" '{"keep":"opencode"}' \
   "global install does not clobber opencode.jsonc"
 assert_eq "$(cat "${FAKE_HOME}/.claude/settings.json")" '{"keep":true}' \
   "global install does not clobber claude settings.json"
 assert_eq "$(cat "${FAKE_HOME}/.codex/config.toml")" "# user config" \
   "global install does not clobber codex config.toml"
-if [[ -L "${FAKE_HOME}/.claude/skills/sddkit/SKILL.md" ]]; then
+if [[ -L "${FAKE_HOME}/.claude/skills/arise/SKILL.md" ]]; then
   bad "global claude skills must be a copy"
 else
   ok "global claude skills are a copy"
 fi
 
-rm "${UPSTREAM}/dist/cursor/agents/sddkit-qa.md"
+rm "${UPSTREAM}/dist/cursor/agents/shadow-qa.md"
 HARNESS_ROOT="$UPSTREAM" node "${REPO_ROOT}/tools/gen-manifest.ts" >/dev/null
 HOME="$FAKE_HOME" INSTALL_SCOPE=global INSTALL_TARGET=cursor \
   LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$GLOBAL_TARGET" node "$INSTALL_JS" >/dev/null
-assert_file_absent "${FAKE_HOME}/.cursor/agents/sddkit-qa.md" "global prune removes upstream-deleted cursor agent"
-assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global prune keeps planted non-sddkit agent"
+assert_file_absent "${FAKE_HOME}/.cursor/agents/shadow-qa.md" "global prune removes upstream-deleted cursor agent"
+assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global prune keeps planted non-solodev agent"
 
 # bunx-equivalent: same dist/install.js under bun (consumers may still use bunx)
 if ! command -v bun >/dev/null 2>&1; then

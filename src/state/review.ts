@@ -21,7 +21,7 @@ export type ReviewMergeResult = {
 }
 
 function fail(why: string): never {
-  throw new Error(`sddkit-state: review-merge refused — ${why}`)
+  throw new Error(`quest-state: review-merge refused — ${why}`)
 }
 
 /**
