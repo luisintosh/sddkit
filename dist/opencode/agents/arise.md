@@ -43,7 +43,7 @@ YAML, and a missing or malformed key fails closed. Events:
 
 ## Delegation
 
-Invoke specialists by catalog name (`shadow-design`, `shadow-design-reviewer`, `shadow-implementer`,
+Invoke specialists by catalog name (`shadow-architect`, `shadow-design-reviewer`, `shadow-implementer`,
 `shadow-code-reviewer`, `shadow-qa`, `shadow-docs-writer`). Do not do their work yourself. Wait for each reply before
 the next stage — except the parallel steps: step 6 runs `shadow-code-reviewer` three times, one per `area`; step 9 runs
 `shadow-docs-writer` and `shadow-qa`; a clean-tree escalation runs its two worktree implementers.
@@ -62,7 +62,7 @@ cache. Continue only these:
 - `shadow-implementer` — a counted targeted-test failure, the opinion-gate answer, the empty-diff or no-test correction,
   a verify-fix retry, the step 6 fix round, and the step 6.5 dispute apply round. Continue the implementer that wrote
   the code being fixed.
-- `shadow-design` — the critique re-delegation (step 3) and design-gate edits (step 4).
+- `shadow-architect` — the critique re-delegation (step 3) and design-gate edits (step 4).
 
 Everything else gets a **new** specialist: the first delegation of every stage and slice, the escalation re-derive (it
 must not trust the prior attempt), review iteration 2 (an independent pass), the design delta, and every reviewer, QA,
@@ -174,7 +174,7 @@ next feature on completion. Other trackers skip handoff.
 | Step              | `stage`           | Who                                              | Leaves when                                | Next           |
 | ----------------- | ----------------- | ------------------------------------------------ | ------------------------------------------ | -------------- |
 | 1 initialize      | `initialized`     | you                                              | branch + state scaffolded, or resume found | 2              |
-| 2 design          | `design`          | `shadow-design`                                  | spec, contracts, plan on disk              | 3              |
+| 2 design          | `design`          | `shadow-architect`                               | spec, contracts, plan on disk              | 3              |
 | 3 design critique | `design`          | `shadow-design-reviewer`, or skipped by `decide` | `design_critique` in `completed`           | 4              |
 | 4 ⏸ design gate   | `design_gate`     | the human                                        | approved → `transition design-approved`    | 5              |
 | 5 implementation  | `implementation`  | `shadow-implementer`, one delegation per slice   | every slice committed                      | 6              |
@@ -285,9 +285,9 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
    converts feature IDs to issue numbers when it files them.) Other tracker: patch `feature_id` and `path` only; leave
    `issue`/`epic` at `0`. No issue named → `roadmap` stays zeroed.
 
-2. **design** — `stage: design`. Delegate `shadow-design` with the **original request verbatim** (the issue title + body
-   for issue-linked runs, otherwise the invocation's own words — nothing on disk carries it). Patch `artifacts.spec`,
-   `artifacts.contracts`, `artifacts.plan` from its reply, with `--append '{completed: [design]}'`.
+2. **design** — `stage: design`. Delegate `shadow-architect` with the **original request verbatim** (the issue title +
+   body for issue-linked runs, otherwise the invocation's own words — nothing on disk carries it). Patch
+   `artifacts.spec`, `artifacts.contracts`, `artifacts.plan` from its reply, with `--append '{completed: [design]}'`.
 
 3. **design critique** — `stage: design`. Run `quest-state decide <slug> --event skip-design-critique --yaml` with
    values from the design **reply**: `onlyViableApproach` (`recommended` is `only viable approach` or a single
@@ -295,7 +295,7 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
    `humanDecisions`, `openQuestions`, and `oracles` (every journey's `oracle`). Omit no key. Follow stdout:
    - `skip: true` → journal the skip.
    - `skip: false` → delegate `shadow-design-reviewer` with the original request verbatim. It fixes what it can in
-     place. Unresolved `blocker|major` findings → continue `shadow-design` once with those findings verbatim.
+     place. Unresolved `blocker|major` findings → continue `shadow-architect` once with those findings verbatim.
 
    Append `design_critique` to `completed`.
 
@@ -308,7 +308,7 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
      `quest-state transition <slug> --event design-approved --yaml '{commit: <sha>}'`. It clears `pending_gate` and
      `review.findings` and sets `review.base`; after a design delta it also runs the delta reset. Continue to step 5.
      Approving the design approves a named Playwright add — no second ask.
-   - Edits requested, or a different listed approach picked → continue `shadow-design` naming the change, then
+   - Edits requested, or a different listed approach picked → continue `shadow-architect` naming the change, then
      re-present.
 
 5. **implementation** — `stage: implementation`. Read `plan.md`'s Test strategy: parse the fenced `journeys:` YAML block
@@ -457,7 +457,7 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
 ## Findings routing
 
 Findings arrive as structured records `{id, file, line, severity, category, summary, fix}` and go verbatim to the fixing
-agent: design-reviewer findings to `shadow-design` (step 3), code-review findings to `shadow-implementer` (step 6.4),
+agent: design-reviewer findings to `shadow-architect` (step 3), code-review findings to `shadow-implementer` (step 6.4),
 spec or plan gaps through the design delta, QA findings through `decide --event qa-route` (step 9). Never fix anything
 yourself.
 
@@ -471,10 +471,10 @@ validate.
 
 Reply keys are not state keys. Translate:
 
-- **shadow-design** → its `artifacts` list splits across `artifacts.spec`, `artifacts.contracts`, and `artifacts.plan`;
-  `blockers` → `blockers`. In a design delta, follow it with `transition design-revised`.
+- **shadow-architect** → its `artifacts` list splits across `artifacts.spec`, `artifacts.contracts`, and
+  `artifacts.plan`; `blockers` → `blockers`. In a design delta, follow it with `transition design-revised`.
 - **shadow-design-reviewer** → nothing is persisted. Its `changes`, `fixed`, and `findings` are shown at the design
-  gate; unresolved `blocker|major` `findings` are passed verbatim to `shadow-design`.
+  gate; unresolved `blocker|major` `findings` are passed verbatim to `shadow-architect`.
 - **shadow-implementer** → `blockers` → `blockers`.
 - **shadow-code-reviewer** (three runs, one per `area`) → never applied one by one: `quest-state review-merge` (step
   6.3) writes all three at once — `review.status`, `blocker|major` → `review.findings`, `minor` →

@@ -20,7 +20,7 @@ Once installed, one command starts it all:
 
 solodev takes its name from the anime _Solo Leveling_, where one hunter commands an army of shadows that does the
 fighting. It is the same shape here: you are the solo dev. One command, `/arise`, summons a team of shadows, specialist
-agents (`shadow-design`, `shadow-implementer`, `shadow-qa`, and so on) that each do one job and report back to the
+agents (`shadow-architect`, `shadow-implementer`, `shadow-qa`, and so on) that each do one job and report back to the
 conductor. `quest-state` keeps the quest log, so any session knows where a feature stands. You give the order and
 approve one design; the shadows return a reviewed, tested, documented pull request.
 
@@ -112,7 +112,7 @@ flowchart TD
   req(["Feature request<br/>or GitHub issue"]):::human
   init["arise · initialize<br/>verify gh · feat/slug<br/>state init · probe"]:::conductor
   state[("state.yaml + journal<br/>via quest-state only")]:::state
-  design["shadow-design<br/>spec · contracts · plan<br/>≤ 3 journeys"]:::agent
+  design["shadow-architect<br/>spec · contracts · plan<br/>≤ 3 journeys"]:::agent
   critique["shadow-design-reviewer<br/>fixes in place"]:::agent
   gate{{"⏸ Design gate<br/>human approval"}}:::human
 
@@ -173,7 +173,7 @@ human acts, and grey is state written only through `quest-state`. Dotted edges a
 
 | Stage          | Who                                    | What happens                                                                                                                                                                                   |
 | -------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Design         | `shadow-design`                        | Writes `spec.md`, `contracts/*.feature`, and `plan.md` with at most three journeys, each tied to the cheapest test that can fail it.                                                           |
+| Design         | `shadow-architect`                     | Writes `spec.md`, `contracts/*.feature`, and `plan.md` with at most three journeys, each tied to the cheapest test that can fail it.                                                           |
 | Critique       | `shadow-design-reviewer`               | Fixes unambiguous issues in place and reports only what needs you. Skipped for trivially safe designs.                                                                                         |
 | Design gate    | you                                    | The one approval, never skipped.                                                                                                                                                               |
 | Implementation | `shadow-implementer`                   | Writes each journey's failing test, then the code. Retries go back to the same specialist so it keeps its context (and the prompt cache).                                                      |
@@ -184,8 +184,9 @@ human acts, and grey is state written only through `quest-state`. Dotted edges a
 
 ## Models
 
-Every agent declares a profile, and `src/catalog.yaml` maps each profile to a model per host. The `arise` and
-`arise-plan` skills inherit your session model.
+Every agent declares a profile, and `src/catalog.yaml` maps each profile to a model per host. `commander` and
+`shadow-product-owner` are what you invoke as `arise` and `arise-plan` (skills, or OpenCode agents), and they inherit
+your session model on the other hosts.
 
 | profile         | OpenCode                               | Cursor                           | Claude                  | Codex                |
 | --------------- | -------------------------------------- | -------------------------------- | ----------------------- | -------------------- |
@@ -199,14 +200,14 @@ Every agent declares a profile, and `src/catalog.yaml` maps each profile to a mo
 
 | agent                    | profile         |
 | ------------------------ | --------------- |
-| `arise`                  | `conduct`       |
-| `shadow-design`          | `think`         |
+| `commander`              | `conduct`       |
+| `shadow-architect`       | `think`         |
 | `shadow-design-reviewer` | `design-review` |
 | `shadow-implementer`     | `execute`       |
 | `shadow-code-reviewer`   | `code-review`   |
 | `shadow-qa`              | `validate`      |
 | `shadow-docs-writer`     | `write`         |
-| `arise-plan`             | `think`         |
+| `shadow-product-owner`   | `think`         |
 
 CI checks both tables against `src/catalog.yaml`.
 
@@ -218,7 +219,7 @@ host subagent:
 
 | specialist                                       | worker                                                       |
 | ------------------------------------------------ | ------------------------------------------------------------ |
-| `shadow-design`                                  | `claude --model opus --effort medium --permission-mode auto` |
+| `shadow-architect`                               | `claude --model opus --effort medium --permission-mode auto` |
 | `shadow-design-reviewer`, `shadow-code-reviewer` | `claude --model sonnet --effort high --permission-mode auto` |
 | `shadow-implementer`                             | `cursor-agent --model grok-4.7-low --yolo`                   |
 | `shadow-qa`, `shadow-docs-writer`                | `cursor-agent --model grok-4.7-high --yolo`                  |

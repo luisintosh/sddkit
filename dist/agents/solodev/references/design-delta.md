@@ -8,8 +8,8 @@ or `route: mixed` → `origin: qa`), or from `quest-state next` with `step: 9-de
    re-presenting the old design. Findings: for `qa`, this cycle's `spec|plan` findings only (drop impl findings — the
    re-QA pass re-emits any that still fail); for `review`, the gap as one `spec` or `plan` record per the anchor rule
    (`file: ""`, `line: 0` when nothing anchors it).
-2. Delegate a **new** `shadow-design` with `delta.findings` (read via `show`) verbatim. Patch its artifacts as in step
-   2, then `quest-state transition <slug> --event design-revised`.
+2. Delegate a **new** `shadow-architect` with `delta.findings` (read via `show`) verbatim. Patch its artifacts as in
+   step 2, then `quest-state transition <slug> --event design-revised`.
 3. Design gate (step 4), always presented. On approval, `transition design-approved` runs the delta reset: it removes
    `implementation`, `review`, `verify`, and `docs_sync` from `completed`; clears `completed_slices`, `current_slice`,
    `slice_phase`, and `review.findings`; zeroes `review.iterations`, `green_attempts`, and `escalation`; clears

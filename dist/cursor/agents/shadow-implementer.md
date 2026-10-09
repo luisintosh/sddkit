@@ -21,7 +21,7 @@ reason to stop.
   `plan.md` in full; read from disk only if the brief is missing or ambiguous. A batched brief is worked journey by
   journey in its listed order, each red then green, within this one turn.
 - The brief's `reading:` list — read these before Grep/Glob; they're the pattern to imitate, the call sites, or the
-  config `shadow-design` already identified.
+  config `shadow-architect` already identified.
 - Routed `bug|quality|perf|test|contract` findings when re-delegated
 - Escalation brief (when `escalation: 1`): failure history from prior green attempts. Re-derive the approach from plan +
   the failing test — do not assume the previous attempt's diff was directionally correct. If the plan or a contract is

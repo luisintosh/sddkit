@@ -70,7 +70,9 @@ orchestrators:
       write: { agent: cursor, id: grok-4.7-high }
 
 agents:
-  arise:
+  # `command` is the name users invoke: the skill (/arise) and the OpenCode agent. Without it, the key is the name.
+  commander:
+    command: arise
     profile: conduct
     description: >-
       Drives the end-to-end spec-driven development (SDD) feature pipeline — sequences stages, manages human-in-the-loop
@@ -96,7 +98,7 @@ agents:
     cursor:
       skill: true
 
-  shadow-design:
+  shadow-architect:
     profile: think
     description: >-
       Writes the feature design in one pass — spec (the what & why), spec-derived acceptance contracts, and the
@@ -218,7 +220,8 @@ agents:
           "docs/feats/**": deny
     cursor: {}
 
-  arise-plan:
+  shadow-product-owner:
+    command: arise-plan
     profile: think
     description: >-
       Product Owner planner. Refines a raw idea into a measurable goal, then writes a feature roadmap at

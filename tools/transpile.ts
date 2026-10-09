@@ -21,6 +21,8 @@ const srcDir = path.join(root, "src")
 const distDir = path.join(root, "dist")
 
 type AgentCatalog = {
+  /** User-facing name of a skill / OpenCode agent; the catalog key when absent. */
+  command?: string
   profile: string
   description: string
   opencode: {
@@ -323,7 +325,7 @@ async function emitOpencode(catalog: Catalog) {
     if (agent.opencode.temperature !== undefined) fm.temperature = agent.opencode.temperature
     if (agent.opencode.steps !== undefined) fm.steps = agent.opencode.steps
     if (agent.opencode.permission !== undefined) fm.permission = agent.opencode.permission
-    await writeFile(path.join(outRoot, "agents", `${name}.md`), yamlFrontmatter(fm) + body)
+    await writeFile(path.join(outRoot, "agents", `${agent.command ?? name}.md`), yamlFrontmatter(fm) + body)
   }
   // Installed through the always-on .agents tree, so global and project installs both resolve them from <root>.
   const refDir = path.join(distDir, "agents", "solodev", "references")
@@ -358,16 +360,17 @@ async function emitSharedSkills(catalog: Catalog) {
 
   for (const [name, agent] of Object.entries(catalog.agents)) {
     if (!agent.cursor?.skill) continue
+    const skill = agent.command ?? name
     const refs = new Set<string>()
     const body = await renderPrompt(`agents/${name}.md`, catalog, "skill", refs)
-    await writeReferences(catalog, refs, path.join(outRoot, name, "references"))
+    await writeReferences(catalog, refs, path.join(outRoot, skill, "references"))
     const restrictions = cursorRestrictions(agent)
     const skillFm = {
-      name,
+      name: skill,
       description: agent.description,
     }
     await writeFile(
-      path.join(outRoot, name, "SKILL.md"),
+      path.join(outRoot, skill, "SKILL.md"),
       `${yamlFrontmatter(skillFm)}${body.trimEnd() + restrictions}\n`,
     )
   }

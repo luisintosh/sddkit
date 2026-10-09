@@ -7,7 +7,7 @@
       "expected_output": "Run in a copy of test/fixture-repo. One design delegation and one design gate; one journey whose diff is only new files is implemented, committed, reviewed once over the feature diff, and the PR is marked ready by the conductor.",
       "files": ["test/fixture-repo"],
       "expectations": [
-        "shadow-design was delegated once and the human saw exactly one gate (the design gate)",
+        "shadow-architect was delegated once and the human saw exactly one gate (the design gate)",
         "After each shadow-implementer reply, the conductor ran `git add --intent-to-add` on the reply's files_changed",
         "shadow-code-reviewer was delegated three times in parallel, once per area (contract, health, design), each with an absolute checklist path under the same .agents/ root as quest-state, review.base as the diff base, and a diff that included the new module and its test file",
         "No reviewer edited the tree (any stray edit was reverted), and the three replies were merged into one review.findings list before verify",

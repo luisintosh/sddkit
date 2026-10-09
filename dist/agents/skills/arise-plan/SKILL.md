@@ -68,8 +68,8 @@ tracker-mirror step.
    improvement"); a one-line outcome; `Depends on:` `[]` or a list of feature IDs; effort tag `S|M|L`; risk tag
    `low|standard`. Effort and risk are sequencing aids for the human reading the roadmap — what to batch, what to
    schedule early — and are not pipeline inputs: `arise` scopes each run from the work item's Acceptance criteria, and
-   its `shadow-design` plans at most 3 journeys with the cheapest oracle that can fail each observable. Size them for a
-   human planner, not for a machine. Derive waves from the dependency graph (a wave = every feature whose dependencies
+   its `shadow-architect` plans at most 3 journeys with the cheapest oracle that can fail each observable. Size them for
+   a human planner, not for a machine. Derive waves from the dependency graph (a wave = every feature whose dependencies
    are all in earlier waves — same-wave features are parallelizable). Mark the MVP line: the earliest wave boundary that
    already satisfies the success criteria.
 6. **Red-team** — before presenting, attack your own draft across these angles; fix what the critique finds, and carry

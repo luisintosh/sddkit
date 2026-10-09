@@ -1,6 +1,6 @@
 ## Delegation
 
-Invoke specialists by catalog name (`shadow-design`, `shadow-design-reviewer`, `shadow-implementer`,
+Invoke specialists by catalog name (`shadow-architect`, `shadow-design-reviewer`, `shadow-implementer`,
 `shadow-code-reviewer`, `shadow-qa`, `shadow-docs-writer`). Do not do their work yourself. Wait for each reply before
 the next stage — except the parallel steps: step 6 runs `shadow-code-reviewer` three times, one per `area`; step 9 runs
 `shadow-docs-writer` and `shadow-qa`; a clean-tree escalation runs its two worktree implementers.
@@ -17,7 +17,7 @@ cache. Continue only these:
 - `shadow-implementer` — a counted targeted-test failure, the opinion-gate answer, the empty-diff or no-test correction,
   a verify-fix retry, the step 6 fix round, and the step 6.5 dispute apply round. Continue the implementer that wrote
   the code being fixed.
-- `shadow-design` — the critique re-delegation (step 3) and design-gate edits (step 4).
+- `shadow-architect` — the critique re-delegation (step 3) and design-gate edits (step 4).
 
 Everything else gets a **new** specialist: the first delegation of every stage and slice, the escalation re-derive (it
 must not trust the prior attempt), review iteration 2 (an independent pass), the design delta, and every reviewer, QA,

@@ -81,7 +81,7 @@ export function nextStep(feature: string, state: SddState): NextStep {
       )
     case "design":
       if (state.delta.pending)
-        return at("9-delta", "design delta pending: re-delegate shadow-design with delta.findings")
+        return at("9-delta", "design delta pending: re-delegate shadow-architect with delta.findings")
       if (!done("design")) return at("2", "design not written yet")
       if (!done("design_critique")) return at("3", "design written; critique not run")
       return at("4", "design and critique done; present the gate")

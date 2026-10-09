@@ -63,6 +63,7 @@ async function walkFiles(dir: string) {
 }
 
 type AgentCatalog = {
+  command?: string
   profile?: string
   description?: string
   opencode?: { mode?: string; temperature?: number; steps?: number; permission?: unknown }
@@ -91,7 +92,7 @@ function resolveRef(catalog: Catalog, host: Host, profile: string): ModelRef | u
  * qualify: an "ask" anywhere else can be reached by an unattended `opencode run`
  * with no human to answer it, stalling that run indefinitely. See tools/transpile.ts.
  */
-const ASK_ALLOWED = new Set(["arise-plan"])
+const ASK_ALLOWED = new Set(["shadow-product-owner"])
 
 /** Every permission value in a nested map, flattened to "path -> value" pairs. */
 function permissionValues(node: unknown, path: string[] = []): [string, string][] {
@@ -150,22 +151,21 @@ try {
 const agentNames = catalog ? Object.keys(catalog.agents || {}).sort() : []
 
 if (catalog) {
-  if (!catalog.agents?.arise) fail("catalog: missing agents.arise")
-  else if (catalog.agents.arise.opencode?.mode !== "primary") fail("catalog: arise.opencode.mode must be primary")
+  if (!catalog.agents?.commander) fail("catalog: missing agents.commander")
+  else if (catalog.agents.commander.opencode?.mode !== "primary") {
+    fail("catalog: commander.opencode.mode must be primary")
+  }
+  if (catalog.agents?.commander?.command !== "arise") fail('catalog: agents.commander.command must be "arise"')
+  if (catalog.agents?.["shadow-product-owner"]?.command !== "arise-plan") {
+    fail('catalog: agents.shadow-product-owner.command must be "arise-plan"')
+  }
   if (catalog.agents?.["implementer-pro"]) fail("catalog: implementer-pro must be removed")
   if (catalog.agents?.tester) fail("catalog: tester must be removed")
   for (const stale of ["implementer", "code-reviewer", "qa", "docs-writer"]) {
     if (catalog.agents?.[stale]) fail(`catalog: ${stale} must be renamed shadow-${stale}`)
   }
-  for (const merged of [
-    "shadow-spec",
-    "shadow-architect",
-    "shadow-plan-reviewer",
-    "spec",
-    "architect",
-    "plan-reviewer",
-  ]) {
-    if (catalog.agents?.[merged]) fail(`catalog: ${merged} is merged into shadow-design / shadow-design-reviewer`)
+  for (const merged of ["shadow-spec", "shadow-plan-reviewer", "spec", "architect", "plan-reviewer"]) {
+    if (catalog.agents?.[merged]) fail(`catalog: ${merged} is merged into shadow-architect / shadow-design-reviewer`)
   }
   for (const area of REVIEW_AREAS) {
     if (catalog.agents?.[`shadow-code-reviewer-${area}`]) {
@@ -177,8 +177,8 @@ if (catalog) {
     if (!catalog.agents?.[name]) fail(`src/prompts/agents/${file} has no catalog agent`)
   }
   for (const name of agentNames) {
-    if (name !== "arise" && name !== "arise-plan" && !name.startsWith("shadow-")) {
-      fail(`catalog: agents.${name} must be "arise", "arise-plan", or start with "shadow-"`)
+    if (name !== "commander" && !name.startsWith("shadow-")) {
+      fail(`catalog: agents.${name} must be "commander" or start with "shadow-"`)
     }
     const a = catalog.agents![name]!
     if (!a.description?.trim()) fail(`catalog: agents.${name}.description required`)
@@ -311,12 +311,13 @@ if (ocConfig) failOnAsk("dist/opencode/opencode.jsonc", ocConfig.permission)
 
 if (catalog) {
   for (const name of agentNames) {
-    const ocPath = path.join(distOc, "agents", `${name}.md`)
+    const emitted = catalog.agents![name]!.command ?? name
+    const ocPath = path.join(distOc, "agents", `${emitted}.md`)
     try {
       const raw = await readFile(ocPath, "utf8")
       const m = raw.match(/^---\n([\s\S]*?)\n---\n/)
       if (!m) {
-        fail(`dist/opencode/agents/${name}.md: missing frontmatter`)
+        fail(`dist/opencode/agents/${emitted}.md: missing frontmatter`)
         continue
       }
       const fm = parseYaml(m[1]!) as {
@@ -347,15 +348,15 @@ if (catalog) {
         fail(`dist drift: opencode ${name} permission block != catalog — run pnpm run build`)
       }
     } catch {
-      fail(`dist/opencode/agents/${name}.md missing — run pnpm run build`)
+      fail(`dist/opencode/agents/${emitted}.md missing — run pnpm run build`)
     }
 
     const agent = catalog.agents![name]!
     if (agent.cursor?.skill) {
       try {
-        await stat(path.join(root, "dist", "agents", "skills", name, "SKILL.md"))
+        await stat(path.join(root, "dist", "agents", "skills", emitted, "SKILL.md"))
       } catch {
-        fail(`dist/agents/skills/${name}/SKILL.md missing — run pnpm run build`)
+        fail(`dist/agents/skills/${emitted}/SKILL.md missing — run pnpm run build`)
       }
     } else {
       const cuPath = path.join(distCu, "agents", `${name}.md`)
@@ -509,7 +510,7 @@ if (catalog) {
     await readOr(path.join(skillDir, "SKILL.md")),
     ...(await Promise.all(refNames.map((f) => readOr(path.join(skillDir, "references", f))))),
   ].join("\n")
-  const design = await readOr(path.join(root, "dist", "claude", "agents", "shadow-design.md"))
+  const design = await readOr(path.join(root, "dist", "claude", "agents", "shadow-architect.md"))
   const reviewer = await readOr(path.join(root, "dist", "claude", "agents", "shadow-design-reviewer.md"))
   const contracts: [string, string, string][] = [
     [design, "cheapest sensor that can fail", "design cheapest-oracle menu"],
@@ -541,7 +542,7 @@ if (catalog) {
     [conductor, "first use", "conductor glosses concepts on first use"],
     [conductor, "**Needs you**", "conductor attention tag"],
   ]
-  for (const name of ["design", "design-reviewer", "implementer", "code-reviewer", "qa", "docs-writer"]) {
+  for (const name of ["architect", "design-reviewer", "implementer", "code-reviewer", "qa", "docs-writer"]) {
     const body = await readOr(path.join(root, "dist", "claude", "agents", `shadow-${name}.md`))
     contracts.push([body, "headline:", `shadow-${name} reply headline`])
   }

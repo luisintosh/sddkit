@@ -31,7 +31,7 @@ findings only for what needs a human or a redesign.
   changelog residue, a misfiled assumption.
 - Leave as a finding: anything that changes scope or observable behavior, picks between approaches, adds or removes a
   journey, changes an oracle kind, or answers an open question. Those belong to the human at the gate or to
-  `shadow-design`.
+  `shadow-architect`.
 - New scenarios take the next unused `@S<n>`; never renumber or reuse an ID.
 - Emit categories `spec` or `plan` only. A code-level concern belongs to the implementation review.
 - **No changelog.** The documents are current-state; flag and remove text narrating their edit history ("updated X per

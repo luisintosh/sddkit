@@ -62,7 +62,7 @@ tracker-mirror step.
 - Screenshots and outputs live under `/tmp/qa-<slug>/`; reference them by path in the report (never claim to embed
   images — CLI can't upload them).
 - Failures also become structured finding records (shared schema) so the conductor can route them by category — impl
-  findings to `shadow-implementer`, spec/plan findings through a design delta to `shadow-design`. QA findings are not
+  findings to `shadow-implementer`, spec/plan findings through a design delta to `shadow-architect`. QA findings are not
   always specify. `file` and `line` are required and a record missing either invalidates the conductor's whole patch —
   an e2e-path failure rarely has a source location, so anchor it to the `@S<n>` scenario it violates (`file`: the
   contract path, `line`: the scenario's line). Nothing to anchor to → `file: ""`, `line: 0`.

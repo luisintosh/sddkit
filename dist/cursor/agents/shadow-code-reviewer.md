@@ -61,7 +61,7 @@ Return every issue in your area as a finding; never fix — the conductor merges
   evidence. A helper-only unit test offered as the acceptance bar is a `test` finding; do not reject an approved
   Playwright oracle.
 - Categories `bug`, `quality`, `perf`, `test`, or `contract` only. A gap in the spec or plan is not yours to file: raise
-  it in `notes`, and the conductor routes it to `shadow-design`.
+  it in `notes`, and the conductor routes it to `shadow-architect`.
 - Diff too large for your step budget → review the highest-risk files first and state in `notes` what you did not reach.
   A `clean` verdict over a partially-read diff costs more than no review at all.
 

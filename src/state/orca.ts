@@ -11,7 +11,7 @@ export type OrcaRoutes = Record<string, OrcaRoute>
 export const ORCA_AGENTS: readonly OrcaAgent[] = ["claude", "cursor", "codex"]
 
 /** Agents the conductor never dispatches: itself and the standalone planner. */
-export const ORCA_UNDISPATCHED = new Set(["arise", "arise-plan"])
+export const ORCA_UNDISPATCHED = new Set(["commander", "shadow-product-owner"])
 
 type CatalogSlice = {
   orchestrators?: { orca?: { profiles?: OrcaRoutes } }

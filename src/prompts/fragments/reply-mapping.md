@@ -2,10 +2,10 @@
 
 Reply keys are not state keys. Translate:
 
-- **shadow-design** → its `artifacts` list splits across `artifacts.spec`, `artifacts.contracts`, and `artifacts.plan`;
-  `blockers` → `blockers`. In a design delta, follow it with `transition design-revised`.
+- **shadow-architect** → its `artifacts` list splits across `artifacts.spec`, `artifacts.contracts`, and
+  `artifacts.plan`; `blockers` → `blockers`. In a design delta, follow it with `transition design-revised`.
 - **shadow-design-reviewer** → nothing is persisted. Its `changes`, `fixed`, and `findings` are shown at the design
-  gate; unresolved `blocker|major` `findings` are passed verbatim to `shadow-design`.
+  gate; unresolved `blocker|major` `findings` are passed verbatim to `shadow-architect`.
 - **shadow-implementer** → `blockers` → `blockers`.
 - **shadow-code-reviewer** (three runs, one per `area`) → never applied one by one: `quest-state review-merge` (step
   6.3) writes all three at once — `review.status`, `blocker|major` → `review.findings`, `minor` →

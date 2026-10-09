@@ -29,8 +29,8 @@ assert_eq() {
 # Ensure dist + manifest exist
 (cd "$REPO_ROOT" && pnpm run build >/dev/null)
 
-assert_file_exists "${REPO_ROOT}/dist/claude/agents/shadow-design.md" "transpile emits claude design agent"
-assert_file_exists "${REPO_ROOT}/dist/codex/agents/shadow-design.toml" "transpile emits codex design agent"
+assert_file_exists "${REPO_ROOT}/dist/claude/agents/shadow-architect.md" "transpile emits claude design agent"
+assert_file_exists "${REPO_ROOT}/dist/codex/agents/shadow-architect.toml" "transpile emits codex design agent"
 if grep -q 'spawn_agent' "${REPO_ROOT}/dist/agents/skills/arise/SKILL.md"; then
   ok "arise skill documents Codex spawn_agent"
 else
@@ -60,9 +60,9 @@ assert_file_exists "${TARGET}/.opencode/agents/arise-plan.md" "opencode arise-pl
 assert_file_exists "${TARGET}/.opencode/opencode.jsonc" "opencode.jsonc installed"
 assert_file_absent "${TARGET}/.opencode/plugins/sdd-guard.ts" "plugin not installed"
 assert_file_exists "${TARGET}/.cursor/agents/shadow-implementer.md" "cursor implementer installed"
-assert_file_exists "${TARGET}/.claude/agents/shadow-design.md" "claude design agent installed"
+assert_file_exists "${TARGET}/.claude/agents/shadow-architect.md" "claude design agent installed"
 assert_file_exists "${TARGET}/.claude/skills/arise/SKILL.md" "claude skills copy installed"
-assert_file_exists "${TARGET}/.codex/agents/shadow-design.toml" "codex design agent installed"
+assert_file_exists "${TARGET}/.codex/agents/shadow-architect.toml" "codex design agent installed"
 if [[ -L "${TARGET}/.claude/skills/arise/SKILL.md" ]]; then
   bad "claude skills must be a copy, not a symlink"
 else
@@ -167,15 +167,15 @@ fi
 # 6. checksum mismatch aborts
 TAMPERED="${WORK}/tampered-upstream"
 cp -R "$UPSTREAM" "$TAMPERED"
-echo "TAMPERED" >> "${TAMPERED}/dist/opencode/agents/shadow-design.md"
+echo "TAMPERED" >> "${TAMPERED}/dist/opencode/agents/shadow-architect.md"
 
-before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/shadow-design.md" | awk '{print $1}')"
+before_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/shadow-architect.md" | awk '{print $1}')"
 set +e
 LOCAL_SOURCE="$TAMPERED" TARGET_DIR="$TARGET" INSTALL_TARGET=opencode node "$INSTALL_JS" >/dev/null 2>&1
 rc=$?
 set -e
 if [[ $rc -ne 0 ]]; then ok "checksum mismatch exits non-zero"; else bad "checksum mismatch should abort"; fi
-after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/shadow-design.md" | awk '{print $1}')"
+after_hash="$(shasum -a 256 "${TARGET}/.opencode/agents/shadow-architect.md" | awk '{print $1}')"
 assert_eq "$after_hash" "$before_hash" "no partial write after checksum mismatch"
 
 # 7. doctor mentions quest-state
@@ -196,10 +196,10 @@ rm -rf "${UPSTREAM}/dist"
 cp -R "${REPO_ROOT}/dist" "${UPSTREAM}/dist"
 cp "${REPO_ROOT}/manifest.txt" "$UPSTREAM/"
 LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET2" INSTALL_TARGET=cursor node "$INSTALL_JS" >/dev/null
-assert_file_exists "${TARGET2}/.cursor/agents/shadow-design.md" "cursor-only installs .cursor"
+assert_file_exists "${TARGET2}/.cursor/agents/shadow-architect.md" "cursor-only installs .cursor"
 assert_file_absent "${TARGET2}/.opencode/agents/arise.md" "cursor-only skips .opencode"
-assert_file_absent "${TARGET2}/.claude/agents/shadow-design.md" "cursor-only skips .claude"
-assert_file_absent "${TARGET2}/.codex/agents/shadow-design.toml" "cursor-only skips .codex"
+assert_file_absent "${TARGET2}/.claude/agents/shadow-architect.md" "cursor-only skips .claude"
+assert_file_absent "${TARGET2}/.codex/agents/shadow-architect.toml" "cursor-only skips .codex"
 assert_file_exists "${TARGET2}/.agents/bin/quest-state.mjs" "cursor-only still installs quest-state"
 assert_file_exists "${TARGET2}/.agents/skills/arise/SKILL.md" "cursor-only installs shared skills"
 assert_file_exists "${TARGET2}/.agents/solodev/checklists/review-design.md" "cursor-only installs review checklists"
@@ -302,11 +302,11 @@ assert_file_exists "${FAKE_HOME}/.agents/solodev/references/escalation.md" "glob
 assert_file_absent "${GLOBAL_TARGET}/.agents/solodev/checklists/review-contract.md" "global install does not write checklists into TARGET_DIR"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/shadow-implementer.md" "global cursor agents leaf"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global install keeps planted cursor agent"
-assert_file_exists "${FAKE_HOME}/.claude/agents/shadow-design.md" "global claude agents leaf"
+assert_file_exists "${FAKE_HOME}/.claude/agents/shadow-architect.md" "global claude agents leaf"
 assert_file_exists "${FAKE_HOME}/.claude/skills/arise/SKILL.md" "global claude skills copy"
-assert_file_exists "${FAKE_HOME}/.codex/agents/shadow-design.toml" "global codex agents leaf"
+assert_file_exists "${FAKE_HOME}/.codex/agents/shadow-architect.toml" "global codex agents leaf"
 assert_file_exists "${FAKE_HOME}/.config/opencode/agents/arise.md" "global opencode agents only"
-assert_file_absent "${GLOBAL_TARGET}/.claude/agents/shadow-design.md" "global install does not write claude into TARGET_DIR"
+assert_file_absent "${GLOBAL_TARGET}/.claude/agents/shadow-architect.md" "global install does not write claude into TARGET_DIR"
 assert_file_absent "${GLOBAL_TARGET}/.agents/skills/arise/SKILL.md" "global install does not write skills into TARGET_DIR"
 assert_eq "$(cat "${FAKE_HOME}/.config/opencode/opencode.jsonc")" '{"keep":"opencode"}' \
   "global install does not clobber opencode.jsonc"

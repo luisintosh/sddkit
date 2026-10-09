@@ -7,7 +7,7 @@ import { type ProbeDeps, probeOrchestrator, resolveOrcaCli } from "./probe.ts"
 const catalog = parseYaml(fs.readFileSync(new URL("../catalog.yaml", import.meta.url), "utf8"))
 
 const routes: OrcaRoutes = {
-  "shadow-design": { agent: "claude", id: "opus", effort: "medium" },
+  "shadow-architect": { agent: "claude", id: "opus", effort: "medium" },
   "shadow-implementer": { agent: "cursor", id: "grok-4.7-high" },
 }
 
@@ -111,9 +111,9 @@ describe("resolveOrcaCli", () => {
 describe("orca routes", () => {
   test("catalog routes every dispatched specialist, never the conductor or planner", () => {
     const byAgent = orcaRoutesByAgent(catalog)
-    expect(byAgent.arise).toBeUndefined()
-    expect(byAgent["arise-plan"]).toBeUndefined()
-    expect(byAgent["shadow-design"]).toEqual({ agent: "claude", id: "opus", effort: "medium" })
+    expect(byAgent.commander).toBeUndefined()
+    expect(byAgent["shadow-product-owner"]).toBeUndefined()
+    expect(byAgent["shadow-architect"]).toEqual({ agent: "claude", id: "opus", effort: "medium" })
     expect(byAgent["shadow-design-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
     expect(byAgent["shadow-code-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
     for (const area of ["contract", "health", "design"]) {

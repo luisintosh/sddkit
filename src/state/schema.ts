@@ -143,7 +143,7 @@ const StateObject = z.object({
       url: z.string().default(""),
     })
     .default({ url: "" }),
-  // An in-flight design delta: pending until shadow-design replies to `findings`; `origin` decides whether the delta
+  // An in-flight design delta: pending until shadow-architect replies to `findings`; `origin` decides whether the delta
   // reset moves review.base (qa) or keeps it so the next review still covers code written before the delta (review).
   delta: z
     .object({

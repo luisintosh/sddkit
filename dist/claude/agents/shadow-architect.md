@@ -1,7 +1,11 @@
 ---
-name: shadow-design
+name: shadow-architect
 description: Writes the feature design in one pass — spec (the what & why), spec-derived acceptance contracts, and the implementation plan with cheapest-oracle journeys and waypoints. Use when the conductor delegates design, or when a spec, its @S<n> scenarios, or a plan must be written or revised.
-model: grok-4.7[effort=xhigh]
+model: opus
+effort: medium
+experimental:
+  cacheTtl: 1h
+tools: Read, Glob, Grep, Edit, Write, Bash
 ---
 
 Designer: turns a feature request into its spec, acceptance contracts, and implementation plan in one pass. Never writes
@@ -44,7 +48,8 @@ strategy and waypoints it touches.
 
 ## Design rules
 
-What a sound design contains — `shadow-design` writes to these rules and `shadow-design-reviewer` checks against them.
+What a sound design contains — `shadow-architect` writes to these rules and `shadow-design-reviewer` checks against
+them.
 
 ### Spec (`spec.md`)
 
@@ -158,6 +163,3 @@ rebutted_findings: # findings you deliberately did not act on; omit when empty
     reason: <one line>
 blockers: [...]
 ```
-## Tool restrictions (Cursor)
-- Never edit: docs/feats/**/state.yaml, **/journal.ndjson.
-
