@@ -143,6 +143,15 @@ const StateObject = z.object({
       url: z.string().default(""),
     })
     .default({ url: "" }),
+  // An in-flight design delta: pending until sddkit-design replies to `findings`; `origin` decides whether the delta
+  // reset moves review.base (qa) or keeps it so the next review still covers code written before the delta (review).
+  delta: z
+    .object({
+      pending: z.boolean().default(false),
+      origin: z.enum(["", "review", "qa"]).default(""),
+      findings: z.array(FindingSchema).default([]),
+    })
+    .default({ pending: false, origin: "", findings: [] }),
   roadmap: z
     .object({
       issue: z.number().int().default(0),
@@ -156,6 +165,7 @@ const StateObject = z.object({
 export const StateSchema = z.preprocess(normalizeLegacy, StateObject)
 
 export type SddState = z.infer<typeof StateObject>
+export type Finding = z.infer<typeof FindingSchema>
 
 export function validateState(
   candidate: unknown,

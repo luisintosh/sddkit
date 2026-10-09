@@ -493,13 +493,23 @@ if (catalog) {
   }
 }
 
+// Contracts are checked against the built prompts (check runs after build), so phrases may live in fragments or in the
+// conductor's on-demand references and still count.
 {
-  const conductor = await readFile(path.join(root, "src", "prompts", "agents", "sddkit.md"), "utf8")
-  const design = await readFile(path.join(root, "src", "prompts", "agents", "sddkit-design.md"), "utf8")
+  const skillDir = path.join(root, "dist", "agents", "skills", "sddkit")
+  const readOr = async (file: string) => readFile(file, "utf8").catch(() => "")
+  const refNames = await readdir(path.join(skillDir, "references")).catch(() => [] as string[])
+  const conductor = [
+    await readOr(path.join(skillDir, "SKILL.md")),
+    ...(await Promise.all(refNames.map((f) => readOr(path.join(skillDir, "references", f))))),
+  ].join("\n")
+  const design = await readOr(path.join(root, "dist", "claude", "agents", "sddkit-design.md"))
+  const reviewer = await readOr(path.join(root, "dist", "claude", "agents", "sddkit-design-reviewer.md"))
   const contracts: [string, string, string][] = [
     [design, "cheapest sensor that can fail", "design cheapest-oracle menu"],
     [design, "at most 3 journeys", "design journey cap"],
     [design, "fenced YAML block", "design on-disk journeys"],
+    [reviewer, "cheapest sensor that can fail", "design reviewer shares the design rules"],
     [conductor, "sddkit-state decide", "conductor sddkit-state decide"],
     [conductor, "skip-design-critique", "conductor skip-design-critique"],
     [conductor, "oracles", "conductor decide oracles"],
@@ -509,15 +519,42 @@ if (catalog) {
     [conductor, "qa-route", "conductor qa-route"],
     [conductor, "this cycle's", "conductor qa-route yaml source"],
     [conductor, "git reset --hard", "conductor clean-tree escalation"],
+    [conductor, "sddkit-state snapshot", "conductor snapshot before reset"],
+    [conductor, "--event escalate", "conductor escalate restores the snapshot"],
     [conductor, "QA findings are not always specify", "conductor QA not-always-specify"],
     [conductor, "never collapse a multi-journey", "conductor journey parse"],
-    [conductor, "means this is a design delta", "conductor design-delta resume"],
+    [conductor, "sddkit-state next", "conductor resume via next"],
+    [conductor, "--event design-approved", "conductor design approval transition"],
+    [conductor, "--event design-delta", "conductor design-delta transition"],
+    [conductor, "review-merge", "conductor review merge"],
     [conductor, "review.fix_pending", "conductor fix-round resume marker"],
-    [conductor, "before patching anything", "conductor tech-debt before overwrite"],
+    [conductor, "--intent-to-add", "conductor tracks new files"],
+    [conductor, "sddkit-state version", "conductor CLI protocol check"],
     [conductor, "absolute path", "conductor absolute checklist paths"],
   ]
   for (const [body, phrase, label] of contracts) {
     if (!body.includes(phrase)) fail(`prompt contract missing ${label}: "${phrase}"`)
+  }
+
+  // Every reference a pointer names ships beside the skill, and every reference the OpenCode agent names ships under
+  // dist/agents/sddkit/references/ (installed to <root>/.agents/sddkit/references/).
+  const skill = await readOr(path.join(skillDir, "SKILL.md"))
+  for (const m of skill.matchAll(/\]\(references\/([\w.-]+)\)/g)) {
+    if (!refNames.includes(m[1]!)) fail(`dist: conductor skill points at references/${m[1]}, which was not emitted`)
+  }
+  const ocDir = path.join(root, "dist", "agents", "sddkit", "references")
+  const ocRefs = await readdir(ocDir).catch(() => [] as string[])
+  const ocConductor = await readOr(path.join(root, "dist", "opencode", "agents", "sddkit.md"))
+  for (const m of ocConductor.matchAll(/<root>\/\.agents\/sddkit\/references\/([\w.-]+)/g)) {
+    if (!ocRefs.includes(m[1]!)) fail(`dist: opencode conductor points at references/${m[1]}, which was not emitted`)
+  }
+  if (ocConductor.includes("**Dispatch.**"))
+    fail("dist: opencode conductor inlines Orca dispatch instead of pointing at it")
+  for (const file of [
+    ...refNames.map((f) => path.join(skillDir, "references", f)),
+    ...ocRefs.map((f) => path.join(ocDir, f)),
+  ]) {
+    if ((await readOr(file)).includes("{{")) fail(`${path.relative(root, file)}: unresolved {{...}} placeholder`)
   }
 }
 

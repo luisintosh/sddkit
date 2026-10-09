@@ -24,6 +24,8 @@ permission:
     git checkout*: deny
     git stash*: deny
     gh *: deny
+  external_directory:
+    ~/.agents/sddkit/**: allow
 ---
 
 Code reviewer: independent, report-only review of **one area** of the feature implementation diff — `contract`,

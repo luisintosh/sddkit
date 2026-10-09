@@ -93,6 +93,49 @@ function orcaRoutesTable(catalog: Catalog): string {
   return ["| Specialist | Profile | Launch command | Agent file |", "| --- | --- | --- | --- |", ...rows].join("\n")
 }
 
+/**
+ * Where a prompt body is emitted. `skill` and `opencode` render the conductor's on-demand references as pointers;
+ * `plain` (subagents, checklists, reference files themselves) must not use those placeholders at all.
+ */
+type Target = "skill" | "opencode" | "plain"
+
+const HOSTS = ["claude", "cursor", "codex", "opencode"] as const
+
+// Conductor fragments loaded on demand. Skills link a sibling references/<file>; the OpenCode agent points at the copy
+// installed under <root>/.agents/sddkit/references/, beside the checklists.
+const REFERENCES = ["reply-mapping.md", "handoff.md", "orca.md", "escalation.md", "dispute.md", "design-delta.md"]
+
+// Reference fragments pulled in with a plain {{include:}}: the include becomes this pointer. The others are named at
+// their trigger with {{ref:<file>}}.
+const INCLUDE_POINTERS: Record<string, string[]> = {
+  "reply-mapping.md": [
+    "## Applying subagent replies",
+    "",
+    "Reply keys are not state keys. Read {{loc:reply-mapping.md}} before the first patch — translate every reply; never",
+    "pass one through verbatim.",
+  ],
+  "handoff.md": ["{{ref:handoff.md}}"],
+  "orca.md": [
+    "## Orca dispatch",
+    "",
+    "Applies only when state has `tools.orchestrator: orca`; otherwise skip it. Then read {{loc:orca.md}} before the",
+    "first dispatch, resume, or close.",
+  ],
+}
+
+// Read on every run, so the OpenCode agent keeps it inline rather than paying a file read (and, on a global install,
+// an external_directory lookup) each time.
+const OPENCODE_INLINE = new Set(["reply-mapping.md"])
+
+function refLocation(file: string, target: Target): string {
+  if (!REFERENCES.includes(file)) throw new Error(`transpile: ${file} is not a conductor reference`)
+  if (target === "skill") return `[references/${file}](references/${file})`
+  if (target === "opencode") {
+    return `\`<root>/.agents/sddkit/references/${file}\` (\`<root>\`: the \`.agents/\` root that holds your \`sddkit-state\`)`
+  }
+  throw new Error(`transpile: {{ref:${file}}} used in a plain prompt`)
+}
+
 async function inlineIncludes(body: string, depth: number): Promise<string> {
   // Fragments may include fragments; the depth cap stops an include cycle.
   if (depth > 4) throw new Error("transpile: {{include:}} nested deeper than 4 — cycle?")
@@ -107,15 +150,60 @@ async function inlineIncludes(body: string, depth: number): Promise<string> {
   return out
 }
 
-async function resolveIncludes(body: string, catalog: Catalog): Promise<string> {
-  const out = await inlineIncludes(body, 0)
-  // Generated after includes so fragments may carry it.
-  return out.replaceAll("{{orca:routes}}", orcaRoutesTable(catalog))
+async function hostDelegation(target: Target): Promise<string> {
+  if (target === "plain") throw new Error("transpile: {{hosts:delegation}} used in a plain prompt")
+  // The OpenCode agent only ever runs on OpenCode. Skills keep every host: Cursor and OpenCode can also load
+  // .claude/skills or .agents/skills, so a stripped copy could leave a host with no delegation instructions.
+  const hosts = target === "opencode" ? ["opencode"] : HOSTS
+  const parts = await Promise.all(
+    hosts.map((h) => fs.readFile(path.join(srcDir, "prompts", "fragments", "hosts", `${h}.md`), "utf8")),
+  )
+  return parts.map((p) => p.trim()).join("\n")
+}
+
+async function resolveIncludes(
+  body: string,
+  catalog: Catalog,
+  target: Target = "plain",
+  refs: Set<string> = new Set(),
+): Promise<string> {
+  let out = await inlineIncludes(body, 0)
+  // Generated after includes so fragments may carry them.
+  out = out.replaceAll("{{orca:routes}}", orcaRoutesTable(catalog))
+  if (out.includes("{{hosts:delegation}}")) out = out.replaceAll("{{hosts:delegation}}", await hostDelegation(target))
+  out = out.replace(/\{\{ref:([^}]+)\}\}/g, (_, file: string) => {
+    refs.add(file)
+    return `Read ${refLocation(file, target)} and follow it.`
+  })
+  out = out.replace(/\{\{loc:([^}]+)\}\}/g, (_, file: string) => {
+    refs.add(file)
+    return refLocation(file, target)
+  })
+  const left = out.match(/\{\{[a-z]+:[^}]*\}\}/)
+  if (left) throw new Error(`transpile: unresolved placeholder ${left[0]}`)
+  return out
+}
+
+/** Renders a prompt for `target`, collecting the references its pointers name into `refs`. */
+async function renderPrompt(rel: string, catalog: Catalog, target: Target, refs: Set<string> = new Set()) {
+  let raw = await fs.readFile(path.join(srcDir, "prompts", rel), "utf8")
+  if (target !== "plain") {
+    for (const [file, pointer] of Object.entries(INCLUDE_POINTERS)) {
+      if (target === "opencode" && OPENCODE_INLINE.has(file)) continue
+      raw = raw.replace(`{{include:fragments/${file}}}`, `${pointer.join("\n")}\n`)
+    }
+  }
+  return resolveIncludes(`${raw.trim()}\n`, catalog, target, refs)
 }
 
 async function readPrompt(rel: string, catalog: Catalog): Promise<string> {
-  const raw = await fs.readFile(path.join(srcDir, "prompts", rel), "utf8")
-  return resolveIncludes(`${raw.trim()}\n`, catalog)
+  return renderPrompt(rel, catalog, "plain")
+}
+
+async function writeReferences(catalog: Catalog, refs: Set<string>, outDir: string) {
+  for (const file of [...refs].sort()) {
+    await writeFile(path.join(outDir, file), await readPrompt(`fragments/${file}`, catalog))
+  }
 }
 
 function yamlFrontmatter(obj: Record<string, unknown>): string {
@@ -222,8 +310,9 @@ async function emitOpencode(catalog: Catalog) {
   // JSONC-ish: pretty JSON is fine for OpenCode
   await writeFile(path.join(outRoot, "opencode.jsonc"), `${JSON.stringify(cfg, null, 2)}\n`)
 
+  const refs = new Set<string>()
   for (const [name, agent] of Object.entries(catalog.agents)) {
-    const body = await readPrompt(`agents/${name}.md`, catalog)
+    const body = await renderPrompt(`agents/${name}.md`, catalog, "opencode", refs)
     const fm: Record<string, unknown> = {
       description: agent.description,
       mode: agent.opencode.mode,
@@ -234,24 +323,10 @@ async function emitOpencode(catalog: Catalog) {
     if (agent.opencode.permission !== undefined) fm.permission = agent.opencode.permission
     await writeFile(path.join(outRoot, "agents", `${name}.md`), yamlFrontmatter(fm) + body)
   }
-}
-
-// Fragments a shared skill loads on demand: the SKILL.md body keeps the pointer, the
-// fragment moves to references/<file>.
-const SKILL_REFERENCES: Record<string, string[]> = {
-  "reply-mapping.md": [
-    "## Applying subagent replies",
-    "",
-    "Reply keys are not state keys. Read [references/reply-mapping.md](references/reply-mapping.md) before the first",
-    "patch — translate every reply; never pass one through verbatim.",
-  ],
-  "handoff.md": ["Read [references/handoff.md](references/handoff.md) and follow it."],
-  "orca.md": [
-    "## Orca dispatch",
-    "",
-    "Applies only when state has `tools.orchestrator: orca`; otherwise skip it. Then read",
-    "[references/orca.md](references/orca.md) before the first dispatch, resume, or close.",
-  ],
+  // Installed through the always-on .agents tree, so global and project installs both resolve them from <root>.
+  const refDir = path.join(distDir, "agents", "sddkit", "references")
+  await rmrf(refDir)
+  await writeReferences(catalog, refs, refDir)
 }
 
 // Per-area review checklists, installed to <agentsRoot>/sddkit/checklists/. The conductor passes the absolute path of
@@ -281,14 +356,9 @@ async function emitSharedSkills(catalog: Catalog) {
 
   for (const [name, agent] of Object.entries(catalog.agents)) {
     if (!agent.cursor?.skill) continue
-    let raw = await fs.readFile(path.join(srcDir, "prompts", "agents", `${name}.md`), "utf8")
-    for (const [file, pointer] of Object.entries(SKILL_REFERENCES)) {
-      const tag = `{{include:fragments/${file}}}`
-      if (!raw.includes(tag)) continue
-      raw = raw.replace(tag, `${pointer.join("\n")}\n`)
-      await writeFile(path.join(outRoot, name, "references", file), await readPrompt(`fragments/${file}`, catalog))
-    }
-    const body = await resolveIncludes(`${raw.trim()}\n`, catalog)
+    const refs = new Set<string>()
+    const body = await renderPrompt(`agents/${name}.md`, catalog, "skill", refs)
+    await writeReferences(catalog, refs, path.join(outRoot, name, "references"))
     const restrictions = cursorRestrictions(agent)
     const skillFm = {
       name,
@@ -385,7 +455,7 @@ async function main() {
   await emitClaude(catalog)
   await emitCodex(catalog)
   console.log(
-    "transpile: wrote dist/opencode, dist/cursor, dist/claude, dist/codex, dist/agents/skills, and dist/agents/sddkit/checklists",
+    "transpile: wrote dist/opencode, dist/cursor, dist/claude, dist/codex, dist/agents/skills, and dist/agents/sddkit/{checklists,references}",
   )
 }
 

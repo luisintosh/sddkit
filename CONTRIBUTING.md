@@ -26,6 +26,8 @@ Requires a prior `pnpm run build`. Validates:
   present)
 - Emitted dist frontmatter / Codex TOML matches catalog profiles
 - README profile × host matrix and agent → profile table match catalog
+- Prompt contracts, read from the built prompts: required phrases, and every reference a conductor pointer names is
+  emitted (skill `references/` and `dist/agents/sddkit/references/` for OpenCode) with no unresolved `{{…}}`
 - `manifest.txt` hashes match `dist/`
 - `dist/install.js` is present and matches a rebuild of `tools/install.ts`
 

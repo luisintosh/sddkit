@@ -18,7 +18,7 @@ src/
   prompts/agents/        canonical agent bodies (no app frontmatter)
   prompts/commands/      sddkit-setup-docs
   prompts/fragments/     shared includes
-  state/                 sddkit-state CLI (schema, merge, io)
+  state/                 sddkit-state CLI (schema, merge, io, transitions, next, review-merge)
 tools/
   install.ts             installer source → dist/install.js (npx + bunx)
   transpile.ts           → dist/{opencode,cursor,claude,codex} + dist/agents/skills
@@ -62,26 +62,26 @@ Models live in `src/catalog.yaml` as a host × profile matrix. Agents declare a 
 entry. Skills (`sddkit`, `sddkit-epic`) inherit the session model — run `/sddkit` on Grok 4.6 Extra High, Claude sonnet,
 or Codex terra.
 
-| profile    | OpenCode                      | Cursor                         | Claude                  | Codex                  |
-| ---------- | ----------------------------- | ------------------------------ | ----------------------- | ---------------------- |
-| `conduct`  | `opencode-go/qwen3.7-plus`    | `inherit`                      | `inherit`               | `inherit`              |
-| `think`    | `openai/gpt-5.6-sol`          | `grok-4.6[effort=xhigh]`       | `opus[effort=medium]`   | `gpt-5.6-terra[xhigh]` |
-| `execute`  | `openai/gpt-5.6-luna`         | `grok-4.6[effort=high]`        | `sonnet[effort=high]`   | `gpt-5.6-terra[high]`  |
-| `review`   | `opencode-go/kimi-k3`         | `grok-4.6[effort=high]`        | `sonnet[effort=high]`   | `gpt-5.6-terra[high]`  |
-| `critique` | `opencode-go/kimi-k2.7-code`  | `claude-sonnet-5[effort=high]` | `opus[effort=high]`     | `gpt-5.6-sol[high]`    |
-| `validate` | `opencode-go/deepseek-v4-pro` | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]` | `gpt-5.6-terra[high]`  |
-| `write`    | `opencode-go/kimi-k3`         | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]` | `gpt-5.6-luna[medium]` |
+| profile         | OpenCode                      | Cursor                         | Claude                  | Codex                  |
+| --------------- | ----------------------------- | ------------------------------ | ----------------------- | ---------------------- |
+| `conduct`       | `opencode-go/qwen3.7-plus`    | `inherit`                      | `inherit`               | `inherit`              |
+| `think`         | `openai/gpt-5.6-sol`          | `grok-4.6[effort=xhigh]`       | `opus[effort=medium]`   | `gpt-5.6-terra[xhigh]` |
+| `execute`       | `openai/gpt-5.6-luna`         | `grok-4.6[effort=high]`        | `sonnet[effort=high]`   | `gpt-5.6-terra[high]`  |
+| `design-review` | `opencode-go/kimi-k3`         | `grok-4.6[effort=high]`        | `sonnet[effort=high]`   | `gpt-5.6-terra[high]`  |
+| `code-review`   | `opencode-go/kimi-k2.7-code`  | `claude-sonnet-5[effort=high]` | `opus[effort=high]`     | `gpt-5.6-sol[high]`    |
+| `validate`      | `opencode-go/deepseek-v4-pro` | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]` | `gpt-5.6-terra[high]`  |
+| `write`         | `opencode-go/kimi-k3`         | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]` | `gpt-5.6-luna[medium]` |
 
-| agent                    | profile    |
-| ------------------------ | ---------- |
-| `sddkit`                 | `conduct`  |
-| `sddkit-design`          | `think`    |
-| `sddkit-design-reviewer` | `review`   |
-| `sddkit-implementer`     | `execute`  |
-| `sddkit-code-reviewer`   | `critique` |
-| `sddkit-qa`              | `validate` |
-| `sddkit-docs-writer`     | `write`    |
-| `sddkit-epic`            | `think`    |
+| agent                    | profile         |
+| ------------------------ | --------------- |
+| `sddkit`                 | `conduct`       |
+| `sddkit-design`          | `think`         |
+| `sddkit-design-reviewer` | `design-review` |
+| `sddkit-implementer`     | `execute`       |
+| `sddkit-code-reviewer`   | `code-review`   |
+| `sddkit-qa`              | `validate`      |
+| `sddkit-docs-writer`     | `write`         |
+| `sddkit-epic`            | `think`         |
 
 Checked in CI against `src/catalog.yaml` and emitted frontmatter / Codex TOML.
 
@@ -165,7 +165,7 @@ session model (Grok Extra High / opus / sol), then describe the feature.
 
 `sddkit` verifies `gh` (or a connected substitute) + the target repo, creates `feat/<slug>`, scaffolds state with
 `.agents/bin/sddkit-state.mjs init`, and runs the pipeline, stopping once at the design gate for review. Resume by
-asking to continue.
+asking to continue — the conductor asks `sddkit-state next` where the feature stands.
 
 Not for a confined, no-behavior-branch change — a typo, a comment, a version bump, a single-line config value, a pure
 rename. A fresh run flags these and asks before scaffolding state; an unattended run, or one naming a GitHub issue,
@@ -224,14 +224,17 @@ initialize → design (spec + contracts + plan) → design critique (fixes in pl
    silent failure), health (blast radius, security, test quality, residue), and design (patterns, lightweight DDD, a
    repo-wide structural sweep). Each run reads only its area's checklist, installed at
    `.agents/sddkit/checklists/review-<area>.md` beside `.agents/bin/sddkit-state.mjs`; the conductor passes the absolute
-   path. Reviewers are report-only: the conductor merges their findings into one list, and `blocker`/`major` go to one
-   implementer fix round and a second, delta-scoped review. The implementer writes to the same checklists, so most
-   issues never reach review.
+   path. Reviewers are report-only: the conductor judges duplicates and `sddkit-state review-merge` writes one list, and
+   `blocker`/`major` go to one implementer fix round and a second, delta-scoped review; what survives that goes to the
+   human as a dispute (apply, defer, or drop). The implementer writes to the same checklists, so most issues never reach
+   review.
 6. **Verify, PR, docs-sync ∥ QA.** After verify, the draft PR opens; `sddkit-docs-writer` and `sddkit-qa` then run in
    parallel. The conductor adds `## Setup required` to the PR body and marks it ready once both are done.
 
-**Escalation:** if a slice's targeted tests fail twice, `git reset --hard` to the slice base and re-run
-`sddkit-implementer` (optionally two worktrees; keep the smaller green diff). One rung; then pause for a human.
+**Escalation:** if a slice's targeted tests fail twice, `sddkit-state snapshot` saves state inside `.git`,
+`git reset --hard` returns to the slice base, `sddkit-state transition --event escalate` restores the state, and
+`sddkit-implementer` re-derives (optionally two worktrees in parallel; keep the smaller green diff). One rung; then
+pause for a human.
 
 **Retries continue the same specialist.** A targeted-test retry, a verify-fix retry, the review fix round, and design
 edits after critique or the gate go back to the specialist that did the work, with its context intact, instead of a
@@ -244,7 +247,8 @@ the test runs and gate waits between those turns.
 
 **QA:** findings route by category (`sddkit-state decide --event qa-route`) — impl-only to a verify-fix, spec/plan-only
 to a design delta (always presents the design gate), mixed runs the design delta and drops stale impl findings for the
-re-QA pass.
+re-QA pass. A reviewer's spec or plan gap starts the same design delta; it keeps the review base, so the next review
+still covers the code written before it.
 
 **Docs:** `docs-sync` delegates to `sddkit-docs-writer`, which writes the touched domain's `README.md` — co-located with
 the code, or `docs/domains/<domain>.md` when the domain is cross-cutting — to a fixed skeleton (purpose, how it works,
@@ -258,15 +262,24 @@ since that part is work only a human can do.
 
 ```bash
 .agents/bin/sddkit-state.mjs init <feature>
-.agents/bin/sddkit-state.mjs patch <feature> --yaml 'stage: design'
+.agents/bin/sddkit-state.mjs patch <feature> --yaml 'stage: design'          # lists in --yaml replace
+.agents/bin/sddkit-state.mjs patch <feature> --append 'completed: [design]'  # also --drop, --inc
 .agents/bin/sddkit-state.mjs show <feature>
 .agents/bin/sddkit-state.mjs validate <feature>
+.agents/bin/sddkit-state.mjs next [<feature>]                                # where a resume continues
+.agents/bin/sddkit-state.mjs transition <feature> --event start-slice --yaml 'slice: J1'
+.agents/bin/sddkit-state.mjs snapshot <feature>                              # before escalation's git reset --hard
+.agents/bin/sddkit-state.mjs review-merge <feature> --file replies.yaml
 .agents/bin/sddkit-state.mjs decide <feature> --event qa-route --yaml 'findings: [{category: bug}]'
 .agents/bin/sddkit-state.mjs probe orchestrator   # orca | native, see Models → Orca
+.agents/bin/sddkit-state.mjs version              # protocol the conductor requires
 ```
 
-The conductor applies subagent reply YAML through `patch`. OpenCode also denies direct edits to `state.yaml` /
-`journal.ndjson`, both in each agent's permission map and, for project installs, in `opencode.jsonc`.
+Named transitions (`start-slice`, `escalate`, `slice-done`, `start-verify-fix`, `verify-fix-done`, `review-enter`,
+`design-delta`, `design-revised`, `design-approved`) own the loop fields — slices, escalation, review iterations and
+base, the design delta and its reset — and refuse when called out of order. The conductor applies subagent reply YAML
+through `patch`. OpenCode also denies direct edits to `state.yaml` / `journal.ndjson`, both in each agent's permission
+map and, for project installs, in `opencode.jsonc`.
 
 ## Editing prompts
 

@@ -3,12 +3,12 @@
 Reply keys are not state keys. Translate:
 
 - **sddkit-design** → its `artifacts` list splits across `artifacts.spec`, `artifacts.contracts`, and `artifacts.plan`;
-  `blockers` → `blockers`.
+  `blockers` → `blockers`. In a design delta, follow it with `transition design-revised`.
 - **sddkit-design-reviewer** → nothing is persisted. Its `changes`, `fixed`, and `findings` are shown at the design
   gate; unresolved `blocker|major` `findings` are passed verbatim to `sddkit-design`.
 - **sddkit-implementer** → `blockers` → `blockers`.
-- **sddkit-code-reviewer** (three runs, one per `area`) → never applied one by one: merge all three replies per step
-  6.3. The merged status → `review.status`; merged `blocker|major` → `review.findings`, merged `minor` →
+- **sddkit-code-reviewer** (three runs, one per `area`) → never applied one by one: `sddkit-state review-merge` (step
+  6.3) writes all three at once — `review.status`, `blocker|major` → `review.findings`, `minor` →
   `review.deferred_findings`. `iterations` is an echo — you own the count.
 - **sddkit-qa** → `qa_status` → `qa.status`; `scenarios_total|scenarios_passed|scenarios_failed`, `findings`,
   `report_path`, `pr_comment_url` all nest under `qa.*`; `blockers` → `blockers`. `qa.pr_ready` is yours to set in

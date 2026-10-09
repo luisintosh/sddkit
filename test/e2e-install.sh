@@ -74,6 +74,17 @@ assert_file_exists "${TARGET}/.agents/skills/sddkit-setup-docs/SKILL.md" "sddkit
 assert_file_exists "${TARGET}/.agents/skills/sddkit/references/reply-mapping.md" "sddkit reply-mapping reference installed"
 assert_file_exists "${TARGET}/.agents/skills/sddkit/references/orca.md" "sddkit orca reference installed"
 assert_file_exists "${TARGET}/.agents/skills/sddkit/references/handoff.md" "sddkit handoff reference installed"
+for ref in escalation dispute design-delta; do
+  assert_file_exists "${TARGET}/.agents/skills/sddkit/references/${ref}.md" "sddkit ${ref} reference installed"
+done
+for ref in orca handoff escalation dispute design-delta; do
+  assert_file_exists "${TARGET}/.agents/sddkit/references/${ref}.md" "opencode ${ref} reference beside sddkit-state"
+done
+if grep -q '<root>/.agents/sddkit/references/orca.md' "${TARGET}/.opencode/agents/sddkit.md"; then
+  ok "opencode conductor points at the installed orca reference"
+else
+  bad "opencode conductor does not point at <root>/.agents/sddkit/references/orca.md"
+fi
 assert_file_absent "${TARGET}/.cursor/skills/sddkit/SKILL.md" "legacy .cursor/skills/sddkit not installed"
 assert_file_exists "${TARGET}/.agents/bin/sddkit-state.mjs" "sddkit-state installed under .agents/bin"
 for area in contract health design; do
@@ -283,6 +294,7 @@ HOME="$FAKE_HOME" INSTALL_SCOPE=global INSTALL_TARGET=all \
 assert_file_exists "${FAKE_HOME}/.agents/skills/sddkit/SKILL.md" "global skills land in ~/.agents"
 assert_file_exists "${FAKE_HOME}/.agents/bin/sddkit-state.mjs" "global sddkit-state lands in ~/.agents/bin"
 assert_file_exists "${FAKE_HOME}/.agents/sddkit/checklists/review-contract.md" "global checklists land beside ~/.agents/bin"
+assert_file_exists "${FAKE_HOME}/.agents/sddkit/references/escalation.md" "global references land beside ~/.agents/bin"
 assert_file_absent "${GLOBAL_TARGET}/.agents/sddkit/checklists/review-contract.md" "global install does not write checklists into TARGET_DIR"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/sddkit-implementer.md" "global cursor agents leaf"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global install keeps planted cursor agent"

@@ -42,59 +42,56 @@ findings only for what needs a human or a redesign.
 
 {{include:fragments/fix-then-report.md}}
 
+{{include:fragments/design-rules.md}}
+
 ## Reviewing the spec
+
+Check the spec against the request and **Design rules → Spec / Contracts**, along these dimensions:
 
 - **Accuracy** — claims about how the system behaves today hold up. "Currently users must re-enter their password" is
   checkable: Grep it. Verify the load-bearing ones, and check the request isn't already solved in a prior
   `docs/feats/*/spec.md`.
-- **Edge cases** — each happy path has its error and boundary counterparts: absent or empty input, permission denied,
-  the duplicate or concurrent action, the upstream dependency failing, the limit being hit. A spec with only happy paths
-  is the most common failure here.
+- **Edge cases** — each happy path has the counterparts the contract rules list. A spec with only happy paths is the
+  most common failure here.
 - **Audience fit** — the plan needs enough constraint to choose an approach without guessing; `sddkit-implementer` needs
-  Given/When/Then concrete enough to assert on without inventing values; `sddkit-qa` needs scenarios reachable from
-  outside the system, since one observable only through a private internal cannot be validated end-to-end; the human at
-  the gate needs the open questions and the recorded assumptions, not silent, unrecorded ones.
-- **Actionability** — concrete examples over adjectives: "fast", "robust" each need a number, a threshold, or a named
-  behavior. Every requirement testable as written.
+  Given/When/Then concrete enough to assert on without inventing values; `sddkit-qa` needs externally reachable
+  scenarios; the human at the gate needs the open questions and the recorded assumptions, not silent, unrecorded ones.
+- **Actionability** — every requirement testable as written; an untestable adjective is a finding.
 - **Consistency** — `@S<n>` tags unique, stable, never renumbered or reused; a numbering gap left by a removed scenario
   is legitimate, not a finding. Every requirement traceable to at least one scenario and every scenario back to a
-  requirement; no tech or implementation choices leaking in, which are the plan's job and a `spec` finding when they
-  appear here. Each `## Assumptions` entry carries a default and names what breaks if it's wrong; one that would change
-  scope or observable behavior if wrong belongs in open questions instead — flag the miscategorization. An entry Grep
-  against the codebase or a prior spec would already answer shouldn't be there either.
+  requirement; tech or implementation choices leaking into the spec are a `spec` finding. An `## Assumptions` entry
+  missing its default or its "what breaks", one that belongs in open questions (flag the miscategorization), or one Grep
+  already answers is a finding.
 - **Maintenance** — out-of-scope stated explicitly rather than left implied; no restating what `AGENTS.md` or
   `docs/ARCHITECTURE.md` already owns; open questions recorded rather than quietly assumed away.
 
 ## Reviewing the plan
 
+Check the plan against the spec, the contracts, and **Design rules → Plan**:
+
 - **Accuracy** — every `file:symbol` reuse claim and affected-file path resolves in the current tree; confirm with
-  Grep/Read rather than trusting the citation, which may name a symbol that has since moved or never existed. Each
-  journey command must be one this repo can actually run per `AGENTS.md` — or a Playwright add the plan names
-  explicitly. Wrong runner, wrong path, or a missing script with no named add is a `blocker`.
+  Grep/Read rather than trusting the citation, which may name a symbol that has since moved or never existed. A journey
+  command this repo cannot run per `AGENTS.md` — wrong runner, wrong path, or a missing script with no named Playwright
+  add — is a `blocker`.
 - **Edge cases** — every `@S<n>` in `contracts/*.feature` is claimed by a journey. Check that direction explicitly: a
   test mapping to scenarios proves nothing about a scenario the test never mentions, and the orphans are usually the
   error and edge ones. Each journey's done-when and the feature-level rollback hint must be present.
-- **Audience fit** — the plan must carry what its consumer needs: `sddkit-implementer` needs each journey's path,
-  command, `oracle` kind, `@S<n>` coverage, `reading:` list, and concrete `file:symbol` targets; the code reviewers need
-  an observable done-when; the conductor needs the fenced `journeys:` YAML block (at most 3 journeys) to build each
-  brief on resume. A plan missing that block is a `blocker`. A plan missing one of the other fields stalls that agent
-  mid-pipeline.
+- **Audience fit** — `sddkit-implementer` needs every per-journey field the rules list; the code reviewers need an
+  observable done-when; the conductor needs the fenced `journeys:` YAML block to build each brief on resume. A plan
+  missing that block is a `blocker`. A plan missing one of the other fields stalls that agent mid-pipeline.
 - **Actionability** — a competent implementer could write the failing oracle and the implementation without asking a
-  question. "TBD", "handle errors properly" are findings. Done-when lines must be observable, not "works correctly". The
-  acceptance bar is the cheapest sensor that can fail the observable Then — a public-boundary or golden oracle when one
-  exists — not a helper-level unit test (that substitution is a `blocker`) and not an e2e when a cheaper rung can assert
-  the Then (that substitution is a `blocker`). A second or third journey without a one-line justification that the
-  previous oracle cannot reach a scenario is a finding. More than 3 journeys is a finding. Playwright as a planned Test
-  strategy oracle is valid only when the feature is UI-only and nothing cheaper exists, and the add (`@playwright/test`,
-  config path, command) must be named; an unnamed add, or Playwright proposed when a cheaper observable exists, is a
-  `blocker`.
-- **Consistency** — no `risk: low | standard` tags and no per-waypoint test commands. Test commands agreeing with
-  `AGENTS.md` or the named Playwright add; nothing outside the approved spec's scope; conventions matching
+  question. "TBD", "handle errors properly", and done-when lines that are not observable ("works correctly") are
+  findings. The acceptance bar is the cheapest rung that can fail the observable Then: a helper-level unit test in its
+  place is a `blocker`, and so is an e2e when a cheaper rung can assert the Then. A second or third journey without its
+  one-line justification is a finding; more than 3 journeys is a finding. Playwright is valid only on the rules' terms:
+  an unnamed add, or Playwright proposed when a cheaper observable exists, is a `blocker`.
+- **Consistency** — no `risk: low | standard` tags and no per-waypoint test commands. Test commands agree with
+  `AGENTS.md` or the named Playwright add; nothing outside the approved spec's scope; conventions match
   `docs/ARCHITECTURE.md`; `docs/CONSTITUTION.md` conflicts named rather than designed around. `## Approaches considered`
-  candidates are genuinely distinct with rationale grounded in cited code, not interchangeable restatements of the same
-  idea or generic pros/cons; the recommendation is the approach the rest of `plan.md` actually implements — a mismatch
-  between the two is a `blocker`, not a style note. A single-viable-approach plan that says so in one line is fine; one
-  presenting fabricated alternatives to check a box is a finding.
+  candidates are genuinely distinct with rationale grounded in cited code, not interchangeable restatements or generic
+  pros/cons; the recommendation is the approach the rest of `plan.md` actually implements — a mismatch is a `blocker`,
+  not a style note. A single-viable-approach plan that says so in one line is fine; one presenting fabricated
+  alternatives to check a box is a finding.
 - **Maintenance** — new code where existing code would serve, a second implementation parallel to one already in the
   tree, or plan text restating what `AGENTS.md`/`docs/ARCHITECTURE.md` already own (two copies drift apart).
 

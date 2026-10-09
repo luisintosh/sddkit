@@ -5,7 +5,15 @@ export type ModelRef = {
   effort?: string
 }
 
-export const PROFILE_NAMES = ["conduct", "think", "execute", "review", "critique", "validate", "write"] as const
+export const PROFILE_NAMES = [
+  "conduct",
+  "think",
+  "execute",
+  "design-review",
+  "code-review",
+  "validate",
+  "write",
+] as const
 
 export type ProfileName = (typeof PROFILE_NAMES)[number]
 

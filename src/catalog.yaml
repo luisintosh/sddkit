@@ -12,6 +12,10 @@
 # there. Role scope ("edit only docs/feats/**") lives in each prompt's
 # Restrictions, as it does for Claude and Cursor. No catch-all allow: "*": allow
 # or a bare `bash: allow` lands after the global map and cancels its denies.
+#
+# The one allow class: `external_directory` for the sddkit install under ~/.agents. opencode defaults it to "ask", so on
+# a global install an unattended run would stall the first time an agent reads a checklist or reference there, or runs
+# the state CLI. Keep these patterns narrow — never "**".
 
 hosts:
   opencode:
@@ -19,8 +23,8 @@ hosts:
       conduct: { id: opencode-go/qwen3.7-plus }
       think: { id: openai/gpt-5.6-sol }
       execute: { id: openai/gpt-5.6-luna }
-      review: { id: opencode-go/kimi-k3 }
-      critique: { id: opencode-go/kimi-k2.7-code }
+      design-review: { id: opencode-go/kimi-k3 }
+      code-review: { id: opencode-go/kimi-k2.7-code }
       validate: { id: opencode-go/deepseek-v4-pro }
       write: { id: opencode-go/kimi-k3 }
   cursor:
@@ -28,8 +32,8 @@ hosts:
       conduct: { id: inherit }
       think: { id: grok-4.6, effort: xhigh }
       execute: { id: grok-4.6, effort: high }
-      review: { id: grok-4.6, effort: high }
-      critique: { id: claude-sonnet-5, effort: high }
+      design-review: { id: grok-4.6, effort: high }
+      code-review: { id: claude-sonnet-5, effort: high }
       validate: { id: grok-4.6, effort: medium }
       write: { id: grok-4.6, effort: medium }
   claude:
@@ -37,8 +41,8 @@ hosts:
       conduct: { id: inherit }
       think: { id: opus, effort: medium }
       execute: { id: sonnet, effort: high }
-      review: { id: sonnet, effort: high }
-      critique: { id: opus, effort: high }
+      design-review: { id: sonnet, effort: high }
+      code-review: { id: opus, effort: high }
       validate: { id: sonnet, effort: medium }
       write: { id: sonnet, effort: medium }
   codex:
@@ -46,8 +50,8 @@ hosts:
       conduct: { id: inherit }
       think: { id: gpt-5.6-terra, effort: xhigh }
       execute: { id: gpt-5.6-terra, effort: high }
-      review: { id: gpt-5.6-terra, effort: high }
-      critique: { id: gpt-5.6-sol, effort: high }
+      design-review: { id: gpt-5.6-terra, effort: high }
+      code-review: { id: gpt-5.6-sol, effort: high }
       validate: { id: gpt-5.6-terra, effort: high }
       write: { id: gpt-5.6-luna, effort: medium }
 
@@ -59,8 +63,8 @@ orchestrators:
   orca:
     profiles:
       think: { agent: claude, id: opus, effort: medium }
-      critique: { agent: claude, id: sonnet, effort: high }
-      review: { agent: claude, id: sonnet, effort: high }
+      code-review: { agent: claude, id: sonnet, effort: high }
+      design-review: { agent: claude, id: sonnet, effort: high }
       execute: { agent: cursor, id: grok-4.7-low }
       validate: { agent: cursor, id: grok-4.7-high }
       write: { agent: cursor, id: grok-4.7-high }
@@ -86,6 +90,9 @@ agents:
         # one form.
         bash:
           "git reset --hard HEAD": allow
+        external_directory:
+          "~/.agents/bin/**": allow
+          "~/.agents/sddkit/**": allow
     cursor:
       skill: true
 
@@ -110,7 +117,7 @@ agents:
       cache_ttl: 1h
 
   sddkit-design-reviewer:
-    profile: review
+    profile: design-review
     description: >-
       Independent critique of a feature design (spec, contracts, plan) before its gate. Fixes unambiguous issues in
       place and reports the rest as structured findings. Use when the conductor delegates a design critique.
@@ -145,7 +152,7 @@ agents:
       cache_ttl: 1h
 
   sddkit-code-reviewer:
-    profile: critique
+    profile: code-review
     description: >-
       Report-only review of one area of the feature implementation diff — contract, health, or design — against the
       checklist file the conductor names. The conductor runs three in parallel, one per area, and merges the findings.
@@ -176,6 +183,8 @@ agents:
           "git checkout*": deny
           "git stash*": deny
           "gh *": deny
+        external_directory:
+          "~/.agents/sddkit/**": allow
     cursor: {}
 
   sddkit-qa:
