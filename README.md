@@ -1,3 +1,5 @@
+![Solodev](assets/header.jpeg)
+
 # Solodev
 
 **Spec-driven development for coding agents.** Describe a feature, approve one design, and get back a reviewed, tested,
