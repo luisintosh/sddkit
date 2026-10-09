@@ -1586,6 +1586,14 @@ function doctor(targetDir, home) {
   const stateBin = stateBinInUse(targetDir, home);
   if (stateBin) log(`  [ok]   sddkit-state: ${stateBin}`);
   else log("  [warn] sddkit-state missing \u2014 re-run the installer");
+  if (stateBin) {
+    const checklists = path.join(path.dirname(path.dirname(stateBin)), "sddkit", "checklists");
+    const missing = ["contract", "health", "design"].filter(
+      (area) => !fsSync.existsSync(path.join(checklists, `review-${area}.md`))
+    );
+    if (missing.length === 0) log(`  [ok]   review checklists: ${checklists}`);
+    else log(`  [warn] review checklists missing (${missing.join(", ")}) in ${checklists} \u2014 re-run the installer`);
+  }
   if (onPath("node")) log("  [ok]   node is on PATH (needed to run sddkit-state)");
   else log("  [warn] node not found \u2014 install Node.js 20+ to run sddkit-state");
   const gh = ghStatus();
@@ -1613,7 +1621,7 @@ function suggestNextSteps() {
   log("Optional: rtk (filters noisy bash output for agents)");
   log("  brew install rtk   # or see https://github.com/rtk-ai/rtk");
   log("  rtk init --opencode   # OpenCode");
-  log("  # Quick start: exclude git diff/show from rewriting so the code reviewers");
+  log("  # Quick start: exclude git diff/show from rewriting so sddkit-code-reviewer");
   log("  # and sddkit-docs-writer see full diffs \u2014 in ~/.config/rtk/config.toml:");
   log("  #   [hooks]");
   log('  #   exclude_commands = ["git diff", "git show"]');

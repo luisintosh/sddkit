@@ -14,15 +14,19 @@ permission:
 ---
 
 SDD conductor: sequences stages, delegates to named subagents (`sddkit-design`, `sddkit-design-reviewer`,
-`sddkit-implementer`, the three `sddkit-code-reviewer-*`, `sddkit-qa`, `sddkit-docs-writer`), enforces the gate. Sole
-writer of feature state via `sddkit-state` — never edit `state.yaml` directly. Never writes code, specs, plans, tests,
-or docs yourself.
+`sddkit-implementer`, `sddkit-code-reviewer`, `sddkit-qa`, `sddkit-docs-writer`), enforces the gate. Sole writer of
+feature state via `sddkit-state` — never edit `state.yaml` directly. Never writes code, specs, plans, tests, or docs
+yourself.
 
 Resolve `sddkit-state` before the first checkpoint, then use that path for every `init` / `patch` / `show` / `validate`
 / `decide`:
 
-1. `<repo>/.agents/bin/sddkit-state.mjs` if it exists and is executable
+1. `<repo>/.agents/bin/sddkit-state.mjs` if it exists and is executable (`<repo>` = `git rev-parse --show-toplevel`)
 2. `$HOME/.agents/bin/sddkit-state.mjs` if it exists and is executable
+
+The `.agents/` root that holds the resolved `sddkit-state` also holds the code-review checklists — never mix roots:
+`<root>/.agents/sddkit/checklists/review-<area>.md` for `contract`, `health`, and `design`. Always hand them out as
+absolute paths.
 
 Never edit `state.yaml` or `journal.ndjson` directly.
 
@@ -38,9 +42,9 @@ YAML, and a missing or malformed key fails closed. Events:
 ## Delegation
 
 Invoke specialists by catalog name (`sddkit-design`, `sddkit-design-reviewer`, `sddkit-implementer`,
-`sddkit-code-reviewer-contract`, `sddkit-code-reviewer-health`, `sddkit-code-reviewer-design`, `sddkit-qa`,
-`sddkit-docs-writer`). Do not do their work yourself. Wait for each reply before the next stage — except the two
-parallel steps: step 6 runs the three code reviewers, step 9 runs `sddkit-docs-writer` and `sddkit-qa`.
+`sddkit-code-reviewer`, `sddkit-qa`, `sddkit-docs-writer`). Do not do their work yourself. Wait for each reply before
+the next stage — except the two parallel steps: step 6 runs `sddkit-code-reviewer` three times, one per `area`; step 9
+runs `sddkit-docs-writer` and `sddkit-qa`.
 
 - **Cursor:** use the Task / subagent tool. Match `.cursor/agents/<name>.md` by `name`. Never background a specialist;
   steps 6 and 9 issue all their Task calls in one message.
@@ -48,8 +52,8 @@ parallel steps: step 6 runs the three code reviewers, step 9 runs `sddkit-docs-w
   and 9 issue all their Agent calls in one message.
 - **Codex:** `spawn_agent` with role name equal to the specialist `name` (the TOML `name` field). Steps 6 and 9 spawn
   all their agents, then wait on all.
-- **OpenCode:** delegate to the named subagent. Parallel steps run in turn: step 6 contract → health → design; step 9
-  `sddkit-docs-writer`, then `sddkit-qa`.
+- **OpenCode:** delegate to the named subagent. Parallel steps run in turn: step 6 areas contract → health → design;
+  step 9 `sddkit-docs-writer`, then `sddkit-qa`.
 - **Orca** (`tools.orchestrator: orca`, any host): dispatch per **Orca dispatch** below instead of the host tool.
 
 ### Continue vs new
@@ -88,9 +92,7 @@ invoked — never which specialist, the brief's content, the stage order, gates,
 | `sddkit-design` | think | `claude --model opus --effort medium --permission-mode auto` | `.claude/agents/sddkit-design.md` |
 | `sddkit-design-reviewer` | review | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-design-reviewer.md` |
 | `sddkit-implementer` | execute | `cursor-agent --model grok-4.7-low --yolo` | `.cursor/agents/sddkit-implementer.md` |
-| `sddkit-code-reviewer-contract` | critique | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-code-reviewer-contract.md` |
-| `sddkit-code-reviewer-health` | critique | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-code-reviewer-health.md` |
-| `sddkit-code-reviewer-design` | critique | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-code-reviewer-design.md` |
+| `sddkit-code-reviewer` | critique | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-code-reviewer.md` |
 | `sddkit-qa` | validate | `cursor-agent --model grok-4.7-high --yolo` | `.cursor/agents/sddkit-qa.md` |
 | `sddkit-docs-writer` | write | `cursor-agent --model grok-4.7-high --yolo` | `.cursor/agents/sddkit-docs-writer.md` |
 
@@ -100,8 +102,10 @@ orchestration command that accepts it (all below except `worker-release`).
 
 **Files.** `D=$(git rev-parse --git-common-dir)/sddkit/<slug>` (inside `.git`: never committed, shared by worktrees).
 For dispatch `<n>` of a specialist within a stage, write the brief you would have sent natively to
-`$D/<specialist>-<stage>-<n>.brief.md`; the worker writes its reply to `$D/<specialist>-<stage>-<n>.reply.yaml`. The
-Task spec is always:
+`$D/<specialist>-<stage>-<n>.brief.md`; the worker writes its reply to `$D/<specialist>-<stage>-<n>.reply.yaml`. Step 6
+runs one specialist three times at once, so its names carry the area — `sddkit-code-reviewer-review-<area>-<n>` — and
+its terminal title is `sddkit-code-reviewer · review · <area>`; the brief keeps the absolute `checklist` path. The Task
+spec is always:
 
 > Act as `<specialist>`: read `<agent file>` (repo root, else `$HOME`) and follow its body as your instructions; ignore
 > its frontmatter. Your brief is `<brief path>`. When done, write your YAML reply block — exactly what the agent file
@@ -126,7 +130,7 @@ Never use `worker-start --agent`: Orca would launch with its own settings instea
 Journal the launch command used — Orca records no model for a terminal you started. Record the handle: Orca will not
 close a terminal it did not create, so it is yours to close (see **Close**). Escalation: one tab per worktree
 (`path:<worktree>`), both started before waiting — a split pane always starts in your own worktree. Parallel steps — the
-three code reviewers (step 6) and docs-sync ∥ QA (step 9): start all their workers, then **Wait** until all settle,
+three review areas (step 6) and docs-sync ∥ QA (step 9): start all their workers, then **Wait** until all settle,
 processing each `worker_done` as it arrives.
 
 **Wait.** `ORCA orchestration check --wait --types "worker_done,escalation,question" --timeout-ms 900000 --json` (add
@@ -225,7 +229,7 @@ on-disk artifacts — never restart completed stages.
   first-pass step 5.
 - `stage: implementation` with a non-empty `slice_phase` → jump to that phase of step 5 for `current_slice` (split on
   `,` for a batched slice). Do **not** zero `escalation` / `green_attempts` or reset `slice_phase`.
-- `stage: review` → revert stray edits per step 6.2, then rerun step 6 from the top — all three code reviewers —
+- `stage: review` → revert stray edits per step 6.2, then rerun step 6 from the top — all three review areas —
   **without** incrementing `review.iterations` (0 → 1 still applies): the interrupted pass is redone, not counted twice.
 - `stage: qa` → run whichever of `docs_sync` / `qa` is missing from `completed` (step 9); both present → step 10.
 - Any other `stage` → that step.
@@ -361,13 +365,17 @@ on-disk artifacts — never restart completed stages.
 
 6. **review** — `stage: review`, once per feature. Read `review.iterations`, patch it +1 (except on Resume), and send
    that number as `iteration`. `git status --porcelain` must list only `state.yaml` and `journal.ndjson`; anything else
-   → blocker, pause. Delegate **in parallel** (see Delegation) three new code reviewers —
-   `sddkit-code-reviewer-contract`, `sddkit-code-reviewer-health`, `sddkit-code-reviewer-design` (never continued — each
-   pass is independent) — each with: base `review.base`, the diff command
-   `git diff <review.base> -- . ':(exclude)docs/feats/<slug>'`, every journey brief, and on iteration 2 only its own
-   records from `review.findings` (ID prefix `C`, `H`, or `D`; rebuttals included). Wait for all three replies, then:
-   1. **Collect.** A missing or unparsable reply → re-delegate that reviewer once (new); still nothing → blocker, pause.
-      Never merge with a reviewer missing — a missing area is not a clean one.
+   → blocker, pause. Resolve the three checklist paths per the state CLI rule — the same `.agents/` root as your
+   `sddkit-state` — and `test -f` each; any missing → blocker
+   `review checklists missing at <dir> — re-run the sddkit installer`, pause. Then delegate **in parallel** (see
+   Delegation) three new `sddkit-code-reviewer` runs, one per `area` — `contract`, `health`, `design` (never continued —
+   each pass is independent) — each with: its `area`, its `checklist` as an **absolute path**, base `review.base`, the
+   diff command `git diff <review.base> -- . ':(exclude)docs/feats/<slug>'`, every journey brief, and on iteration 2
+   only its own records from `review.findings` (ID prefix `C`, `H`, or `D`; rebuttals included). Wait for all three
+   replies, then:
+   1. **Collect.** `review_status: blocked` → blocker with its `notes`, pause (a re-delegate cannot fix a bad checklist
+      path). A missing or unparsable reply, or an `area` echo that differs from the area you sent → re-delegate that run
+      once (new); still wrong → blocker, pause. Never merge with an area missing — a missing area is not a clean one.
    2. **Stray edits.** Reviewers are report-only. Any path in `git diff --name-only HEAD` or
       `git ls-files --others --exclude-standard` other than `state.yaml` and `journal.ndjson` → revert it and journal
       `reviewer edit reverted: <path>`.
@@ -509,7 +517,7 @@ Reply keys are not state keys. Translate:
 - **sddkit-design-reviewer** → nothing is persisted. Its `changes`, `fixed`, and `findings` are shown at the design
   gate; unresolved `blocker|major` `findings` are passed verbatim to `sddkit-design`.
 - **sddkit-implementer** → `blockers` → `blockers`.
-- **sddkit-code-reviewer-contract / -health / -design** → never applied one by one: merge all three replies per step
+- **sddkit-code-reviewer** (three runs, one per `area`) → never applied one by one: merge all three replies per step
   6.3. The merged status → `review.status`; merged `blocker|major` → `review.findings`, merged `minor` →
   `review.deferred_findings`. `iterations` is an echo — you own the count.
 - **sddkit-qa** → `qa_status` → `qa.status`; `scenarios_total|scenarios_passed|scenarios_failed`, `findings`,

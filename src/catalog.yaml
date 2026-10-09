@@ -144,80 +144,12 @@ agents:
     claude:
       cache_ttl: 1h
 
-  sddkit-code-reviewer-contract:
+  sddkit-code-reviewer:
     profile: critique
     description: >-
-      Report-only contract review of the feature implementation diff: correctness, contract coverage, and silent
-      failure. One of three code reviewers the conductor runs in parallel; returns structured findings and never edits.
+      Report-only review of one area of the feature implementation diff — contract, health, or design — against the
+      checklist file the conductor names. The conductor runs three in parallel, one per area, and merges the findings.
       Use when the conductor delegates implementation review.
-    opencode:
-      mode: subagent
-      temperature: 0.1
-      steps: 40
-      permission:
-        edit:
-          # Frozen inputs, git internals, and host/agent config stay out of reach.
-          "docs/feats/**": deny
-          ".git/**": deny
-          ".agents/**": deny
-          ".claude/**": deny
-          ".codex/**": deny
-          ".cursor/**": deny
-        # Report-only: no tests or git/tracker writes; the conductor runs sensors.
-        bash:
-          "git add*": deny
-          "git rm*": deny
-          "git mv*": deny
-          "git restore*": deny
-          "git update-index*": deny
-          "git commit*": deny
-          "git push*": deny
-          "git reset*": deny
-          "git checkout*": deny
-          "git stash*": deny
-          "gh *": deny
-    cursor: {}
-
-  sddkit-code-reviewer-health:
-    profile: critique
-    description: >-
-      Report-only health review of the feature implementation diff: blast radius, security, test quality, and residue.
-      One of three code reviewers the conductor runs in parallel; returns structured findings and never edits. Use when
-      the conductor delegates implementation review.
-    opencode:
-      mode: subagent
-      temperature: 0.1
-      steps: 40
-      permission:
-        edit:
-          # Frozen inputs, git internals, and host/agent config stay out of reach.
-          "docs/feats/**": deny
-          ".git/**": deny
-          ".agents/**": deny
-          ".claude/**": deny
-          ".codex/**": deny
-          ".cursor/**": deny
-        # Report-only: no tests or git/tracker writes; the conductor runs sensors.
-        bash:
-          "git add*": deny
-          "git rm*": deny
-          "git mv*": deny
-          "git restore*": deny
-          "git update-index*": deny
-          "git commit*": deny
-          "git push*": deny
-          "git reset*": deny
-          "git checkout*": deny
-          "git stash*": deny
-          "gh *": deny
-    cursor: {}
-
-  sddkit-code-reviewer-design:
-    profile: critique
-    description: >-
-      Report-only design review of the feature implementation diff: design patterns, lightweight DDD, and a repo-wide
-      structural sweep. One of three code reviewers the conductor runs in parallel; returns structured findings and
-      never edits. Use when the conductor delegates implementation review.
     opencode:
       mode: subagent
       temperature: 0.1

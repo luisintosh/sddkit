@@ -1,8 +1,12 @@
 Resolve `sddkit-state` before the first checkpoint, then use that path for every `init` / `patch` / `show` / `validate`
 / `decide`:
 
-1. `<repo>/.agents/bin/sddkit-state.mjs` if it exists and is executable
+1. `<repo>/.agents/bin/sddkit-state.mjs` if it exists and is executable (`<repo>` = `git rev-parse --show-toplevel`)
 2. `$HOME/.agents/bin/sddkit-state.mjs` if it exists and is executable
+
+The `.agents/` root that holds the resolved `sddkit-state` also holds the code-review checklists — never mix roots:
+`<root>/.agents/sddkit/checklists/review-<area>.md` for `contract`, `health`, and `design`. Always hand them out as
+absolute paths.
 
 Never edit `state.yaml` or `journal.ndjson` directly.
 

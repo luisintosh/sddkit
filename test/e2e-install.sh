@@ -75,6 +75,9 @@ assert_file_exists "${TARGET}/.agents/skills/sddkit/references/reply-mapping.md"
 assert_file_exists "${TARGET}/.agents/skills/sddkit/references/orca.md" "sddkit orca reference installed"
 assert_file_absent "${TARGET}/.cursor/skills/sddkit/SKILL.md" "legacy .cursor/skills/sddkit not installed"
 assert_file_exists "${TARGET}/.agents/bin/sddkit-state.mjs" "sddkit-state installed under .agents/bin"
+for area in contract health design; do
+  assert_file_exists "${TARGET}/.agents/sddkit/checklists/review-${area}.md" "review-${area} checklist beside sddkit-state"
+done
 assert_file_exists "${TARGET}/.opencode/.harness-manifest" "opencode harness-manifest recorded"
 assert_file_exists "${TARGET}/.cursor/agents/.harness-manifest" "cursor harness-manifest recorded under agents leaf"
 assert_file_exists "${TARGET}/.claude/agents/.harness-manifest" "claude agents harness-manifest recorded"
@@ -123,6 +126,14 @@ else
   bad "should report delete: $prune_output"
 fi
 assert_file_absent "${TARGET}/.opencode/agents/sddkit-qa.md" "sddkit-qa.md removed after upstream deletion"
+
+# 4a. update from the split reviewers removes their agent files
+printf 'old\n' > "${TARGET}/.claude/agents/sddkit-code-reviewer-contract.md"
+split_hash="$(shasum -a 256 "${TARGET}/.claude/agents/sddkit-code-reviewer-contract.md" | awk '{print $1}')"
+printf '%s  sddkit-code-reviewer-contract.md\n' "$split_hash" >> "${TARGET}/.claude/agents/.harness-manifest"
+LOCAL_SOURCE="$UPSTREAM" TARGET_DIR="$TARGET" INSTALL_TARGET=all node "$INSTALL_JS" >/dev/null 2>&1
+assert_file_absent "${TARGET}/.claude/agents/sddkit-code-reviewer-contract.md" "split reviewer agent removed on update"
+assert_file_exists "${TARGET}/.claude/agents/sddkit-code-reviewer.md" "single code reviewer installed"
 
 # 4b. prune a whole skill (rename) leaves no empty folder behind
 rm -r "${UPSTREAM}/dist/agents/skills/sddkit-epic"
@@ -179,6 +190,7 @@ assert_file_absent "${TARGET2}/.claude/agents/sddkit-design.md" "cursor-only ski
 assert_file_absent "${TARGET2}/.codex/agents/sddkit-design.toml" "cursor-only skips .codex"
 assert_file_exists "${TARGET2}/.agents/bin/sddkit-state.mjs" "cursor-only still installs sddkit-state"
 assert_file_exists "${TARGET2}/.agents/skills/sddkit/SKILL.md" "cursor-only installs shared skills"
+assert_file_exists "${TARGET2}/.agents/sddkit/checklists/review-design.md" "cursor-only installs review checklists"
 
 # 8b. prune leftover ./bin and .cursor/skills
 mkdir -p "${TARGET2}/bin" "${TARGET2}/.cursor/skills/sddkit" "${TARGET2}/.agents/bin"
@@ -269,6 +281,8 @@ HOME="$FAKE_HOME" INSTALL_SCOPE=global INSTALL_TARGET=all \
 
 assert_file_exists "${FAKE_HOME}/.agents/skills/sddkit/SKILL.md" "global skills land in ~/.agents"
 assert_file_exists "${FAKE_HOME}/.agents/bin/sddkit-state.mjs" "global sddkit-state lands in ~/.agents/bin"
+assert_file_exists "${FAKE_HOME}/.agents/sddkit/checklists/review-contract.md" "global checklists land beside ~/.agents/bin"
+assert_file_absent "${GLOBAL_TARGET}/.agents/sddkit/checklists/review-contract.md" "global install does not write checklists into TARGET_DIR"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/sddkit-implementer.md" "global cursor agents leaf"
 assert_file_exists "${FAKE_HOME}/.cursor/agents/user-agent.md" "global install keeps planted cursor agent"
 assert_file_exists "${FAKE_HOME}/.claude/agents/sddkit-design.md" "global claude agents leaf"

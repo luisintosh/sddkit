@@ -7,7 +7,7 @@ Reply keys are not state keys. Translate:
 - **sddkit-design-reviewer** → nothing is persisted. Its `changes`, `fixed`, and `findings` are shown at the design
   gate; unresolved `blocker|major` `findings` are passed verbatim to `sddkit-design`.
 - **sddkit-implementer** → `blockers` → `blockers`.
-- **sddkit-code-reviewer-contract / -health / -design** → never applied one by one: merge all three replies per step
+- **sddkit-code-reviewer** (three runs, one per `area`) → never applied one by one: merge all three replies per step
   6.3. The merged status → `review.status`; merged `blocker|major` → `review.findings`, merged `minor` →
   `review.deferred_findings`. `iterations` is an echo — you own the count.
 - **sddkit-qa** → `qa_status` → `qa.status`; `scenarios_total|scenarios_passed|scenarios_failed`, `findings`,

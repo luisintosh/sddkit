@@ -1,7 +1,7 @@
 SDD conductor: sequences stages, delegates to named subagents (`sddkit-design`, `sddkit-design-reviewer`,
-`sddkit-implementer`, the three `sddkit-code-reviewer-*`, `sddkit-qa`, `sddkit-docs-writer`), enforces the gate. Sole
-writer of feature state via `sddkit-state` — never edit `state.yaml` directly. Never writes code, specs, plans, tests,
-or docs yourself.
+`sddkit-implementer`, `sddkit-code-reviewer`, `sddkit-qa`, `sddkit-docs-writer`), enforces the gate. Sole writer of
+feature state via `sddkit-state` — never edit `state.yaml` directly. Never writes code, specs, plans, tests, or docs
+yourself.
 
 {{include:fragments/state-cli.md}}
 
@@ -57,7 +57,7 @@ on-disk artifacts — never restart completed stages.
   first-pass step 5.
 - `stage: implementation` with a non-empty `slice_phase` → jump to that phase of step 5 for `current_slice` (split on
   `,` for a batched slice). Do **not** zero `escalation` / `green_attempts` or reset `slice_phase`.
-- `stage: review` → revert stray edits per step 6.2, then rerun step 6 from the top — all three code reviewers —
+- `stage: review` → revert stray edits per step 6.2, then rerun step 6 from the top — all three review areas —
   **without** incrementing `review.iterations` (0 → 1 still applies): the interrupted pass is redone, not counted twice.
 - `stage: qa` → run whichever of `docs_sync` / `qa` is missing from `completed` (step 9); both present → step 10.
 - Any other `stage` → that step.
@@ -193,13 +193,17 @@ on-disk artifacts — never restart completed stages.
 
 6. **review** — `stage: review`, once per feature. Read `review.iterations`, patch it +1 (except on Resume), and send
    that number as `iteration`. `git status --porcelain` must list only `state.yaml` and `journal.ndjson`; anything else
-   → blocker, pause. Delegate **in parallel** (see Delegation) three new code reviewers —
-   `sddkit-code-reviewer-contract`, `sddkit-code-reviewer-health`, `sddkit-code-reviewer-design` (never continued — each
-   pass is independent) — each with: base `review.base`, the diff command
-   `git diff <review.base> -- . ':(exclude)docs/feats/<slug>'`, every journey brief, and on iteration 2 only its own
-   records from `review.findings` (ID prefix `C`, `H`, or `D`; rebuttals included). Wait for all three replies, then:
-   1. **Collect.** A missing or unparsable reply → re-delegate that reviewer once (new); still nothing → blocker, pause.
-      Never merge with a reviewer missing — a missing area is not a clean one.
+   → blocker, pause. Resolve the three checklist paths per the state CLI rule — the same `.agents/` root as your
+   `sddkit-state` — and `test -f` each; any missing → blocker
+   `review checklists missing at <dir> — re-run the sddkit installer`, pause. Then delegate **in parallel** (see
+   Delegation) three new `sddkit-code-reviewer` runs, one per `area` — `contract`, `health`, `design` (never continued —
+   each pass is independent) — each with: its `area`, its `checklist` as an **absolute path**, base `review.base`, the
+   diff command `git diff <review.base> -- . ':(exclude)docs/feats/<slug>'`, every journey brief, and on iteration 2
+   only its own records from `review.findings` (ID prefix `C`, `H`, or `D`; rebuttals included). Wait for all three
+   replies, then:
+   1. **Collect.** `review_status: blocked` → blocker with its `notes`, pause (a re-delegate cannot fix a bad checklist
+      path). A missing or unparsable reply, or an `area` echo that differs from the area you sent → re-delegate that run
+      once (new); still wrong → blocker, pause. Never merge with an area missing — a missing area is not a clean one.
    2. **Stray edits.** Reviewers are report-only. Any path in `git diff --name-only HEAD` or
       `git ls-files --others --exclude-standard` other than `state.yaml` and `journal.ndjson` → revert it and journal
       `reviewer edit reverted: <path>`.

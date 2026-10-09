@@ -253,6 +253,27 @@ const SKILL_REFERENCES: Record<string, string[]> = {
   ],
 }
 
+// Per-area review checklists, installed to <agentsRoot>/sddkit/checklists/. The conductor passes the absolute path of
+// one to each sddkit-code-reviewer run; the header line lets the reviewer reject a wrong file.
+const REVIEW_CHECKLISTS: Record<string, string[]> = {
+  contract: ["fragments/review-contract.md"],
+  health: ["fragments/review-health.md"],
+  design: ["fragments/review-design.md", "fragments/design-practices.md"],
+}
+
+async function emitReviewChecklists(catalog: Catalog) {
+  const outRoot = path.join(distDir, "agents", "sddkit", "checklists")
+  await rmrf(outRoot)
+  for (const [area, fragments] of Object.entries(REVIEW_CHECKLISTS)) {
+    const parts: string[] = []
+    for (const rel of fragments) parts.push((await readPrompt(rel, catalog)).trim())
+    await writeFile(
+      path.join(outRoot, `review-${area}.md`),
+      `# sddkit review checklist: ${area}\n\n${parts.join("\n\n")}\n`,
+    )
+  }
+}
+
 async function emitSharedSkills(catalog: Catalog) {
   const outRoot = path.join(distDir, "agents", "skills")
   await rmrf(outRoot)
@@ -358,10 +379,13 @@ async function main() {
   await fs.mkdir(distDir, { recursive: true })
   await emitOpencode(catalog)
   await emitSharedSkills(catalog)
+  await emitReviewChecklists(catalog)
   await emitCursor(catalog)
   await emitClaude(catalog)
   await emitCodex(catalog)
-  console.log("transpile: wrote dist/opencode, dist/cursor, dist/claude, dist/codex, and dist/agents/skills")
+  console.log(
+    "transpile: wrote dist/opencode, dist/cursor, dist/claude, dist/codex, dist/agents/skills, and dist/agents/sddkit/checklists",
+  )
 }
 
 await main()

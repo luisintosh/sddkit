@@ -71,6 +71,8 @@ type AgentCatalog = {
 
 /** Claude Code ignores any other `experimental.cacheTtl`, so a typo would silently fall back to the 5m default. */
 const CACHE_TTLS = new Set(["5m", "1h"])
+// sddkit-code-reviewer runs once per area against dist/agents/sddkit/checklists/review-<area>.md.
+const REVIEW_AREAS = ["contract", "health", "design"] as const
 
 type Catalog = {
   hosts?: Record<string, { profiles?: Record<string, ModelRef> }>
@@ -164,8 +166,10 @@ if (catalog) {
   ]) {
     if (catalog.agents?.[merged]) fail(`catalog: ${merged} is merged into sddkit-design / sddkit-design-reviewer`)
   }
-  if (catalog.agents?.["sddkit-code-reviewer"]) {
-    fail("catalog: sddkit-code-reviewer is split into sddkit-code-reviewer-contract / -health / -design")
+  for (const area of REVIEW_AREAS) {
+    if (catalog.agents?.[`sddkit-code-reviewer-${area}`]) {
+      fail(`catalog: sddkit-code-reviewer-${area} is merged into sddkit-code-reviewer (area checklists)`)
+    }
   }
   for (const file of await readdir(path.join(root, "src", "prompts", "agents"))) {
     const name = file.replace(/\.md$/, "")
@@ -280,6 +284,16 @@ if (catalog) {
     } catch {
       fail(`dist/agents/skills/${cmd}/SKILL.md missing — run pnpm run build`)
     }
+  }
+}
+
+for (const area of REVIEW_AREAS) {
+  const rel = `dist/agents/sddkit/checklists/review-${area}.md`
+  try {
+    const first = (await readFile(path.join(root, rel), "utf8")).split("\n")[0]
+    if (first !== `# sddkit review checklist: ${area}`) fail(`${rel}: first line must name area ${area}`)
+  } catch {
+    fail(`${rel} missing — run pnpm run build`)
   }
 }
 

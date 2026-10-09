@@ -10,9 +10,7 @@ invoked — never which specialist, the brief's content, the stage order, gates,
 | `sddkit-design` | think | `claude --model opus --effort medium --permission-mode auto` | `.claude/agents/sddkit-design.md` |
 | `sddkit-design-reviewer` | review | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-design-reviewer.md` |
 | `sddkit-implementer` | execute | `cursor-agent --model grok-4.7-low --yolo` | `.cursor/agents/sddkit-implementer.md` |
-| `sddkit-code-reviewer-contract` | critique | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-code-reviewer-contract.md` |
-| `sddkit-code-reviewer-health` | critique | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-code-reviewer-health.md` |
-| `sddkit-code-reviewer-design` | critique | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-code-reviewer-design.md` |
+| `sddkit-code-reviewer` | critique | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-code-reviewer.md` |
 | `sddkit-qa` | validate | `cursor-agent --model grok-4.7-high --yolo` | `.cursor/agents/sddkit-qa.md` |
 | `sddkit-docs-writer` | write | `cursor-agent --model grok-4.7-high --yolo` | `.cursor/agents/sddkit-docs-writer.md` |
 
@@ -22,8 +20,10 @@ orchestration command that accepts it (all below except `worker-release`).
 
 **Files.** `D=$(git rev-parse --git-common-dir)/sddkit/<slug>` (inside `.git`: never committed, shared by worktrees).
 For dispatch `<n>` of a specialist within a stage, write the brief you would have sent natively to
-`$D/<specialist>-<stage>-<n>.brief.md`; the worker writes its reply to `$D/<specialist>-<stage>-<n>.reply.yaml`. The
-Task spec is always:
+`$D/<specialist>-<stage>-<n>.brief.md`; the worker writes its reply to `$D/<specialist>-<stage>-<n>.reply.yaml`. Step 6
+runs one specialist three times at once, so its names carry the area — `sddkit-code-reviewer-review-<area>-<n>` — and
+its terminal title is `sddkit-code-reviewer · review · <area>`; the brief keeps the absolute `checklist` path. The Task
+spec is always:
 
 > Act as `<specialist>`: read `<agent file>` (repo root, else `$HOME`) and follow its body as your instructions; ignore
 > its frontmatter. Your brief is `<brief path>`. When done, write your YAML reply block — exactly what the agent file
@@ -48,7 +48,7 @@ Never use `worker-start --agent`: Orca would launch with its own settings instea
 Journal the launch command used — Orca records no model for a terminal you started. Record the handle: Orca will not
 close a terminal it did not create, so it is yours to close (see **Close**). Escalation: one tab per worktree
 (`path:<worktree>`), both started before waiting — a split pane always starts in your own worktree. Parallel steps — the
-three code reviewers (step 6) and docs-sync ∥ QA (step 9): start all their workers, then **Wait** until all settle,
+three review areas (step 6) and docs-sync ∥ QA (step 9): start all their workers, then **Wait** until all settle,
 processing each `worker_done` as it arrives.
 
 **Wait.** `ORCA orchestration check --wait --types "worker_done,escalation,question" --timeout-ms 900000 --json` (add
