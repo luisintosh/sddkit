@@ -1,6 +1,6 @@
 ## Design rules
 
-What a sound design contains — `shadow-architect` writes to these rules and `shadow-design-reviewer` checks against
+What a sound design contains — `shadow-architect` writes to these rules and `shadow-architect-reviewer` checks against
 them.
 
 ### Spec (`spec.md`)

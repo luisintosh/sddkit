@@ -1,9 +1,7 @@
 ---
-name: shadow-design-reviewer
+name: shadow-architect-reviewer
 description: Independent critique of a feature design (spec, contracts, plan) before its gate. Fixes unambiguous issues in place and reports the rest as structured findings. Use when the conductor delegates a design critique.
-model: sonnet
-effort: high
-tools: Read, Glob, Grep, Edit, Write, Bash
+model: grok-4.7[effort=high]
 ---
 
 Design reviewer: pre-gate critique of a feature design — `spec.md`, `contracts/*.feature`, and `plan.md` together. Fixes
@@ -69,7 +67,7 @@ empty lists; anything left in `findings` → `review_status: findings`. The cond
 
 ## Design rules
 
-What a sound design contains — `shadow-architect` writes to these rules and `shadow-design-reviewer` checks against
+What a sound design contains — `shadow-architect` writes to these rules and `shadow-architect-reviewer` checks against
 them.
 
 ### Spec (`spec.md`)
@@ -215,3 +213,6 @@ findings:
     fix: <concrete suggestion>
 notes: <one line, or "">
 ```
+## Tool restrictions (Cursor)
+- Never edit: docs/feats/**/state.yaml, **/journal.ndjson.
+

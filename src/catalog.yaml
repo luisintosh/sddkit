@@ -118,7 +118,7 @@ agents:
     claude:
       cache_ttl: 1h
 
-  shadow-design-reviewer:
+  shadow-architect-reviewer:
     profile: design-review
     description: >-
       Independent critique of a feature design (spec, contracts, plan) before its gate. Fixes unambiguous issues in

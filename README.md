@@ -113,7 +113,7 @@ flowchart TD
   init["arise · initialize<br/>verify gh · feat/slug<br/>state init · probe"]:::conductor
   state[("state.yaml + journal<br/>via quest-state only")]:::state
   design["shadow-architect<br/>spec · contracts · plan<br/>≤ 3 journeys"]:::agent
-  critique["shadow-design-reviewer<br/>fixes in place"]:::agent
+  critique["shadow-architect-reviewer<br/>fixes in place"]:::agent
   gate{{"⏸ Design gate<br/>human approval"}}:::human
 
   req --> init --> design
@@ -174,7 +174,7 @@ human acts, and grey is state written only through `quest-state`. Dotted edges a
 | Stage          | Who                                    | What happens                                                                                                                                                                                   |
 | -------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Design         | `shadow-architect`                     | Writes `spec.md`, `contracts/*.feature`, and `plan.md` with at most three journeys, each tied to the cheapest test that can fail it.                                                           |
-| Critique       | `shadow-design-reviewer`               | Fixes unambiguous issues in place and reports only what needs you. Skipped for trivially safe designs.                                                                                         |
+| Critique       | `shadow-architect-reviewer`            | Fixes unambiguous issues in place and reports only what needs you. Skipped for trivially safe designs.                                                                                         |
 | Design gate    | you                                    | The one approval, never skipped.                                                                                                                                                               |
 | Implementation | `shadow-implementer`                   | Writes each journey's failing test, then the code. Retries go back to the same specialist so it keeps its context (and the prompt cache).                                                      |
 | Review         | `shadow-code-reviewer` ×3, in parallel | Contract, health, and design reviews against per-area checklists. Blockers get one fix round and a delta re-review; anything left becomes a dispute for you to settle.                         |
@@ -198,16 +198,16 @@ your session model on the other hosts.
 | `validate`      | `opencode-go/deepseek-v4-pro[max]`     | `grok-4.7[effort=medium]`        | `sonnet[effort=medium]` | `gpt-6.1-sol[high]`  |
 | `write`         | `opencode-go/kimi-k3`                  | `grok-4.7[effort=medium]`        | `sonnet[effort=medium]` | `gpt-6-luna[medium]` |
 
-| agent                    | profile         |
-| ------------------------ | --------------- |
-| `commander`              | `conduct`       |
-| `shadow-architect`       | `think`         |
-| `shadow-design-reviewer` | `design-review` |
-| `shadow-implementer`     | `execute`       |
-| `shadow-code-reviewer`   | `code-review`   |
-| `shadow-qa`              | `validate`      |
-| `shadow-docs-writer`     | `write`         |
-| `shadow-product-owner`   | `think`         |
+| agent                       | profile         |
+| --------------------------- | --------------- |
+| `commander`                 | `conduct`       |
+| `shadow-architect`          | `think`         |
+| `shadow-architect-reviewer` | `design-review` |
+| `shadow-implementer`        | `execute`       |
+| `shadow-code-reviewer`      | `code-review`   |
+| `shadow-qa`                 | `validate`      |
+| `shadow-docs-writer`        | `write`         |
+| `shadow-product-owner`      | `think`         |
 
 CI checks both tables against `src/catalog.yaml`.
 
@@ -217,12 +217,12 @@ When [Orca](https://github.com/stablyai/orca) is running, and both `claude` and 
 Claude and Cursor hosts installed, the conductor dispatches each specialist as a supervised Orca worker instead of a
 host subagent:
 
-| specialist                                       | worker                                                       |
-| ------------------------------------------------ | ------------------------------------------------------------ |
-| `shadow-architect`                               | `claude --model opus --effort medium --permission-mode auto` |
-| `shadow-design-reviewer`, `shadow-code-reviewer` | `claude --model sonnet --effort high --permission-mode auto` |
-| `shadow-implementer`                             | `cursor-agent --model grok-4.7-low --yolo`                   |
-| `shadow-qa`, `shadow-docs-writer`                | `cursor-agent --model grok-4.7-high --yolo`                  |
+| specialist                                          | worker                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------ |
+| `shadow-architect`                                  | `claude --model opus --effort medium --permission-mode auto` |
+| `shadow-architect-reviewer`, `shadow-code-reviewer` | `claude --model sonnet --effort high --permission-mode auto` |
+| `shadow-implementer`                                | `cursor-agent --model grok-4.7-low --yolo`                   |
+| `shadow-qa`, `shadow-docs-writer`                   | `cursor-agent --model grok-4.7-high --yolo`                  |
 
 Workers open as split panes (or tabs) titled `<specialist> · <stage>` and close once they finish. Briefs and replies
 pass through `.git/solodev/<slug>/`, so they never reach the diff. Set `SOLODEV_ORCHESTRATOR=native` to opt out.

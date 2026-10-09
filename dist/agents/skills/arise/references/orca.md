@@ -8,7 +8,7 @@ invoked — never which specialist, the brief's content, the stage order, gates,
 | Specialist | Profile | Launch command | Agent file |
 | --- | --- | --- | --- |
 | `shadow-architect` | think | `claude --model opus --effort medium --permission-mode auto` | `.claude/agents/shadow-architect.md` |
-| `shadow-design-reviewer` | design-review | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/shadow-design-reviewer.md` |
+| `shadow-architect-reviewer` | design-review | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/shadow-architect-reviewer.md` |
 | `shadow-implementer` | execute | `cursor-agent --model grok-4.7-low --yolo` | `.cursor/agents/shadow-implementer.md` |
 | `shadow-code-reviewer` | code-review | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/shadow-code-reviewer.md` |
 | `shadow-qa` | validate | `cursor-agent --model grok-4.7-high --yolo` | `.cursor/agents/shadow-qa.md` |

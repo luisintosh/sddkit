@@ -114,7 +114,7 @@ describe("orca routes", () => {
     expect(byAgent.commander).toBeUndefined()
     expect(byAgent["shadow-product-owner"]).toBeUndefined()
     expect(byAgent["shadow-architect"]).toEqual({ agent: "claude", id: "opus", effort: "medium" })
-    expect(byAgent["shadow-design-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
+    expect(byAgent["shadow-architect-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
     expect(byAgent["shadow-code-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
     for (const area of ["contract", "health", "design"]) {
       expect(byAgent[`shadow-code-reviewer-${area}`]).toBeUndefined()

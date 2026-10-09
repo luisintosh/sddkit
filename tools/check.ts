@@ -165,7 +165,7 @@ if (catalog) {
     if (catalog.agents?.[stale]) fail(`catalog: ${stale} must be renamed shadow-${stale}`)
   }
   for (const merged of ["shadow-spec", "shadow-plan-reviewer", "spec", "architect", "plan-reviewer"]) {
-    if (catalog.agents?.[merged]) fail(`catalog: ${merged} is merged into shadow-architect / shadow-design-reviewer`)
+    if (catalog.agents?.[merged]) fail(`catalog: ${merged} is merged into shadow-architect / shadow-architect-reviewer`)
   }
   for (const area of REVIEW_AREAS) {
     if (catalog.agents?.[`shadow-code-reviewer-${area}`]) {
@@ -511,7 +511,7 @@ if (catalog) {
     ...(await Promise.all(refNames.map((f) => readOr(path.join(skillDir, "references", f))))),
   ].join("\n")
   const design = await readOr(path.join(root, "dist", "claude", "agents", "shadow-architect.md"))
-  const reviewer = await readOr(path.join(root, "dist", "claude", "agents", "shadow-design-reviewer.md"))
+  const reviewer = await readOr(path.join(root, "dist", "claude", "agents", "shadow-architect-reviewer.md"))
   const contracts: [string, string, string][] = [
     [design, "cheapest sensor that can fail", "design cheapest-oracle menu"],
     [design, "at most 3 journeys", "design journey cap"],
@@ -542,7 +542,7 @@ if (catalog) {
     [conductor, "first use", "conductor glosses concepts on first use"],
     [conductor, "**Needs you**", "conductor attention tag"],
   ]
-  for (const name of ["architect", "design-reviewer", "implementer", "code-reviewer", "qa", "docs-writer"]) {
+  for (const name of ["architect", "architect-reviewer", "implementer", "code-reviewer", "qa", "docs-writer"]) {
     const body = await readOr(path.join(root, "dist", "claude", "agents", `shadow-${name}.md`))
     contracts.push([body, "headline:", `shadow-${name} reply headline`])
   }

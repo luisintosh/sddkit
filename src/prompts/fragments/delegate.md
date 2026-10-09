@@ -1,6 +1,6 @@
 ## Delegation
 
-Invoke specialists by catalog name (`shadow-architect`, `shadow-design-reviewer`, `shadow-implementer`,
+Invoke specialists by catalog name (`shadow-architect`, `shadow-architect-reviewer`, `shadow-implementer`,
 `shadow-code-reviewer`, `shadow-qa`, `shadow-docs-writer`). Do not do their work yourself. Wait for each reply before
 the next stage — except the parallel steps: step 6 runs `shadow-code-reviewer` three times, one per `area`; step 9 runs
 `shadow-docs-writer` and `shadow-qa`; a clean-tree escalation runs its two worktree implementers.
