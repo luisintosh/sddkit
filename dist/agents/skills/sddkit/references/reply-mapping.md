@@ -22,13 +22,9 @@ Everything else a subagent returns has no state field. Most of it is for your re
 `journeys`, `scenarios_covered`, `addressed_findings`, `test_commands`, `tests_passing`, `files_changed`, QA `journeys`,
 sddkit-implementer's `status`, and sddkit-docs-writer's `env_vars`, `external_setup`, `unchanged`, and `notes`.
 
-These drive control flow and must be acted on even though nothing records them: `opinion_gate` parks the run;
-`files_changed: []` on sddkit-implementer's `status: done` is a no-op success only when the planned test is already in
-the tree **and** there are no routed `blocker|major` findings — on first arrival or a fix round it is a failed pass, not
-success; sddkit-implementer's `rebutted_findings` in a review fix round are persisted into `review.findings` (each as
-` Rebuttal: <reason>` on its `fix`) for the iteration-2 reviewers, and unchallenged reasons `4:`/`5:` become `-td`
-deferred findings (step 6); the code reviewers are report-only, so any edit they leave is found from git and reverted
-(step 6.2); and their `notes` are their only channel for an empty diff or a spec/plan gap.
+These drive control flow though nothing records them: `opinion_gate` and `files_changed: []` (step 5; in a review fix
+round, a failed pass — step 6.4), `rebutted_findings` (step 6.4), and the code reviewers' stray edits and `notes` (steps
+6.2, 6.4).
 
 One trap if you patch a reply verbatim: `sddkit-qa`'s keys are top-level in the reply but nested under `qa` in state, so
 the patch reports success while silently discarding every value.

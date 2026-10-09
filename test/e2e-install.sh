@@ -73,6 +73,7 @@ assert_file_exists "${TARGET}/.agents/skills/sddkit-epic/SKILL.md" "sddkit-epic 
 assert_file_exists "${TARGET}/.agents/skills/sddkit-setup-docs/SKILL.md" "sddkit-setup-docs skill installed under .agents"
 assert_file_exists "${TARGET}/.agents/skills/sddkit/references/reply-mapping.md" "sddkit reply-mapping reference installed"
 assert_file_exists "${TARGET}/.agents/skills/sddkit/references/orca.md" "sddkit orca reference installed"
+assert_file_exists "${TARGET}/.agents/skills/sddkit/references/handoff.md" "sddkit handoff reference installed"
 assert_file_absent "${TARGET}/.cursor/skills/sddkit/SKILL.md" "legacy .cursor/skills/sddkit not installed"
 assert_file_exists "${TARGET}/.agents/bin/sddkit-state.mjs" "sddkit-state installed under .agents/bin"
 for area in contract health design; do

@@ -92,6 +92,21 @@ describe("validateState", () => {
     if (result.success) expect(result.data.pending_gate).toBe("dispute")
   })
 
+  test("defaults review.fix_pending to false and accepts true", () => {
+    const fresh = validateState({ feature: "x", workflow: "sdd", stage: "review", updated: new Date().toISOString() })
+    expect(fresh.success).toBe(true)
+    if (fresh.success) expect(fresh.data.review.fix_pending).toBe(false)
+    const pending = validateState({
+      feature: "x",
+      workflow: "sdd",
+      stage: "review",
+      review: { iterations: 1, fix_pending: true },
+      updated: new Date().toISOString(),
+    })
+    expect(pending.success).toBe(true)
+    if (pending.success) expect(pending.data.review.fix_pending).toBe(true)
+  })
+
   test("rejects an unknown pending_gate", () => {
     const result = validateState({
       feature: "x",

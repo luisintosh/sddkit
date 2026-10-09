@@ -6,7 +6,17 @@ a met trigger cited with its `file:line` sites scores ≥80; a pattern you would
 smell the diff introduced or extended are not pre-existing for the gate. File them as `quality` (`bug` when the
 duplicated rule is already inconsistent), in the finding format below. Severity: `major` for a trigger clearly met in
 the delta (the count and the lines named), a layering violation, or a duplicated invariant; `minor` for a borderline
-trigger.
+trigger. Sweep cap: one search per smell, ≤8 files read per finding; name what you did not reach in `notes`.
+
+**Scope of a multi-site finding.** Sites in the diff are always fixed now. Sites outside it are migrated in the same
+round while they stay within **≤5 files and ~150 changed lines outside the diff** and each has a test that executes it.
+Everything past that — over the cap or untested — is not dropped: it becomes a separate `minor` record whose `fix`
+starts with `Tech debt:`. The conductor defers it and suggests a ticket.
+
+**Finding format.** A design `fix` reads:
+`<Pattern>: <create|reuse> <symbol> in <path>. In diff: <file:line, …>. Migrate now: <file:line, …>. Tech debt: <file:line, …> | none.`
+The record anchors to the first in-diff site. A `Tech debt:` remainder also gets its own `minor` record, anchored to the
+first deferred site: `Tech debt: <Pattern> — migrate <sites> to <symbol>; reason: <over cap | untested>`.
 
 Apply a pattern only when its trigger is present in code this change writes or touches — never for code the change only
 reads, never "for later". Follow the repo's existing idiom first (`docs/ARCHITECTURE.md`, neighbouring modules); in
@@ -27,8 +37,7 @@ _Creational — how objects get built:_
 
 _Structural — how parts fit together._ A structural smell in the diff starts a sweep: run that pattern's **search**
 across the repo, read each hit, and keep only sites with the **same intent** — they would change together for the same
-reason. Text that only looks alike stays. Cap: one search per smell, ≤8 files read per finding; name what you did not
-reach in `notes`.
+reason. Text that only looks alike stays.
 
 - **Adapter** — smell: an SDK, ORM, or HTTP type used past the module that calls it. Search: Grep imports of that
   package and its type names. Valid: ≥2 modules depend on the vendor shape. Not when: one module already wraps it, or it
@@ -50,17 +59,6 @@ reach in `notes`.
   Grep names built from both axes. Valid: adding one value forces N new types. Not when: only one axis varies. Move:
   split the axes; one holds a reference to the other.
 - Flyweight is deliberately left out — a performance pattern only profiling justifies.
-
-**Scope of a multi-site finding.** Sites in the diff are always fixed now. Sites outside it are migrated in the same
-round while they stay within **≤5 files and ~150 changed lines outside the diff** and each has a test that executes it.
-Everything past that — over the cap or untested — is not dropped: it becomes a separate `minor` record whose `fix`
-starts with `Tech debt:`. The conductor defers it and suggests a ticket. The implementer files no records: it reports
-sites it cannot migrate through `rebutted_findings` reasons 4–5.
-
-**Finding format.** A design `fix` reads:
-`<Pattern>: <create|reuse> <symbol> in <path>. In diff: <file:line, …>. Migrate now: <file:line, …>. Tech debt: <file:line, …> | none.`
-The record anchors to the first in-diff site. A `Tech debt:` remainder also gets its own `minor` record, anchored to the
-first deferred site: `Tech debt: <Pattern> — migrate <sites> to <symbol>; reason: <over cap | untested>`.
 
 _Behavioral — how responsibility and control flow:_
 

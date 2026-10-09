@@ -11,12 +11,13 @@ yourself.
 Resolve `sddkit-state` before the first checkpoint, then use that path for every `init` / `patch` / `show` / `validate`
 / `decide`:
 
-1. `<repo>/.agents/bin/sddkit-state.mjs` if it exists and is executable (`<repo>` = `git rev-parse --show-toplevel`)
+1. `<repo>/.agents/bin/sddkit-state.mjs` if it exists and is executable (`<repo>` = the main checkout: the parent of
+   `git rev-parse --path-format=absolute --git-common-dir`, so a linked worktree resolves the same install)
 2. `$HOME/.agents/bin/sddkit-state.mjs` if it exists and is executable
 
 The `.agents/` root that holds the resolved `sddkit-state` also holds the code-review checklists — never mix roots:
-`<root>/.agents/sddkit/checklists/review-<area>.md` for `contract`, `health`, and `design`. Always hand them out as
-absolute paths.
+`<root>/.agents/sddkit/checklists/review-<area>.md` for `contract`, `health`, and `design`. The resolved root's scope
+(`<repo>` or `$HOME`) is also where Orca agent files come from. Always hand paths out as absolute.
 
 Never edit `state.yaml` or `journal.ndjson` directly.
 
@@ -123,15 +124,20 @@ on-disk artifacts — never restart completed stages.
 - `pending_gate: design` → re-present the design gate (step 4) and wait.
 - `pending_gate: opinion` → an `sddkit-implementer` opinion gate is unanswered; the question is in `blockers`. Put it
   back to the human rather than re-running implementation into the same fork.
-- `pending_gate: dispute` → a review dispute is open; both arguments are in `blockers`. Re-present only the entries not
-  yet marked `ruled:` (step 6.5) and wait; keep the rulings already recorded.
+- `pending_gate: dispute` → a review dispute is open (step 6.5); entries are in `blockers`. Some still unruled →
+  re-present only those and wait. All ruled → carry out step 6.5's outcomes now.
 - `stage: design` → `design` not in `completed`: step 2. `design` in `completed`, `design_critique` not: step 3. Both:
-  step 4. `qa.cycles > 0` means this is a QA design delta (step 9) — on approval, run that delta's reset, not a
-  first-pass step 5.
+  step 4. `implementation` in `completed` means this is a design delta (from step 6.4 or step 9) — on approval, run the
+  delta reset (step 9), not a first-pass step 5.
 - `stage: implementation` with a non-empty `slice_phase` → jump to that phase of step 5 for `current_slice` (split on
   `,` for a batched slice). Do **not** zero `escalation` / `green_attempts` or reset `slice_phase`.
-- `stage: review` → revert stray edits per step 6.2, then rerun step 6 from the top — all three review areas —
-  **without** incrementing `review.iterations` (0 → 1 still applies): the interrupted pass is redone, not counted twice.
+- `stage: review` → first drop `blockers` entries starting `review checklists missing` or `review blocked` (step 6
+  re-checks them). Then:
+  - `review.fix_pending: true` → a fix round was interrupted before its commit: revert uncommitted edits (step 6.2
+    rules), then rerun that fix round (step 6.4) from `review.findings` with a new `sddkit-implementer` and the journey
+    briefs.
+  - Otherwise revert stray edits per step 6.2 and rerun step 6 from the top — all three review areas — **without**
+    incrementing `review.iterations` (0 → 1 still applies): the interrupted pass is redone, not counted twice.
 - `stage: qa` → run whichever of `docs_sync` / `qa` is missing from `completed` (step 9); both present → step 10.
 - Any other `stage` → that step.
 
@@ -214,8 +220,8 @@ on-disk artifacts — never restart completed stages.
    The gate is never skipped.
    - Approved (the recommended approach, or no objection stated): `pending_gate: ""`, commit spec + contracts + plan
      (Conventional Commit); patch `review.base` to that commit's SHA and `review.findings: []`; if `pr.url` is set,
-     `git push`. Continue to step 5 (a QA design delta continues to its reset in step 9). Approving the design approves
-     a named Playwright add — no second ask.
+     `git push`. Continue to step 5 (a design delta — from step 6.4 or step 9 — continues to its reset in step 9).
+     Approving the design approves a named Playwright add — no second ask.
    - Edits requested, or a different listed approach picked → continue `sddkit-design` naming the change, then
      re-present.
 
@@ -231,9 +237,9 @@ on-disk artifacts — never restart completed stages.
    - **Start a slice** when `slice_phase` is empty and its journeys are not in `completed_slices`: patch
      `current_slice`, `slice_phase: green`, `green_attempts: 0`. Zero `escalation` only when starting the first slice of
      a first-pass implementation or of a QA design-delta restart.
-   - **Track new files.** After every `sddkit-implementer` reply (step 7 verify-fixes too), run
-     `git add --intent-to-add -- <files_changed>`. An untracked file is invisible to `git diff HEAD` and survives
-     `git reset --hard`.
+   - **Track new files.** After every `sddkit-implementer` reply, in any step (5, the 6.4 fix round, the 6.5 apply
+     round, 7), run `git add --intent-to-add -- <files_changed>`. An untracked file is invisible to `git diff HEAD` and
+     survives `git reset --hard`.
    - `slice_phase: green` → delegate a new `sddkit-implementer` with the slice's brief(s). When `escalation: 1`, include
      the failure history and tell it to re-derive from plan + the failing test (do not trust the prior diff).
      - Opinion gate raised → patch `pending_gate: opinion`, append `opinion gate (impl): <question>` to `blockers`,
@@ -264,52 +270,59 @@ on-disk artifacts — never restart completed stages.
           pass on the reset tree.
        5. Continue at `slice_phase: targeted_test`. A failure there while `escalation` is 1 → record blockers and pause.
 
-6. **review** — `stage: review`, once per feature. Read `review.iterations`, patch it +1 (except on Resume), and send
-   that number as `iteration`. `git status --porcelain` must list only `state.yaml` and `journal.ndjson`; anything else
-   → blocker, pause. Resolve the three checklist paths per the state CLI rule — the same `.agents/` root as your
-   `sddkit-state` — and `test -f` each; any missing → blocker
+6. **review** — `stage: review`, once per implementation pass. Read `review.iterations`, patch it +1 (except on Resume),
+   and send that number as `iteration`. `git status --porcelain` must list only `state.yaml` and `journal.ndjson`;
+   anything else → blocker, pause. Resolve the three checklist paths per the state CLI rule — the same `.agents/` root
+   as your `sddkit-state` — and `test -f` each; any missing → blocker
    `review checklists missing at <dir> — re-run the sddkit installer`, pause. Then delegate **in parallel** (see
    Delegation) three new `sddkit-code-reviewer` runs, one per `area` — `contract`, `health`, `design` (never continued —
    each pass is independent) — each with: its `area`, its `checklist` as an **absolute path**, base `review.base`, the
-   diff command `git diff <review.base> -- . ':(exclude)docs/feats/<slug>'`, every journey brief, and on iteration 2
-   only its own records from `review.findings` (ID prefix `C`, `H`, or `D`; rebuttals included). Wait for all three
+   diff command `git diff <review.base> -- . ':(exclude)docs/feats/<slug>'`, every journey brief, and on iteration 2:
+   only its own records from `review.findings` (ID prefix `C`, `H`, or `D`; rebuttals included), the fix commit SHA, and
+   the highest id used for its prefix across `review.findings` and `review.deferred_findings`. Wait for all three
    replies, then:
-   1. **Collect.** `review_status: blocked` → blocker with its `notes`, pause (a re-delegate cannot fix a bad checklist
-      path). A missing or unparsable reply, or an `area` echo that differs from the area you sent → re-delegate that run
-      once (new); still wrong → blocker, pause. Never merge with an area missing — a missing area is not a clean one.
+   1. **Collect.** `review_status: blocked` → blocker `review blocked (<area>): <notes>`, pause (a re-delegate cannot
+      fix a bad checklist path). A missing or unparsable reply, or an `area` echo that differs from the area you sent →
+      re-delegate that run once (new); still wrong → blocker, pause. Never merge with an area missing — a missing area
+      is not a clean one.
    2. **Stray edits.** Reviewers are report-only. Any path in `git diff --name-only HEAD` or
       `git ls-files --others --exclude-standard` other than `state.yaml` and `journal.ndjson` → revert it and journal
       `reviewer edit reverted: <path>`.
-   3. **Merge** the three `findings` lists into one: drop exact duplicates (same `file`, `line`, and `category`) keeping
-      the higher severity, and journal `duplicate <dropped id> → <kept id>`; sort `blocker`, `major`, `minor`. Patch
-      `review.status`: `findings` when any record survives, else `clean`. Commit state (Conventional Commit); if
-      `pr.url` is set, `git push`. Steps 6.4–6.6 act on this merged list only.
-   4. **Route.** Merged `minor` findings → append to `review.deferred_findings` (read + full array). Any reviewer's
-      `notes` naming a spec or plan gap → journal it and pause for the human, naming the gap. `blocker|major` findings →
-      patch `review.findings`, then:
-      - `review.iterations` is 1 → fix round: continue `sddkit-implementer` with the findings verbatim (no new oracle),
-        run typecheck, lint, and every journey command (a failure continues it with the error lines; a second failure →
-        blockers, pause). Before committing, persist its `rebutted_findings`: patch `review.findings` (full array) with
-        ` Rebuttal: <reason>` appended to each rebutted finding's `fix`. Commit, and repeat step 6 (iteration 2, scoped
-        to the prior findings plus the fix commit).
-      - `review.iterations` ≥ 2 → first, for each prior finding whose `fix` holds `Rebuttal: 4:` or `Rebuttal: 5:` and
-        that this pass did **not** re-raise, append a tech-debt record to `review.deferred_findings` (read + full
-        array): `id: <orig id>-td`, `severity: minor`, the original `category`, `file`/`line` of the first site the
-        rebuttal names, the original `summary`, and
-        `fix: Tech debt: <Pattern> — migrate <rebutted sites> to <symbol>; reason: untested | over cap` (pattern and
-        symbol from the original `fix`). Then: every remaining `blocker|major` starts `Re-raised:` → step 6.5. Any other
-        `blocker|major` left (even alongside re-raised ones) → record them all as blockers and pause; the human settles
-        the lot.
+   3. **Merge** the three `findings` lists into one: drop a record only when another has the same `file`, `line`, and
+      `category` **and** its `summary` describes the same defect — keep the higher severity (tie: the first area in
+      contract, health, design order) and journal `duplicate <dropped id> → <kept id>`. Different defects on one line
+      stay as separate records; sort `blocker`, `major`, `minor`. Patch `review.status`: `findings` when any record
+      survives, else `clean`. Commit state (Conventional Commit); if `pr.url` is set, `git push`. Steps 6.4–6.6 act on
+      this merged list only.
+   4. **Route.** On iteration ≥ 2, **before patching anything**, write tech debt from the stored prior
+      `review.findings`: each record whose `fix` holds `Rebuttal: 4:` or `Rebuttal: 5:` and that this pass did **not**
+      re-raise → append to `review.deferred_findings` (read + full array; skip an id already there): `id: <orig id>-td`,
+      `severity: minor`, the original `category`, `file`/`line` of the first site the rebuttal names, the original
+      `summary`, and `fix: Tech debt: <Pattern> — migrate <rebutted sites> to <symbol>; reason: untested | over cap`
+      (pattern and symbol from the original `fix`). Then:
+      - Merged `minor` findings → append to `review.deferred_findings` (read + full array).
+      - Any reviewer's `notes` naming a spec or plan gap → design delta: journal the gap, then step 9's `route: spec`
+        sub-steps 1–2 with the gap as the finding, and after the reset continue at step 5 (then 6, 7, onward).
+      - `blocker|major` findings → patch `review.findings` (full array), then:
+        - `review.iterations` is 1 → fix round: patch `review.fix_pending: true`, continue `sddkit-implementer` with the
+          findings verbatim (no new oracle) and handle its reply as in step 5 (opinion gate, `blocked`, and
+          `files_changed: []` — a failed pass here: continue it once stating that, then blocker). Run typecheck, lint,
+          and every journey command (a failure continues it with the error lines; a second failure → blockers, pause).
+          Before committing, one patch: append ` Rebuttal: <reason>` to each rebutted finding's `fix` in
+          `review.findings` (full array), `review.iterations: 2`, `review.fix_pending: false`. Commit, then repeat step
+          6 **without** incrementing (iteration 2, scoped to the prior findings plus the fix commit).
+        - `review.iterations` ≥ 2 → step 6.5 for every remaining `blocker|major`, re-raised or not.
    5. **Dispute** — only when step 6.4 or Resume sends you here. Patch `pending_gate: dispute` and append
-      `dispute (review) <id>: <summary> — <fix>` to `blockers` per re-raised finding (the `fix` carries both arguments);
-      on Resume they are already there — append nothing. Ask the human to rule on each: **apply**, **defer**, or
-      **drop**. Record each ruling as it arrives by rewriting its blocker to end `— ruled: apply|defer|drop` (read +
-      full array), so a resume never asks twice. Once every entry is ruled:
-      - **defer** → append to `review.deferred_findings` as `minor`, id `<id>-td`; a design finding gets the tech-debt
-        `fix` format above, any other keeps its `fix` without the `Tech debt:` prefix.
+      `dispute (review) <id>: <summary> — <fix>` to `blockers` per remaining `blocker|major` (a re-raised `fix` carries
+      both arguments); on Resume they are already there — append nothing. Ask the human to rule on each: **apply**,
+      **defer**, or **drop**. Record each ruling as it arrives by rewriting its blocker to end
+      `— ruled: apply|defer|drop` (read + full array), so a resume never asks twice. Once every entry is ruled:
+      - **defer** → append to `review.deferred_findings` as `minor`, id `<id>-td` (skip an id already there); a design
+        finding gets the tech-debt `fix` format above, any other keeps its `fix` without the `Tech debt:` prefix.
       - **apply** → all applied findings in one round: continue `sddkit-implementer` (no live handle → a new one with
         the journey briefs) with those findings and the human's ruling as authority — rebuttals are not accepted under a
-        ruling. Run the sensors as in a fix round (second failure → blockers, pause), commit. No re-review.
+        ruling. Handle its reply as in a fix round; run the sensors (second failure → blockers, pause), commit. No
+        re-review.
       - Then clear `pending_gate`, drop the dispute blockers, and go to step 6.6.
    6. No `blocker|major` left → patch `review.findings: []`, add `review` to `completed`, continue to step 7.
 
@@ -355,8 +368,8 @@ on-disk artifacts — never restart completed stages.
           re-emits any that still fail).
        2. Design gate (step 4), always presented. On approval, the delta reset, as one patch: remove `implementation`,
           `review`, `verify`, `docs_sync` from `completed` (full array); clear `completed_slices`, `current_slice`,
-          `slice_phase`, `review.findings`; `review.iterations: 0`, `green_attempts: 0`, `escalation: 0`; `review.base`
-          = the delta's design commit.
+          `slice_phase`, `review.findings`; `review.iterations: 0`, `review.fix_pending: false`, `green_attempts: 0`,
+          `escalation: 0`; `review.base` = the delta's design commit.
        3. Steps 5 → 6 → 7, then this step again with QA scoped to only the previously failed e2e paths.
 
    Both `docs_sync` and `qa` in `completed` → step 10.
@@ -376,23 +389,10 @@ on-disk artifacts — never restart completed stages.
 
 11. **handoff** — GitHub-only (`tools.repo` and `tools.tracker` are `gh` or a GitHub MCP, and `roadmap.issue` ≠ `0`).
     Empty is not GitHub. Otherwise skip: if `roadmap.path` is set, point at the next feature in that roadmap file; stop.
-    Also skip if `roadmap.epic` is `0`. Read the epic's task list with `tools.tracker`
-    (`gh issue view <epic> --json body` when that tool is `gh`) and take the first unchecked entry that isn't this
-    feature. Nothing in this pipeline ticks those boxes: the epic body lists features as `- [ ] #<n> …`, and GitHub
-    auto-checks such an entry when issue `#<n>` closes — which is why step 8 puts `Closes #<n>` in the PR body. So
-    "unchecked" means "its feature PR hasn't merged yet", and this feature's own entry stays unchecked until a human
-    merges.
-    - None left → tell the user every feature in the epic is done or in flight; stop.
-    - Found, and its `Blocked by` issues aren't all `CLOSED` → tell the user to merge this feature's PR first (it closes
-      the blocker via `Closes #<n>`).
-    - Found, and all blockers `CLOSED` → say it's ready to run now.
-    - Either way, print in chat only: what finished (PR + QA link), the next feature (id + issue), a paste-ready
-      invocation
-      (`Run the SDD pipeline for GitHub issue #<n> in <owner>/<repo>. Scope is exactly that issue's Acceptance criteria. Base: <base>.`),
-      any setup the human still has to perform, and ≤5 one-line bullets carried over — only where omitting one would
-      make the next run redo work or contradict a settled decision (reusable symbols added, verify-command gotchas,
-      overlapping `review.deferred_findings` or unfiled `Tech debt:` records, gate decisions, setup gotchas hit). Never
-      restate what the issue, `AGENTS.md`, or the PR already says.
+    Also skip if `roadmap.epic` is `0`. Otherwise:
+
+    Read [references/handoff.md](references/handoff.md) and follow it.
+
 
 Stage names: `initialized | design | design_gate | implementation | review | verify | pr | qa | complete`. `completed`
 holds these names plus the markers `design_critique` and `docs_sync` — nothing else.

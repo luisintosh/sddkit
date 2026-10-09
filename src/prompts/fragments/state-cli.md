@@ -1,12 +1,13 @@
 Resolve `sddkit-state` before the first checkpoint, then use that path for every `init` / `patch` / `show` / `validate`
 / `decide`:
 
-1. `<repo>/.agents/bin/sddkit-state.mjs` if it exists and is executable (`<repo>` = `git rev-parse --show-toplevel`)
+1. `<repo>/.agents/bin/sddkit-state.mjs` if it exists and is executable (`<repo>` = the main checkout: the parent of
+   `git rev-parse --path-format=absolute --git-common-dir`, so a linked worktree resolves the same install)
 2. `$HOME/.agents/bin/sddkit-state.mjs` if it exists and is executable
 
 The `.agents/` root that holds the resolved `sddkit-state` also holds the code-review checklists — never mix roots:
-`<root>/.agents/sddkit/checklists/review-<area>.md` for `contract`, `health`, and `design`. Always hand them out as
-absolute paths.
+`<root>/.agents/sddkit/checklists/review-<area>.md` for `contract`, `health`, and `design`. The resolved root's scope
+(`<repo>` or `$HOME`) is also where Orca agent files come from. Always hand paths out as absolute.
 
 Never edit `state.yaml` or `journal.ndjson` directly.
 

@@ -40,6 +40,8 @@ findings only for what needs a human or a redesign.
 
 {{include:fragments/finding-rules.md}}
 
+{{include:fragments/fix-then-report.md}}
+
 ## Reviewing the spec
 
 - **Accuracy** — claims about how the system behaves today hold up. "Currently users must re-enter their password" is

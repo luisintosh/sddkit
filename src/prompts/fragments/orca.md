@@ -18,11 +18,16 @@ runs one specialist three times at once, so its names carry the area — `sddkit
 its terminal title is `sddkit-code-reviewer · review · <area>`; the brief keeps the absolute `checklist` path. The Task
 spec is always:
 
-> Act as `<specialist>`: read `<agent file>` (repo root, else `$HOME`) and follow its body as your instructions; ignore
-> its frontmatter. Your brief is `<brief path>`. When done, write your YAML reply block — exactly what the agent file
-> says to return — to `<reply path>` (a file inside `.git`, not a repo edit, so read-only roles may write it), then send
-> `worker_done` with `--report-path <reply path>`: `--outcome succeeded` when the reply is written, `failed` only when
-> you could not produce one.
+> Act as `<specialist>`: read `<absolute agent file>` and follow its body as your instructions; ignore its frontmatter.
+> Your brief is `<brief path>`. When done, write your YAML reply block — exactly what the agent file says to return — to
+> `<reply path>` (a file inside `.git`, not a repo edit, so read-only roles may write it), then send `worker_done` with
+> `--report-path <reply path>`: `--outcome succeeded` when the reply is written, `failed` only when you could not
+> produce one.
+
+`<absolute agent file>` is the table's agent file resolved in the scope of your `sddkit-state` root (state CLI rule):
+`<repo>/<agent file>` for a project install, else `$HOME/<agent file>` (Codex: `${CODEX_HOME:-$HOME/.codex}/agents/…`).
+`test -f` it before dispatching; missing → blocker `agent file missing at <path> — re-run the sddkit installer`. Never
+let a worker search for it.
 
 **Dispatch.** You always start the worker yourself with the table's launch command — it pins the model and skips the
 CLI's approval prompts (Claude `--permission-mode auto`, Cursor `--yolo`), so an unattended run never stalls on one.

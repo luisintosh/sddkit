@@ -245,6 +245,7 @@ const SKILL_REFERENCES: Record<string, string[]> = {
     "Reply keys are not state keys. Read [references/reply-mapping.md](references/reply-mapping.md) before the first",
     "patch — translate every reply; never pass one through verbatim.",
   ],
+  "handoff.md": ["Read [references/handoff.md](references/handoff.md) and follow it."],
   "orca.md": [
     "## Orca dispatch",
     "",

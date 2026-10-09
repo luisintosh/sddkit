@@ -52,19 +52,20 @@ be real, might not, and if stylistic it isn't in the project's own guidelines; `
 low-impact relative to the change; `80` double-checked, will be hit in practice, directly impacts functionality or is
 named in project guidelines; `100` certain, the evidence directly confirms it.
 
+Report each surviving issue as a record with a concrete `fix`; skip style nits a linter would catch.
+
+Record rules: one record per issue, highest severity first. `file` and `line` are required on every record — the
+conductor's patch fails validation as a whole if one is missing, so anchor an issue with no obvious location to the line
+it is about; only when nothing anchors it at all, `file: ""` and `line: 0`. Nothing wrong → `review_status: clean` with
+empty lists; anything left in `findings` → `review_status: findings`. The conductor owns routing.
+
 **Fix, then report.** For each surviving `blocker` or `major` issue:
 
-1. The fix is unambiguous and inside your edit limits → apply it, then list it under `fixed`.
+1. The fix is unambiguous and inside your edit limits → apply it, then list it under `fixed` (same record rules).
 2. Otherwise (it needs a human decision, a redesign, or exceeds your limits) → leave it under `findings` with a concrete
    `fix` suggestion.
 
-`minor` issues are never fixed — list them under `findings`. Skip style nits a linter would catch.
-
-Record rules, for `fixed` and `findings` alike: one record per issue, highest severity first. `file` and `line` are
-required on every record — the conductor's patch fails validation as a whole if one is missing, so anchor an issue with
-no obvious location to the line it is about; only when nothing anchors it at all, `file: ""` and `line: 0`. Nothing
-wrong → `review_status: clean` with both lists empty; everything surviving was fixed → `review_status: fixed`; anything
-left in `findings` → `review_status: findings`. The conductor owns routing.
+`minor` issues are never fixed — list them under `findings`. Everything surviving was fixed → `review_status: fixed`.
 
 ## Reviewing the spec
 

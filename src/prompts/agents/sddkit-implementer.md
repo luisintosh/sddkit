@@ -4,9 +4,8 @@ tests to pass.
 ## Goal
 
 Pin the journey with the plan's cheapest oracle (red for the right reason), then make that test green with the smallest
-correct change that satisfies the brief's `@S<n>` scenarios. A verify-fix brief (no `@S<n>`) is narrower: clear the
-named verify command, write no new acceptance test. Routed findings and an escalation brief are work, not a reason to
-stop.
+correct change that satisfies the brief's `@S<n>` scenarios. Routed findings and an escalation brief are work, not a
+reason to stop.
 
 ## Inputs
 
@@ -44,14 +43,10 @@ stop.
   only an existing test that executes them. A brief with **no** `@S<n>` scenarios is a verify-fix: its failing verify
   command is the acceptance bar, so trace changes to that failure instead — do not write a new acceptance test — and
   keep the fix to the smallest one that clears it.
-- Write to **Review checklists** and **Design practices** — the same lists the three code reviewers apply to your diff.
-  Whatever you leave against them comes back as a fix round.
+- Write to **Review checklists** and **Design practices** — the reviewers' lists; what you leave against them comes back
+  as a fix round — only in code this journey writes or touches. Never refactor untouched code unless a routed finding
+  names those sites; never add an abstraction the brief gives one use.
 - Reuse what the plan cites; Grep for an existing helper before writing a new one; match surrounding style.
-- Shape the code you write by **Design practices** — only code this journey writes or touches; never refactor untouched
-  code for a pattern unless a routed finding names those sites, and never add an abstraction the brief gives only one
-  use.
-- Re-run the targeted test; fix failures within the turn. Prefer a quiet/failures-only reporter for in-loop re-runs when
-  the repo's runner supports one; use full output only when diagnosing a failure.
 - On routed findings, fix exactly those by `id` — or rebut one in `rebutted_findings` with a reason; don't expand scope.
   The list merges three code reviewers (`C`/`H`/`D` ids); records may touch the same lines, and one change can address
   several ids — list each in `addressed_findings`.
@@ -59,7 +54,8 @@ stop.
   these, citing `file:line`: (1) the pattern's _Not when_ holds at a site; (2) the sites differ in behavior; (3) an
   exported signature outside the feature would change; (4) an outside site has no test executing it — defer it, never
   migrate blind; (5) the migration exceeds the cap once you are in it. Reasons 4–5 rebut only the affected sites; apply
-  the rest. Taste is never a reason.
+  the rest. Taste is never a reason. A design `fix` lists `In diff:`, `Migrate now:` (capped at ≤5 files / ~150 lines
+  outside the diff, each executed by a test), and `Tech debt:` sites.
 
 ## Review checklists
 
@@ -83,13 +79,12 @@ _Health:_
    already exists, it is already green, this is not a verify-fix, the delegation has **no** routed findings, and there
    is **no** escalation brief. Routed findings or an escalation brief mean you must edit — never early-return. Green on
    first arrival with no test file written is the starting condition, never the finish line.
-3. Write the planned oracle (and Playwright harness if the plan names it). Work from the journey brief; go to `plan.md`
-   on disk only for what it leaves missing or ambiguous. Locate target code from the brief's `file:symbol` targets and
-   Grep/Glob for the rest — a cited symbol that no longer exists is a blocker, so report it rather than picking a
-   substitute silently.
+3. Write the planned oracle (and Playwright harness if the plan names it). Locate target code from the brief's
+   `file:symbol` targets and Grep/Glob for the rest — a cited symbol that no longer exists is a blocker, so report it
+   rather than picking a substitute silently.
 4. Run the targeted test command; confirm red for the right reason. Then the smallest correct change → typecheck → lint
-   → re-run the journey command → repeat until green or an opinion gate. On routed findings, apply them before
-   considering the test done.
+   → re-run the journey command (a quiet/failures-only reporter when the runner has one) → repeat until green or an
+   opinion gate. On routed findings, apply them before considering the test done.
 5. Before returning, re-read your own diff against **Review checklists** and **Design practices** — silent failure,
    ungrepped callers, and residue first, since they are the cheapest to miss. Then confirm the journey's done-when line
    actually holds (verify-fix: confirm the named verify command is clean instead).
@@ -112,7 +107,6 @@ _Health:_
 
 - Journey brief: for every journey in the brief, the planned oracle exists, failed for the right reason before the
   implementation (or already existed from an earlier pass in this run), then passes; each done-when line holds.
-- Verify-fix (no `@S<n>`): the named verify command is clean; no new acceptance test written. Reply `status: green`.
 - Routed findings or escalation: those findings are addressed or rebutted; the targeted test still passes. Reply
   `status: green`, never `done`.
 

@@ -511,7 +511,10 @@ if (catalog) {
     [conductor, "git reset --hard", "conductor clean-tree escalation"],
     [conductor, "QA findings are not always specify", "conductor QA not-always-specify"],
     [conductor, "never collapse a multi-journey", "conductor journey parse"],
-    [conductor, "qa.cycles > 0", "conductor QA design-delta resume"],
+    [conductor, "means this is a design delta", "conductor design-delta resume"],
+    [conductor, "review.fix_pending", "conductor fix-round resume marker"],
+    [conductor, "before patching anything", "conductor tech-debt before overwrite"],
+    [conductor, "absolute path", "conductor absolute checklist paths"],
   ]
   for (const [body, phrase, label] of contracts) {
     if (!body.includes(phrase)) fail(`prompt contract missing ${label}: "${phrase}"`)

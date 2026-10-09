@@ -111,8 +111,10 @@ const StateObject = z.object({
       status: z.string().default(""),
       findings: z.array(FindingSchema).default([]),
       deferred_findings: z.array(FindingSchema).default([]),
+      // true while a review fix round is uncommitted, so a resume reruns it instead of a review pass
+      fix_pending: z.boolean().default(false),
     })
-    .default({ iterations: 0, base: "", status: "", findings: [], deferred_findings: [] }),
+    .default({ iterations: 0, base: "", status: "", findings: [], deferred_findings: [], fix_pending: false }),
   qa: z
     .object({
       status: z.string().default(""),
