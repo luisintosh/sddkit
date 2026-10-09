@@ -3,9 +3,9 @@
  * Tag HEAD and publish a GitHub Release (npx/bunx pin a git ref; default is master).
  *
  *   pnpm run release              # patch bump from the latest vX.Y.Z
- *   pnpm run release -- --minor
- *   pnpm run release -- --major
- *   pnpm run release -- v1.3.0
+ *   pnpm run release --minor
+ *   pnpm run release --major
+ *   pnpm run release v1.3.0
  */
 import { run } from "./sh.ts"
 

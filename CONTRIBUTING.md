@@ -70,9 +70,9 @@ Tags HEAD (the latest commit), pushes the branch and tag, and publishes a GitHub
 
 ```bash
 pnpm run release            # patch bump from the latest tag (v1.2.0 → v1.2.1)
-pnpm run release -- --minor
-pnpm run release -- --major
-pnpm run release -- v1.3.0  # explicit version
+pnpm run release --minor
+pnpm run release --major
+pnpm run release v1.3.0  # explicit version
 ```
 
 Publishing a GitHub Release runs CI’s `release-assets` job, which uploads `sddkit-dist.tar.gz` (`dist/` +
