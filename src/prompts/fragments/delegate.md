@@ -19,7 +19,8 @@ A specialist you **continue** keeps its prior context, so it skips re-reading th
 cache. Continue only these:
 
 - `sddkit-implementer` — a counted targeted-test failure, the opinion-gate answer, the empty-diff or no-test correction,
-  a verify-fix retry, and the step 6 fix round. Continue the implementer that wrote the code being fixed.
+  a verify-fix retry, the step 6 fix round, and the step 6.5 dispute apply round. Continue the implementer that wrote
+  the code being fixed.
 - `sddkit-design` — the critique re-delegation (step 3) and design-gate edits (step 4).
 
 Everything else gets a **new** specialist: the first delegation of every stage and slice, the escalation re-derive (it

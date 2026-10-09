@@ -80,6 +80,18 @@ describe("validateState", () => {
     if (result.success) expect(result.data.pending_gate).toBe("opinion")
   })
 
+  test("accepts a review dispute gate", () => {
+    const result = validateState({
+      feature: "account-export",
+      workflow: "sdd",
+      stage: "review",
+      pending_gate: "dispute",
+      updated: new Date().toISOString(),
+    })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.pending_gate).toBe("dispute")
+  })
+
   test("rejects an unknown pending_gate", () => {
     const result = validateState({
       feature: "x",
@@ -217,7 +229,12 @@ describe("legacy state normalization", () => {
   })
 
   test("a patch against a legacy file writes the normalized document", async () => {
-    await writeStateAtomic(root, "legacy", { ...base, feature: "legacy", stage: "plan_gate", pending_gate: "plan" } as never)
+    await writeStateAtomic(root, "legacy", {
+      ...base,
+      feature: "legacy",
+      stage: "plan_gate",
+      pending_gate: "plan",
+    } as never)
     await runPatch(root, "legacy", { blockers: [] })
     const after = await readState(root, "legacy")
     expect(after?.stage).toBe("design_gate")

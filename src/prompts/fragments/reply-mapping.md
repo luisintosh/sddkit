@@ -18,15 +18,16 @@ Reply keys are not state keys. Translate:
 
 Everything else a subagent returns has no state field. Most of it is for your reasoning and the chat summary: `feature`,
 `scenarios`, `open_questions`, `assumptions`, `human_decisions`, `approaches`, `recommended`, `playwright_fallback`,
-`journeys`, `scenarios_covered`, `addressed_findings`, `rebutted_findings`, `test_commands`, `tests_passing`,
-`files_changed`, QA `journeys`, sddkit-implementer's `status`, and sddkit-docs-writer's `env_vars`, `external_setup`,
-`unchanged`, and `notes`.
+`journeys`, `scenarios_covered`, `addressed_findings`, `test_commands`, `tests_passing`, `files_changed`, QA `journeys`,
+sddkit-implementer's `status`, and sddkit-docs-writer's `env_vars`, `external_setup`, `unchanged`, and `notes`.
 
 These drive control flow and must be acted on even though nothing records them: `opinion_gate` parks the run;
 `files_changed: []` on sddkit-implementer's `status: done` is a no-op success only when the planned test is already in
 the tree **and** there are no routed `blocker|major` findings — on first arrival or a fix round it is a failed pass, not
-success; `sddkit-code-reviewer`'s `files_changed` is checked against HEAD (step 6); and its `notes` is its only channel
-for an empty diff or a spec/plan gap.
+success; sddkit-implementer's `rebutted_findings` in a review fix round are persisted into `review.findings` (each as
+` Rebuttal: <reason>` on its `fix`) for the iteration-2 reviewer, and unchallenged reasons `4:`/`5:` become `-td`
+deferred findings (step 6); `sddkit-code-reviewer`'s `files_changed` is checked against HEAD (step 6); and its `notes`
+is its only channel for an empty diff or a spec/plan gap.
 
 One trap if you patch a reply verbatim: `sddkit-qa`'s keys are top-level in the reply but nested under `qa` in state, so
 the patch reports success while silently discarding every value.

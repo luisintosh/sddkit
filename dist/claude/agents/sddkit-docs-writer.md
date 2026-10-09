@@ -27,6 +27,10 @@ the feature touched, each short enough to read in full.
 
 - Write or update the README of every domain this feature touched, per **Choosing the files**.
 - Update `AGENTS.md` (keep it short) and `docs/ARCHITECTURE.md` only where the feature changed what they claim.
+- The diff introduced a structural pattern other code now routes through (a new adapter, facade, decorator, or proxy
+  module) → add or update one line under `## Conventions` in `docs/ARCHITECTURE.md`:
+  `<what> goes through <symbol> in <path>`. Reviewers enforce what that section says, so write it only for a pattern the
+  diff actually adopted.
 - Report every environment variable the feature reads and every setup step a human must perform outside the repo, in
   **both** channels: the README's `## Configuration` section, which the conductor reads back to build the PR's
   `## Setup required`, and the reply block, which is what it summarizes in chat. A step in neither is invisible —

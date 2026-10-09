@@ -10,7 +10,17 @@ export const FindingSchema = z.object({
   fix: z.string(),
 })
 
-const STAGES = ["initialized", "design", "design_gate", "implementation", "review", "verify", "pr", "qa", "complete"] as const
+const STAGES = [
+  "initialized",
+  "design",
+  "design_gate",
+  "implementation",
+  "review",
+  "verify",
+  "pr",
+  "qa",
+  "complete",
+] as const
 
 const SLICE_PHASES = ["", "green", "targeted_test"] as const
 
@@ -56,7 +66,7 @@ const StateObject = z.object({
   workflow: z.literal("sdd").default("sdd"),
   stage: z.enum(STAGES),
   completed: z.array(z.string()).default([]),
-  pending_gate: z.enum(["", "design", "opinion"]).default(""),
+  pending_gate: z.enum(["", "design", "opinion", "dispute"]).default(""),
   branch: z.string().default(""),
   tools: z
     .object({

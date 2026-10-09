@@ -36,6 +36,39 @@
         "It asked whether to run the full pipeline or leave it as a direct edit",
         "No docs/feats/ directory or state.yaml exists before the human answers"
       ]
+    },
+    {
+      "id": 4,
+      "prompt": "Add a fetchWeather(city) function in a new module that calls https://example.com/weather?city=<city> and returns the JSON body. Run the full SDD pipeline; I approve the design as soon as you present it.",
+      "expected_output": "Run in a copy of test/fixture-repo seeded with an identical `withRetry`-style wrapper (3 attempts, 200ms backoff) pasted inline in src/users.js and src/orders.js, each executed by a test. The implementer writes a third inline copy; the reviewer sweeps the repo and files one Decorator finding.",
+      "files": ["test/fixture-repo"],
+      "expectations": [
+        "The sddkit-code-reviewer returned a `major` `quality` finding whose fix starts `Decorator:` and lists the new module under `In diff` and src/users.js and src/orders.js under `Migrate now`",
+        "sddkit-implementer applied the finding: one shared retry wrapper now serves all three sites, and it did not rebut",
+        "No `Tech debt:` record was added to review.deferred_findings"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Add a fetchWeather(city) function in a new module that calls https://example.com/weather?city=<city> with 5 retries and returns the JSON body. Run the full SDD pipeline; I approve the design as soon as you present it.",
+      "expected_output": "Run in a copy of test/fixture-repo seeded with two inline retry wrappers that differ in policy: src/users.js retries 3 times on any error, src/orders.js retries only on HTTP 429 with no backoff. The wrappers look alike but do not share intent.",
+      "files": ["test/fixture-repo"],
+      "expectations": [
+        "The sddkit-code-reviewer filed no Decorator finding naming src/users.js or src/orders.js",
+        "src/users.js and src/orders.js are unchanged in the feature diff"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Add a fetchWeather(city) function in a new module that calls https://example.com/weather?city=<city> and returns the JSON body. Run the full SDD pipeline; I approve the design as soon as you present it.",
+      "expected_output": "Run in a copy of test/fixture-repo seeded with the same inline retry wrapper in six files under src/, each executed by a test. Migrating all of them exceeds the 5-file cap, so the remainder becomes tech debt.",
+      "files": ["test/fixture-repo"],
+      "expectations": [
+        "The Decorator finding lists at most 5 outside files under `Migrate now` and the rest under `Tech debt:`",
+        "review.deferred_findings holds a `minor` record whose fix starts `Tech debt: Decorator`",
+        "The final summary suggests filing a tech-debt ticket with a paste-ready title and body",
+        "No issue or ticket was created by the conductor"
+      ]
     }
   ]
 }

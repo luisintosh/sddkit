@@ -50,12 +50,15 @@ on-disk artifacts — never restart completed stages.
 - `pending_gate: design` → re-present the design gate (step 4) and wait.
 - `pending_gate: opinion` → an `sddkit-implementer` opinion gate is unanswered; the question is in `blockers`. Put it
   back to the human rather than re-running implementation into the same fork.
+- `pending_gate: dispute` → a review dispute is open; both arguments are in `blockers`. Re-present only the entries not
+  yet marked `ruled:` (step 6.5) and wait; keep the rulings already recorded.
 - `stage: design` → `design` not in `completed`: step 2. `design` in `completed`, `design_critique` not: step 3. Both:
   step 4. `qa.cycles > 0` means this is a QA design delta (step 9) — on approval, run that delta's reset, not a
   first-pass step 5.
 - `stage: implementation` with a non-empty `slice_phase` → jump to that phase of step 5 for `current_slice` (split on
   `,` for a batched slice). Do **not** zero `escalation` / `green_attempts` or reset `slice_phase`.
-- `stage: review` → revert reviewer edits per step 6.1, then rerun step 6 from the top.
+- `stage: review` → revert reviewer edits per step 6.1, then rerun step 6 from the top **without** incrementing
+  `review.iterations` (0 → 1 still applies): the interrupted pass is redone, not counted twice.
 - `stage: qa` → run whichever of `docs_sync` / `qa` is missing from `completed` (step 9); both present → step 10.
 - Any other `stage` → that step.
 
@@ -188,14 +191,14 @@ on-disk artifacts — never restart completed stages.
           pass on the reset tree.
        5. Continue at `slice_phase: targeted_test`. A failure there while `escalation` is 1 → record blockers and pause.
 
-6. **review** — `stage: review`, once per feature. Read `review.iterations`, patch it +1, and send that number as
-   `iteration`. `git status --porcelain` must list only `state.yaml` and `journal.ndjson`; anything else → blocker,
-   pause. Delegate a new `sddkit-code-reviewer` (never continued — each iteration is independent) with: base
+6. **review** — `stage: review`, once per feature. Read `review.iterations`, patch it +1 (except on Resume), and send
+   that number as `iteration`. `git status --porcelain` must list only `state.yaml` and `journal.ndjson`; anything else
+   → blocker, pause. Delegate a new `sddkit-code-reviewer` (never continued — each iteration is independent) with: base
    `review.base`, the diff command `git diff <review.base> -- . ':(exclude)docs/feats/<slug>'`, every journey brief, and
-   on iteration 2 the prior findings. After its reply:
+   on iteration 2 the prior findings from `review.findings` (rebuttals included). After its reply:
    1. **Check edits.** Reviewer paths = `git diff --name-only HEAD` plus `git ls-files --others --exclude-standard`,
-      minus `state.yaml` and `journal.ndjson`. Revert a path, and move every `fixed` record anchored to it into
-      `findings`, when it is under `docs/feats/**`, equals a journey `test_path`, or is absent from
+      minus `state.yaml` and `journal.ndjson`. Revert a path, and move every `fixed` record anchored to it or naming it
+      in its `fix` into `findings`, when it is under `docs/feats/**`, equals a journey `test_path`, or is absent from
       `git diff --name-only <review.base> HEAD` (outside the feature diff).
    2. **Check sensors.** Reviewer paths remain → run typecheck, lint, and every journey command. Any failure → revert
       every reviewer path and move all `fixed` records into `findings`.
@@ -206,9 +209,29 @@ on-disk artifacts — never restart completed stages.
       then:
       - `review.iterations` is 1 → fix round: continue `sddkit-implementer` with the findings verbatim (no new oracle),
         run typecheck, lint, and every journey command (a failure continues it with the error lines; a second failure →
-        blockers, pause), commit, and repeat step 6 (iteration 2, scoped to the prior findings plus the fix commit).
-      - `review.iterations` is 2 → record the findings as blockers and pause.
-   5. No `blocker|major` left → patch `review.findings: []`, add `review` to `completed`, continue to step 7.
+        blockers, pause). Before committing, persist its `rebutted_findings`: patch `review.findings` (full array) with
+        ` Rebuttal: <reason>` appended to each rebutted finding's `fix`. Commit, and repeat step 6 (iteration 2, scoped
+        to the prior findings plus the fix commit).
+      - `review.iterations` ≥ 2 → first, for each prior finding whose `fix` holds `Rebuttal: 4:` or `Rebuttal: 5:` and
+        that this pass did **not** re-raise, append a tech-debt record to `review.deferred_findings` (read + full
+        array): `id: <orig id>-td`, `severity: minor`, the original `category`, `file`/`line` of the first site the
+        rebuttal names, the original `summary`, and
+        `fix: Tech debt: <Pattern> — migrate <rebutted sites> to <symbol>; reason: untested | over cap` (pattern and
+        symbol from the original `fix`). Then: every remaining `blocker|major` starts `Re-raised:` → step 6.5. Any other
+        `blocker|major` left (even alongside re-raised ones) → record them all as blockers and pause; the human settles
+        the lot.
+   5. **Dispute** — only when step 6.4 or Resume sends you here. Patch `pending_gate: dispute` and append
+      `dispute (review) <id>: <summary> — <fix>` to `blockers` per re-raised finding (the `fix` carries both arguments);
+      on Resume they are already there — append nothing. Ask the human to rule on each: **apply**, **defer**, or
+      **drop**. Record each ruling as it arrives by rewriting its blocker to end `— ruled: apply|defer|drop` (read +
+      full array), so a resume never asks twice. Once every entry is ruled:
+      - **defer** → append to `review.deferred_findings` as `minor`, id `<id>-td`; a design finding gets the tech-debt
+        `fix` format above, any other keeps its `fix` without the `Tech debt:` prefix.
+      - **apply** → all applied findings in one round: continue `sddkit-implementer` (no live handle → a new one with
+        the journey briefs) with those findings and the human's ruling as authority — rebuttals are not accepted under a
+        ruling. Run the sensors as in a fix round (second failure → blockers, pause), commit. No re-review.
+      - Then clear `pending_gate`, drop the dispute blockers, and go to step 6.6.
+   6. No `blocker|major` left → patch `review.findings: []`, add `review` to `completed`, continue to step 7.
 
 7. **verify** — `stage: verify`. Run build/test/lint/typecheck commands from `AGENTS.md`. Patch `verification.status`
    (`pass|fail`) and `verification.commands` as one `"<command> — pass|fail|n/a"` string per command (a flat string
@@ -267,6 +290,9 @@ on-disk artifacts — never restart completed stages.
        `qa.pr_ready: true`.
     4. `stage: complete`. Present a short summary, the QA comment URL, and the `## Setup required` lines if any — the
        human has to perform those before the feature works anywhere but their machine.
+    5. `review.deferred_findings` holds records whose `fix` starts `Tech debt:` → suggest the human file a tech-debt
+       ticket per pattern, with a paste-ready title (`Tech debt: <Pattern> for <symbol>`) and body (sites, reason, the
+       `fix` text). Never file it yourself.
 
 11. **handoff** — GitHub-only (`tools.repo` and `tools.tracker` are `gh` or a GitHub MCP, and `roadmap.issue` ≠ `0`).
     Empty is not GitHub. Otherwise skip: if `roadmap.path` is set, point at the next feature in that roadmap file; stop.
@@ -285,8 +311,8 @@ on-disk artifacts — never restart completed stages.
       (`Run the SDD pipeline for GitHub issue #<n> in <owner>/<repo>. Scope is exactly that issue's Acceptance criteria. Base: <base>.`),
       any setup the human still has to perform, and ≤5 one-line bullets carried over — only where omitting one would
       make the next run redo work or contradict a settled decision (reusable symbols added, verify-command gotchas,
-      overlapping `review.deferred_findings`, gate decisions, setup gotchas hit). Never restate what the issue,
-      `AGENTS.md`, or the PR already says.
+      overlapping `review.deferred_findings` or unfiled `Tech debt:` records, gate decisions, setup gotchas hit). Never
+      restate what the issue, `AGENTS.md`, or the PR already says.
 
 Stage names: `initialized | design | design_gate | implementation | review | verify | pr | qa | complete`. `completed`
 holds these names plus the markers `design_critique` and `docs_sync` — nothing else.
