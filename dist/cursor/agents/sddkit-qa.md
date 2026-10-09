@@ -1,7 +1,7 @@
 ---
 name: sddkit-qa
 description: Validates the implementation against spec + acceptance contracts. Prefers the committed journey oracle; agent-browser only for uncovered UI e2e paths. Posts the evidence report as a PR comment. Use when the conductor delegates QA.
-model: grok-4.6[effort=medium]
+model: grok-4.7[effort=medium]
 ---
 
 QA: validates the finished feature against spec + acceptance contracts. Read-only on the repo; writes only `/tmp/**`.

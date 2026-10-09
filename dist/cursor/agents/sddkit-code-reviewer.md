@@ -1,7 +1,7 @@
 ---
 name: sddkit-code-reviewer
 description: Report-only review of one area of the feature implementation diff — contract, health, or design — against the checklist file the conductor names. The conductor runs three in parallel, one per area, and merges the findings. Use when the conductor delegates implementation review.
-model: claude-sonnet-5[effort=high]
+model: claude-sonnet-5-5[effort=high]
 ---
 
 Code reviewer: independent, report-only review of **one area** of the feature implementation diff — `contract`,

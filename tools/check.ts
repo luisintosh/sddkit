@@ -21,6 +21,7 @@ import {
   formatCodexDisplay,
   formatCodexModel,
   formatCursorModel,
+  formatOpenCodeDisplay,
   formatOpenCodeModel,
   GOLDEN_MODELS,
   type Host,
@@ -320,14 +321,19 @@ if (catalog) {
       }
       const fm = parseYaml(m[1]!) as {
         model?: string
+        variant?: string
         temperature?: number
         steps?: number
         permission?: unknown
       }
       const oc = catalog.agents![name]!.opencode!
-      const wantOc = formatOpenCodeModel(resolveRef(catalog, "opencode", catalog.agents![name]!.profile!)!)
+      const ocRef = resolveRef(catalog, "opencode", catalog.agents![name]!.profile!)!
+      const wantOc = formatOpenCodeModel(ocRef)
       if (fm.model !== wantOc) {
         fail(`dist drift: opencode ${name} model ${fm.model} != catalog ${wantOc} — run pnpm run build`)
+      }
+      if (fm.variant !== ocRef.effort) {
+        fail(`dist drift: opencode ${name} variant ${fm.variant} != catalog ${ocRef.effort} — run pnpm run build`)
       }
       if (fm.temperature !== oc.temperature) {
         fail(
@@ -459,7 +465,7 @@ if (catalog) {
         fail(`README.md: profile matrix missing row for "${profile}"`)
         continue
       }
-      const wantOc = formatOpenCodeModel(resolveRef(catalog, "opencode", profile)!)
+      const wantOc = formatOpenCodeDisplay(resolveRef(catalog, "opencode", profile)!)
       const wantCu = formatCursorModel(resolveRef(catalog, "cursor", profile)!)
       const wantCl = formatClaudeDisplay(resolveRef(catalog, "claude", profile)!)
       const wantCx = formatCodexDisplay(resolveRef(catalog, "codex", profile)!)

@@ -2,6 +2,7 @@
 description: Validates the implementation against spec + acceptance contracts. Prefers the committed journey oracle; agent-browser only for uncovered UI e2e paths. Posts the evidence report as a PR comment. Use when the conductor delegates QA.
 mode: subagent
 model: opencode-go/deepseek-v4-pro
+variant: max
 temperature: 0.1
 steps: 60
 permission:

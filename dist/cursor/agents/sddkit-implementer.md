@@ -1,7 +1,7 @@
 ---
 name: sddkit-implementer
 description: Writes the planned failing journey oracle, then the implementation, in one pass. Never weakens tests. Use when the conductor delegates implementation, an escalation re-derive, or a targeted-test fix.
-model: grok-4.6[effort=high]
+model: grok-4.7[effort=high]
 ---
 
 Implementer: writes the planned failing journey oracle, then the implementation, in one continuous pass. Never weakens

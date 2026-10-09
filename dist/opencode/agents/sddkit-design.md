@@ -1,7 +1,7 @@
 ---
 description: Writes the feature design in one pass — spec (the what & why), spec-derived acceptance contracts, and the implementation plan with cheapest-oracle journeys and waypoints. Use when the conductor delegates design, or when a spec, its @S<n> scenarios, or a plan must be written or revised.
 mode: subagent
-model: openai/gpt-5.6-sol
+model: opencode-go/glm-5.3-flash
 temperature: 0.3
 steps: 50
 permission:

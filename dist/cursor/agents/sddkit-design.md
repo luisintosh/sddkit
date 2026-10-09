@@ -1,7 +1,7 @@
 ---
 name: sddkit-design
 description: Writes the feature design in one pass — spec (the what & why), spec-derived acceptance contracts, and the implementation plan with cheapest-oracle journeys and waypoints. Use when the conductor delegates design, or when a spec, its @S<n> scenarios, or a plan must be written or revised.
-model: grok-4.6[effort=xhigh]
+model: grok-4.7[effort=xhigh]
 ---
 
 Designer: turns a feature request into its spec, acceptance contracts, and implementation plan in one pass. Never writes

@@ -21,21 +21,21 @@ hosts:
   opencode:
     profiles:
       conduct: { id: opencode-go/qwen3.7-plus }
-      think: { id: openai/gpt-5.6-sol }
-      execute: { id: openai/gpt-5.6-luna }
+      think: { id: opencode-go/glm-5.3-flash }
+      execute: { id: opencode-go/deepseek-v4.1-flash, effort: max }
       design-review: { id: opencode-go/kimi-k3 }
       code-review: { id: opencode-go/kimi-k2.7-code }
-      validate: { id: opencode-go/deepseek-v4-pro }
+      validate: { id: opencode-go/deepseek-v4-pro, effort: max }
       write: { id: opencode-go/kimi-k3 }
   cursor:
     profiles:
       conduct: { id: inherit }
-      think: { id: grok-4.6, effort: xhigh }
-      execute: { id: grok-4.6, effort: high }
-      design-review: { id: grok-4.6, effort: high }
-      code-review: { id: claude-sonnet-5, effort: high }
-      validate: { id: grok-4.6, effort: medium }
-      write: { id: grok-4.6, effort: medium }
+      think: { id: grok-4.7, effort: xhigh }
+      execute: { id: grok-4.7, effort: high }
+      design-review: { id: grok-4.7, effort: high }
+      code-review: { id: claude-sonnet-5-5, effort: high }
+      validate: { id: grok-4.7, effort: medium }
+      write: { id: grok-4.7, effort: medium }
   claude:
     profiles:
       conduct: { id: inherit }
@@ -48,12 +48,12 @@ hosts:
   codex:
     profiles:
       conduct: { id: inherit }
-      think: { id: gpt-5.6-terra, effort: xhigh }
-      execute: { id: gpt-5.6-terra, effort: high }
-      design-review: { id: gpt-5.6-terra, effort: high }
-      code-review: { id: gpt-5.6-sol, effort: high }
-      validate: { id: gpt-5.6-terra, effort: high }
-      write: { id: gpt-5.6-luna, effort: medium }
+      think: { id: gpt-6.1-sol, effort: xhigh }
+      execute: { id: gpt-6.1-sol, effort: high }
+      design-review: { id: gpt-6.1-sol, effort: high }
+      code-review: { id: gpt-6.1-sol, effort: high }
+      validate: { id: gpt-6.1-sol, effort: high }
+      write: { id: gpt-6-luna, effort: medium }
 
 # Optional supervised dispatch. When `sddkit-state probe orchestrator` finds Orca
 # plus the routed CLIs, the conductor starts each specialist as an Orca worker on
@@ -242,8 +242,8 @@ commands:
       /sddkit-setup-docs.
 
 opencode_config:
-  model: opencode-go/glm-5.2
-  small_model: opencode-go/deepseek-v4-flash
+  model: opencode-go/glm-5.3
+  small_model: opencode-go/deepseek-v4.1-flash
   default_agent: sddkit
   instructions:
     - AGENTS.md

@@ -313,11 +313,13 @@ async function emitOpencode(catalog: Catalog) {
   const refs = new Set<string>()
   for (const [name, agent] of Object.entries(catalog.agents)) {
     const body = await renderPrompt(`agents/${name}.md`, catalog, "opencode", refs)
+    const ref = resolveModel(catalog, "opencode", agent)
     const fm: Record<string, unknown> = {
       description: agent.description,
       mode: agent.opencode.mode,
-      model: formatOpenCodeModel(resolveModel(catalog, "opencode", agent)),
+      model: formatOpenCodeModel(ref),
     }
+    if (ref.effort) fm.variant = ref.effort
     if (agent.opencode.temperature !== undefined) fm.temperature = agent.opencode.temperature
     if (agent.opencode.steps !== undefined) fm.steps = agent.opencode.steps
     if (agent.opencode.permission !== undefined) fm.permission = agent.opencode.permission

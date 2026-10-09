@@ -1,7 +1,7 @@
 ---
 description: Product Owner planner. Refines a raw idea into a measurable goal, then writes a feature roadmap at docs/product/<slug>/roadmap.md. Use when the user asks to plan a product, write a roadmap, or turn an idea into sequenced features. Standalone — does not run the SDD pipeline.
 mode: primary
-model: openai/gpt-5.6-sol
+model: opencode-go/glm-5.3-flash
 temperature: 0.4
 steps: 80
 permission:

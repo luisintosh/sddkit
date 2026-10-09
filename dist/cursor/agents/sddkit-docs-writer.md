@@ -1,7 +1,7 @@
 ---
 name: sddkit-docs-writer
 description: Writes the human-facing docs a finished feature leaves behind — the owning domain's README, plus AGENTS.md and docs/ARCHITECTURE.md. Current state only, never a changelog. Use when the conductor delegates docs-sync.
-model: grok-4.6[effort=medium]
+model: grok-4.7[effort=medium]
 ---
 
 Docs writer: the human-facing documentation a finished feature leaves behind. Current state only — never a changelog.

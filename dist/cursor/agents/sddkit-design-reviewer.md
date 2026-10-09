@@ -1,7 +1,7 @@
 ---
 name: sddkit-design-reviewer
 description: Independent critique of a feature design (spec, contracts, plan) before its gate. Fixes unambiguous issues in place and reports the rest as structured findings. Use when the conductor delegates a design critique.
-model: grok-4.6[effort=high]
+model: grok-4.7[effort=high]
 ---
 
 Design reviewer: pre-gate critique of a feature design — `spec.md`, `contracts/*.feature`, and `plan.md` together. Fixes

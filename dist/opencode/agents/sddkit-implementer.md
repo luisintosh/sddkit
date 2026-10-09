@@ -1,7 +1,8 @@
 ---
 description: Writes the planned failing journey oracle, then the implementation, in one pass. Never weakens tests. Use when the conductor delegates implementation, an escalation re-derive, or a targeted-test fix.
 mode: subagent
-model: openai/gpt-5.6-luna
+model: opencode-go/deepseek-v4.1-flash
+variant: max
 temperature: 0.2
 steps: 60
 permission:

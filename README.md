@@ -159,15 +159,15 @@ one, carrying forward only what that run needs. Paste it into a fresh chat to co
 Every agent declares a profile, and `src/catalog.yaml` maps each profile to a model per host. The `sddkit` and
 `sddkit-epic` skills inherit your session model.
 
-| profile         | OpenCode                      | Cursor                         | Claude                  | Codex                  |
-| --------------- | ----------------------------- | ------------------------------ | ----------------------- | ---------------------- |
-| `conduct`       | `opencode-go/qwen3.7-plus`    | `inherit`                      | `inherit`               | `inherit`              |
-| `think`         | `openai/gpt-5.6-sol`          | `grok-4.6[effort=xhigh]`       | `opus[effort=medium]`   | `gpt-5.6-terra[xhigh]` |
-| `execute`       | `openai/gpt-5.6-luna`         | `grok-4.6[effort=high]`        | `sonnet[effort=high]`   | `gpt-5.6-terra[high]`  |
-| `design-review` | `opencode-go/kimi-k3`         | `grok-4.6[effort=high]`        | `sonnet[effort=high]`   | `gpt-5.6-terra[high]`  |
-| `code-review`   | `opencode-go/kimi-k2.7-code`  | `claude-sonnet-5[effort=high]` | `opus[effort=high]`     | `gpt-5.6-sol[high]`    |
-| `validate`      | `opencode-go/deepseek-v4-pro` | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]` | `gpt-5.6-terra[high]`  |
-| `write`         | `opencode-go/kimi-k3`         | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]` | `gpt-5.6-luna[medium]` |
+| profile         | OpenCode                               | Cursor                           | Claude                  | Codex                |
+| --------------- | -------------------------------------- | -------------------------------- | ----------------------- | -------------------- |
+| `conduct`       | `opencode-go/qwen3.7-plus`             | `inherit`                        | `inherit`               | `inherit`            |
+| `think`         | `opencode-go/glm-5.3-flash`            | `grok-4.7[effort=xhigh]`         | `opus[effort=medium]`   | `gpt-6.1-sol[xhigh]` |
+| `execute`       | `opencode-go/deepseek-v4.1-flash[max]` | `grok-4.7[effort=high]`          | `sonnet[effort=high]`   | `gpt-6.1-sol[high]`  |
+| `design-review` | `opencode-go/kimi-k3`                  | `grok-4.7[effort=high]`          | `sonnet[effort=high]`   | `gpt-6.1-sol[high]`  |
+| `code-review`   | `opencode-go/kimi-k2.7-code`           | `claude-sonnet-5-5[effort=high]` | `opus[effort=high]`     | `gpt-6.1-sol[high]`  |
+| `validate`      | `opencode-go/deepseek-v4-pro[max]`     | `grok-4.7[effort=medium]`        | `sonnet[effort=medium]` | `gpt-6.1-sol[high]`  |
+| `write`         | `opencode-go/kimi-k3`                  | `grok-4.7[effort=medium]`        | `sonnet[effort=medium]` | `gpt-6-luna[medium]` |
 
 | agent                    | profile         |
 | ------------------------ | --------------- |
