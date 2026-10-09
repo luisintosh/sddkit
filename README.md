@@ -3,9 +3,9 @@
 A thin harness for **spec-driven development (SDD)** on [OpenCode](https://opencode.ai), [Cursor](https://cursor.com),
 [Claude Code](https://code.claude.com), and [Codex](https://developers.openai.com/codex): one approved design (spec,
 tagged acceptance contracts `@S<n>`, and plan), cheapest-oracle journeys (at most three, public-boundary or golden
-first) with the consuming repo's test stack, a multi-agent pipeline whose reviewers fix what they find, a one-rung
-clean-tree escalation loop, and a file-based **`state.yaml` checkpoint** written only through
-`.agents/bin/sddkit-state.mjs`.
+first) with the consuming repo's test stack, a multi-agent pipeline with a design reviewer that fixes what it finds and
+three parallel code reviewers, a one-rung clean-tree escalation loop, and a file-based **`state.yaml` checkpoint**
+written only through `.agents/bin/sddkit-state.mjs`.
 
 Prompts live once under `src/prompts/`; `pnpm run build` transpiles them into OpenCode, Cursor, Claude Code, Codex, and
 shared skill formats under `dist/` (tracked so install does not need a client-side build).
@@ -72,16 +72,18 @@ or Codex terra.
 | `validate` | `opencode-go/deepseek-v4-pro` | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]` | `gpt-5.6-terra[high]`  |
 | `write`    | `opencode-go/kimi-k3`         | `grok-4.6[effort=medium]`      | `sonnet[effort=medium]` | `gpt-5.6-luna[medium]` |
 
-| agent                    | profile    |
-| ------------------------ | ---------- |
-| `sddkit`                 | `conduct`  |
-| `sddkit-design`          | `think`    |
-| `sddkit-design-reviewer` | `review`   |
-| `sddkit-implementer`     | `execute`  |
-| `sddkit-code-reviewer`   | `critique` |
-| `sddkit-qa`              | `validate` |
-| `sddkit-docs-writer`     | `write`    |
-| `sddkit-epic`            | `think`    |
+| agent                           | profile    |
+| ------------------------------- | ---------- |
+| `sddkit`                        | `conduct`  |
+| `sddkit-design`                 | `think`    |
+| `sddkit-design-reviewer`        | `review`   |
+| `sddkit-implementer`            | `execute`  |
+| `sddkit-code-reviewer-contract` | `critique` |
+| `sddkit-code-reviewer-health`   | `critique` |
+| `sddkit-code-reviewer-design`   | `critique` |
+| `sddkit-qa`                     | `validate` |
+| `sddkit-docs-writer`            | `write`    |
+| `sddkit-epic`                   | `think`    |
 
 Checked in CI against `src/catalog.yaml` and emitted frontmatter / Codex TOML.
 
@@ -91,12 +93,12 @@ When [Orca](https://github.com/stablyai/orca) is running, the conductor dispatch
 worker instead of the host's subagent, on any host. The CLI and model per profile come from `orchestrators.orca` in
 `src/catalog.yaml`:
 
-| specialist                                       | worker                                                       |
-| ------------------------------------------------ | ------------------------------------------------------------ |
-| `sddkit-design`                                  | `claude --model opus --effort medium --permission-mode auto` |
-| `sddkit-design-reviewer`, `sddkit-code-reviewer` | `claude --model sonnet --effort high --permission-mode auto` |
-| `sddkit-implementer`                             | `cursor-agent --model grok-4.7-low --yolo`                   |
-| `sddkit-qa`, `sddkit-docs-writer`                | `cursor-agent --model grok-4.7-high --yolo`                  |
+| specialist                                         | worker                                                       |
+| -------------------------------------------------- | ------------------------------------------------------------ |
+| `sddkit-design`                                    | `claude --model opus --effort medium --permission-mode auto` |
+| `sddkit-design-reviewer`, `sddkit-code-reviewer-*` | `claude --model sonnet --effort high --permission-mode auto` |
+| `sddkit-implementer`                               | `cursor-agent --model grok-4.7-low --yolo`                   |
+| `sddkit-qa`, `sddkit-docs-writer`                  | `cursor-agent --model grok-4.7-high --yolo`                  |
 
 At initialize the conductor runs `sddkit-state probe orchestrator`. All of these must hold, or it delegates natively as
 before:
@@ -203,7 +205,7 @@ context; the handoff carries forward only what the next run actually needs.
 ```
 initialize → design (spec + contracts + plan) → design critique (fixes in place; skippable) → ⏸design gate
   → implementation (failing cheap oracle, then impl; two cheap journeys batched) → sensors → commit
-  → review (once per feature; reviewer fixes in place) → verify → pr → docs-sync ∥ qa → finalize PR → complete
+  → review (contract ∥ health ∥ design, report-only) → verify → pr → docs-sync ∥ qa → finalize PR → complete
   → handoff
 ```
 
@@ -220,10 +222,11 @@ initialize → design (spec + contracts + plan) → design critique (fixes in pl
 3. **Design gate.** The one human approval, never skipped.
 4. **Implementation.** `sddkit-implementer` writes each journey's failing oracle and the implementation in one pass. Two
    `boundary`/`golden` journeys with no Playwright add go in one delegation (`batch-journeys`).
-5. **Review.** `sddkit-code-reviewer` reviews the whole feature diff once and fixes `blocker`/`major` findings itself —
-   never in `docs/feats/**`, a journey test file, or an existing assertion, and never more than ~40 lines per fix. The
-   conductor reverts any edit outside those limits or any that breaks a sensor. What remains goes to one implementer fix
-   round and a second, delta-scoped review.
+5. **Review.** Three report-only reviewers check the whole feature diff in parallel — `sddkit-code-reviewer-contract`
+   (correctness, coverage, silent failure), `-health` (blast radius, security, test quality, residue), and `-design`
+   (patterns, lightweight DDD, a repo-wide structural sweep). The conductor merges their findings into one list;
+   `blocker`/`major` go to one implementer fix round and a second, delta-scoped review. The implementer writes to the
+   same checklists, so most issues never reach review.
 6. **Verify, PR, docs-sync ∥ QA.** After verify, the draft PR opens; `sddkit-docs-writer` and `sddkit-qa` then run in
    parallel. The conductor adds `## Setup required` to the PR body and marks it ready once both are done.
 

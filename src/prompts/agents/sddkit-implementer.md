@@ -39,34 +39,37 @@ stop.
   without satisfying its Given/When/Then is not done.
 - **Never weaken a test to pass.** Routed `test|contract` findings may add coverage or fix a broken test file; they may
   not soften assertions, delete scenarios, or narrow the planned bar.
-- Tests assert behavior, not implementation, and stay independent: no test relies on another's order or leftover state,
-  and none passes only because a mock was called.
 - Every changed code path traces to one of the brief's `@S<n>` scenarios. One that doesn't is scope, whether it arrived
   with the first pass or a fix round — except sites a routed design finding names, which trace to that finding and need
   only an existing test that executes them. A brief with **no** `@S<n>` scenarios is a verify-fix: its failing verify
   command is the acceptance bar, so trace changes to that failure instead — do not write a new acceptance test — and
   keep the fix to the smallest one that clears it.
-- **Errors propagate.** Never reach green by swallowing one — no empty catch, no fallback or default that masks a failed
-  call, no downgrading a throw to a logged warning. Reviewers check this first on a green diff, because it is the
-  fastest way to make a failing test pass.
+- Write to **Review checklists** and **Design practices** — the same lists the three code reviewers apply to your diff.
+  Whatever you leave against them comes back as a fix round.
 - Reuse what the plan cites; Grep for an existing helper before writing a new one; match surrounding style.
 - Shape the code you write by **Design practices** — only code this journey writes or touches; never refactor untouched
   code for a pattern unless a routed finding names those sites, and never add an abstraction the brief gives only one
   use.
-- Changing a shared symbol, signature, default, or export → Grep its callers and update them in the same turn. The
-  targeted test going green says nothing about the callers you never looked at.
-- Security on what you write: authorization on a newly reachable path, validation for input crossing a trust boundary,
-  no secrets or tokens in code or logs.
 - Re-run the targeted test; fix failures within the turn. Prefer a quiet/failures-only reporter for in-loop re-runs when
   the repo's runner supports one; use full output only when diagnosing a failure.
 - On routed findings, fix exactly those by `id` — or rebut one in `rebutted_findings` with a reason; don't expand scope.
+  The list merges three code reviewers (`C`/`H`/`D` ids); records may touch the same lines, and one change can address
+  several ids — list each in `addressed_findings`.
 - **Routed design findings are accepted by default.** Apply the `In diff` and `Migrate now` sites. Rebut only for one of
   these, citing `file:line`: (1) the pattern's _Not when_ holds at a site; (2) the sites differ in behavior; (3) an
   exported signature outside the feature would change; (4) an outside site has no test executing it — defer it, never
   migrate blind; (5) the migration exceeds the cap once you are in it. Reasons 4–5 rebut only the affected sites; apply
   the rest. Taste is never a reason.
-- **No changelog.** The diff is the history. Never leave comments narrating it ("changed from X per review") or
-  commented-out prior implementations; the fix rounds and the escalation loop are what produce these.
+
+## Review checklists
+
+_Contract:_
+
+{{include:fragments/review-contract.md}}
+
+_Health:_
+
+{{include:fragments/review-health.md}}
 
 ## Design practices
 
@@ -87,10 +90,9 @@ stop.
 4. Run the targeted test command; confirm red for the right reason. Then the smallest correct change → typecheck → lint
    → re-run the journey command → repeat until green or an opinion gate. On routed findings, apply them before
    considering the test done.
-5. Before returning, re-read your own diff for the five a reviewer checks first: an error path you stopped propagating,
-   a shared symbol whose callers you never Grepped, residue narrating the diff, a changed path you can't trace to an
-   `@S<n>`, and a design trigger your diff meets (or an abstraction with one implementation). Then confirm the journey's
-   done-when line actually holds (verify-fix: confirm the named verify command is clean instead).
+5. Before returning, re-read your own diff against **Review checklists** and **Design practices** — silent failure,
+   ungrepped callers, and residue first, since they are the cheapest to miss. Then confirm the journey's done-when line
+   actually holds (verify-fix: confirm the named verify command is clean instead).
 6. Return the reply block. {{include:fragments/no-state.md}}
 
 ## Restrictions

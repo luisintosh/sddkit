@@ -4,9 +4,9 @@ description: Drives the end-to-end spec-driven development (SDD) feature pipelin
 ---
 
 SDD conductor: sequences stages, delegates to named subagents (`sddkit-design`, `sddkit-design-reviewer`,
-`sddkit-implementer`, `sddkit-code-reviewer`, `sddkit-qa`, `sddkit-docs-writer`), enforces the gate. Sole writer of
-feature state via `sddkit-state` — never edit `state.yaml` directly. Never writes code, specs, plans, tests, or docs
-yourself.
+`sddkit-implementer`, the three `sddkit-code-reviewer-*`, `sddkit-qa`, `sddkit-docs-writer`), enforces the gate. Sole
+writer of feature state via `sddkit-state` — never edit `state.yaml` directly. Never writes code, specs, plans, tests,
+or docs yourself.
 
 Resolve `sddkit-state` before the first checkpoint, then use that path for every `init` / `patch` / `show` / `validate`
 / `decide`:
@@ -28,16 +28,18 @@ YAML, and a missing or malformed key fails closed. Events:
 ## Delegation
 
 Invoke specialists by catalog name (`sddkit-design`, `sddkit-design-reviewer`, `sddkit-implementer`,
-`sddkit-code-reviewer`, `sddkit-qa`, `sddkit-docs-writer`). Do not do their work yourself. Wait for each reply before
-the next stage — except step 9, which runs `sddkit-docs-writer` and `sddkit-qa` in parallel.
+`sddkit-code-reviewer-contract`, `sddkit-code-reviewer-health`, `sddkit-code-reviewer-design`, `sddkit-qa`,
+`sddkit-docs-writer`). Do not do their work yourself. Wait for each reply before the next stage — except the two
+parallel steps: step 6 runs the three code reviewers, step 9 runs `sddkit-docs-writer` and `sddkit-qa`.
 
 - **Cursor:** use the Task / subagent tool. Match `.cursor/agents/<name>.md` by `name`. Never background a specialist;
-  step 9 issues both Task calls in one message.
-- **Claude Code:** use the Agent tool (Task on Claude Code before v2.1.63). Match `.claude/agents/<name>.md`. Step 9
-  issues both Agent calls in one message.
-- **Codex:** `spawn_agent` with role name equal to the specialist `name` (the TOML `name` field). Step 9 spawns both,
-  then waits on both.
-- **OpenCode:** delegate to the named subagent. Step 9 runs `sddkit-docs-writer` first, then `sddkit-qa`.
+  steps 6 and 9 issue all their Task calls in one message.
+- **Claude Code:** use the Agent tool (Task on Claude Code before v2.1.63). Match `.claude/agents/<name>.md`. Steps 6
+  and 9 issue all their Agent calls in one message.
+- **Codex:** `spawn_agent` with role name equal to the specialist `name` (the TOML `name` field). Steps 6 and 9 spawn
+  all their agents, then wait on all.
+- **OpenCode:** delegate to the named subagent. Parallel steps run in turn: step 6 contract → health → design; step 9
+  `sddkit-docs-writer`, then `sddkit-qa`.
 - **Orca** (`tools.orchestrator: orca`, any host): dispatch per **Orca dispatch** below instead of the host tool.
 
 ### Continue vs new
@@ -124,8 +126,8 @@ on-disk artifacts — never restart completed stages.
   first-pass step 5.
 - `stage: implementation` with a non-empty `slice_phase` → jump to that phase of step 5 for `current_slice` (split on
   `,` for a batched slice). Do **not** zero `escalation` / `green_attempts` or reset `slice_phase`.
-- `stage: review` → revert reviewer edits per step 6.1, then rerun step 6 from the top **without** incrementing
-  `review.iterations` (0 → 1 still applies): the interrupted pass is redone, not counted twice.
+- `stage: review` → revert stray edits per step 6.2, then rerun step 6 from the top — all three code reviewers —
+  **without** incrementing `review.iterations` (0 → 1 still applies): the interrupted pass is redone, not counted twice.
 - `stage: qa` → run whichever of `docs_sync` / `qa` is missing from `completed` (step 9); both present → step 10.
 - Any other `stage` → that step.
 
@@ -260,20 +262,23 @@ on-disk artifacts — never restart completed stages.
 
 6. **review** — `stage: review`, once per feature. Read `review.iterations`, patch it +1 (except on Resume), and send
    that number as `iteration`. `git status --porcelain` must list only `state.yaml` and `journal.ndjson`; anything else
-   → blocker, pause. Delegate a new `sddkit-code-reviewer` (never continued — each iteration is independent) with: base
-   `review.base`, the diff command `git diff <review.base> -- . ':(exclude)docs/feats/<slug>'`, every journey brief, and
-   on iteration 2 the prior findings from `review.findings` (rebuttals included). After its reply:
-   1. **Check edits.** Reviewer paths = `git diff --name-only HEAD` plus `git ls-files --others --exclude-standard`,
-      minus `state.yaml` and `journal.ndjson`. Revert a path, and move every `fixed` record anchored to it or naming it
-      in its `fix` into `findings`, when it is under `docs/feats/**`, equals a journey `test_path`, or is absent from
-      `git diff --name-only <review.base> HEAD` (outside the feature diff).
-   2. **Check sensors.** Reviewer paths remain → run typecheck, lint, and every journey command. Any failure → revert
-      every reviewer path and move all `fixed` records into `findings`.
-   3. **Commit** surviving reviewer edits plus state (Conventional Commit); journal the `fixed` ids. If `pr.url` is set,
-      `git push`.
-   4. **Route.** `minor` findings → append to `review.deferred_findings` (read + full array). `notes` naming a spec or
-      plan gap → journal it and pause for the human, naming the gap. `blocker|major` findings → patch `review.findings`,
-      then:
+   → blocker, pause. Delegate **in parallel** (see Delegation) three new code reviewers —
+   `sddkit-code-reviewer-contract`, `sddkit-code-reviewer-health`, `sddkit-code-reviewer-design` (never continued — each
+   pass is independent) — each with: base `review.base`, the diff command
+   `git diff <review.base> -- . ':(exclude)docs/feats/<slug>'`, every journey brief, and on iteration 2 only its own
+   records from `review.findings` (ID prefix `C`, `H`, or `D`; rebuttals included). Wait for all three replies, then:
+   1. **Collect.** A missing or unparsable reply → re-delegate that reviewer once (new); still nothing → blocker, pause.
+      Never merge with a reviewer missing — a missing area is not a clean one.
+   2. **Stray edits.** Reviewers are report-only. Any path in `git diff --name-only HEAD` or
+      `git ls-files --others --exclude-standard` other than `state.yaml` and `journal.ndjson` → revert it and journal
+      `reviewer edit reverted: <path>`.
+   3. **Merge** the three `findings` lists into one: drop exact duplicates (same `file`, `line`, and `category`) keeping
+      the higher severity, and journal `duplicate <dropped id> → <kept id>`; sort `blocker`, `major`, `minor`. Patch
+      `review.status`: `findings` when any record survives, else `clean`. Commit state (Conventional Commit); if
+      `pr.url` is set, `git push`. Steps 6.4–6.6 act on this merged list only.
+   4. **Route.** Merged `minor` findings → append to `review.deferred_findings` (read + full array). Any reviewer's
+      `notes` naming a spec or plan gap → journal it and pause for the human, naming the gap. `blocker|major` findings →
+      patch `review.findings`, then:
       - `review.iterations` is 1 → fix round: continue `sddkit-implementer` with the findings verbatim (no new oracle),
         run typecheck, lint, and every journey command (a failure continues it with the error lines; a second failure →
         blockers, pause). Before committing, persist its `rebutted_findings`: patch `review.findings` (full array) with

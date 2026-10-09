@@ -38,8 +38,9 @@ Never use `worker-start --agent`: Orca would launch with its own settings instea
 
 Journal the launch command used — Orca records no model for a terminal you started. Record the handle: Orca will not
 close a terminal it did not create, so it is yours to close (see **Close**). Escalation: one tab per worktree
-(`path:<worktree>`), both started before waiting — a split pane always starts in your own worktree. Docs-sync ∥ QA (step
-9): start both workers, then **Wait** until both settle, processing each `worker_done` as it arrives.
+(`path:<worktree>`), both started before waiting — a split pane always starts in your own worktree. Parallel steps — the
+three code reviewers (step 6) and docs-sync ∥ QA (step 9): start all their workers, then **Wait** until all settle,
+processing each `worker_done` as it arrives.
 
 **Wait.** `ORCA orchestration check --wait --types "worker_done,escalation,question" --timeout-ms 900000 --json` (add
 `--ack <delivery_id>` from the second call on). Process every message before acking:

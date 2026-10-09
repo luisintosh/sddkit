@@ -93,15 +93,22 @@ function orcaRoutesTable(catalog: Catalog): string {
   return ["| Specialist | Profile | Launch command | Agent file |", "| --- | --- | --- | --- |", ...rows].join("\n")
 }
 
-async function resolveIncludes(body: string, catalog: Catalog): Promise<string> {
+async function inlineIncludes(body: string, depth: number): Promise<string> {
+  // Fragments may include fragments; the depth cap stops an include cycle.
+  if (depth > 4) throw new Error("transpile: {{include:}} nested deeper than 4 — cycle?")
   const re = /\{\{include:([^}]+)\}\}/g
   let out = body
-  const matches = [...body.matchAll(re)]
-  for (const m of matches) {
+  for (const m of [...body.matchAll(re)]) {
     const rel = m[1]!.trim()
     const frag = await fs.readFile(path.join(srcDir, "prompts", rel), "utf8")
-    out = out.replace(m[0], frag.trim())
+    const inlined = await inlineIncludes(frag.trim(), depth + 1)
+    out = out.replace(m[0], () => inlined)
   }
+  return out
+}
+
+async function resolveIncludes(body: string, catalog: Catalog): Promise<string> {
+  const out = await inlineIncludes(body, 0)
   // Generated after includes so fragments may carry it.
   return out.replaceAll("{{orca:routes}}", orcaRoutesTable(catalog))
 }

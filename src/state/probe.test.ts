@@ -115,7 +115,10 @@ describe("orca routes", () => {
     expect(byAgent["sddkit-epic"]).toBeUndefined()
     expect(byAgent["sddkit-design"]).toEqual({ agent: "claude", id: "opus", effort: "medium" })
     expect(byAgent["sddkit-design-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
-    expect(byAgent["sddkit-code-reviewer"]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
+    for (const area of ["contract", "health", "design"]) {
+      expect(byAgent[`sddkit-code-reviewer-${area}`]).toEqual({ agent: "claude", id: "sonnet", effort: "high" })
+    }
+    expect(byAgent["sddkit-code-reviewer"]).toBeUndefined()
     expect(byAgent["sddkit-implementer"]).toEqual({ agent: "cursor", id: "grok-4.7-low" })
   })
 

@@ -10,7 +10,9 @@ invoked — never which specialist, the brief's content, the stage order, gates,
 | `sddkit-design` | think | `claude --model opus --effort medium --permission-mode auto` | `.claude/agents/sddkit-design.md` |
 | `sddkit-design-reviewer` | review | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-design-reviewer.md` |
 | `sddkit-implementer` | execute | `cursor-agent --model grok-4.7-low --yolo` | `.cursor/agents/sddkit-implementer.md` |
-| `sddkit-code-reviewer` | critique | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-code-reviewer.md` |
+| `sddkit-code-reviewer-contract` | critique | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-code-reviewer-contract.md` |
+| `sddkit-code-reviewer-health` | critique | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-code-reviewer-health.md` |
+| `sddkit-code-reviewer-design` | critique | `claude --model sonnet --effort high --permission-mode auto` | `.claude/agents/sddkit-code-reviewer-design.md` |
 | `sddkit-qa` | validate | `cursor-agent --model grok-4.7-high --yolo` | `.cursor/agents/sddkit-qa.md` |
 | `sddkit-docs-writer` | write | `cursor-agent --model grok-4.7-high --yolo` | `.cursor/agents/sddkit-docs-writer.md` |
 
@@ -45,8 +47,9 @@ Never use `worker-start --agent`: Orca would launch with its own settings instea
 
 Journal the launch command used — Orca records no model for a terminal you started. Record the handle: Orca will not
 close a terminal it did not create, so it is yours to close (see **Close**). Escalation: one tab per worktree
-(`path:<worktree>`), both started before waiting — a split pane always starts in your own worktree. Docs-sync ∥ QA (step
-9): start both workers, then **Wait** until both settle, processing each `worker_done` as it arrives.
+(`path:<worktree>`), both started before waiting — a split pane always starts in your own worktree. Parallel steps — the
+three code reviewers (step 6) and docs-sync ∥ QA (step 9): start all their workers, then **Wait** until all settle,
+processing each `worker_done` as it arrives.
 
 **Wait.** `ORCA orchestration check --wait --types "worker_done,escalation,question" --timeout-ms 900000 --json` (add
 `--ack <delivery_id>` from the second call on). Process every message before acking:

@@ -7,8 +7,9 @@ Reply keys are not state keys. Translate:
 - **sddkit-design-reviewer** → nothing is persisted. Its `changes`, `fixed`, and `findings` are shown at the design
   gate; unresolved `blocker|major` `findings` are passed verbatim to `sddkit-design`.
 - **sddkit-implementer** → `blockers` → `blockers`.
-- **sddkit-code-reviewer** → `review_status` → `review.status`; `findings` → `review.findings` (minor-only →
-  `review.deferred_findings`); `fixed` is journaled, not stored. `iterations` is an echo — you own the count.
+- **sddkit-code-reviewer-contract / -health / -design** → never applied one by one: merge all three replies per step
+  6.3. The merged status → `review.status`; merged `blocker|major` → `review.findings`, merged `minor` →
+  `review.deferred_findings`. `iterations` is an echo — you own the count.
 - **sddkit-qa** → `qa_status` → `qa.status`; `scenarios_total|scenarios_passed|scenarios_failed`, `findings`,
   `report_path`, `pr_comment_url` all nest under `qa.*`; `blockers` → `blockers`. `qa.pr_ready` is yours to set in
   step 10.
@@ -25,9 +26,9 @@ These drive control flow and must be acted on even though nothing records them: 
 `files_changed: []` on sddkit-implementer's `status: done` is a no-op success only when the planned test is already in
 the tree **and** there are no routed `blocker|major` findings — on first arrival or a fix round it is a failed pass, not
 success; sddkit-implementer's `rebutted_findings` in a review fix round are persisted into `review.findings` (each as
-` Rebuttal: <reason>` on its `fix`) for the iteration-2 reviewer, and unchallenged reasons `4:`/`5:` become `-td`
-deferred findings (step 6); `sddkit-code-reviewer`'s `files_changed` is checked against HEAD (step 6); and its `notes`
-is its only channel for an empty diff or a spec/plan gap.
+` Rebuttal: <reason>` on its `fix`) for the iteration-2 reviewers, and unchallenged reasons `4:`/`5:` become `-td`
+deferred findings (step 6); the code reviewers are report-only, so any edit they leave is found from git and reverted
+(step 6.2); and their `notes` are their only channel for an empty diff or a spec/plan gap.
 
 One trap if you patch a reply verbatim: `sddkit-qa`'s keys are top-level in the reply but nested under `qa` in state, so
 the patch reports success while silently discarding every value.

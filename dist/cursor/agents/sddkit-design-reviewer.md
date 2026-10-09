@@ -97,10 +97,10 @@ left in `findings` → `review_status: findings`. The conductor owns routing.
   test mapping to scenarios proves nothing about a scenario the test never mentions, and the orphans are usually the
   error and edge ones. Each journey's done-when and the feature-level rollback hint must be present.
 - **Audience fit** — the plan must carry what its consumer needs: `sddkit-implementer` needs each journey's path,
-  command, `oracle` kind, `@S<n>` coverage, `reading:` list, and concrete `file:symbol` targets; `sddkit-code-reviewer`
-  needs an observable done-when; the conductor needs the fenced `journeys:` YAML block (at most 3 journeys) to build
-  each brief on resume. A plan missing that block is a `blocker`. A plan missing one of the other fields stalls that
-  agent mid-pipeline.
+  command, `oracle` kind, `@S<n>` coverage, `reading:` list, and concrete `file:symbol` targets; the code reviewers need
+  an observable done-when; the conductor needs the fenced `journeys:` YAML block (at most 3 journeys) to build each
+  brief on resume. A plan missing that block is a `blocker`. A plan missing one of the other fields stalls that agent
+  mid-pipeline.
 - **Actionability** — a competent implementer could write the failing oracle and the implementation without asking a
   question. "TBD", "handle errors properly" are findings. Done-when lines must be observable, not "works correctly". The
   acceptance bar is the cheapest sensor that can fail the observable Then — a public-boundary or golden oracle when one

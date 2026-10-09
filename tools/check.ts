@@ -164,6 +164,9 @@ if (catalog) {
   ]) {
     if (catalog.agents?.[merged]) fail(`catalog: ${merged} is merged into sddkit-design / sddkit-design-reviewer`)
   }
+  if (catalog.agents?.["sddkit-code-reviewer"]) {
+    fail("catalog: sddkit-code-reviewer is split into sddkit-code-reviewer-contract / -health / -design")
+  }
   for (const file of await readdir(path.join(root, "src", "prompts", "agents"))) {
     const name = file.replace(/\.md$/, "")
     if (!catalog.agents?.[name]) fail(`src/prompts/agents/${file} has no catalog agent`)

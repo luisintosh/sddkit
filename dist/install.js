@@ -1613,7 +1613,7 @@ function suggestNextSteps() {
   log("Optional: rtk (filters noisy bash output for agents)");
   log("  brew install rtk   # or see https://github.com/rtk-ai/rtk");
   log("  rtk init --opencode   # OpenCode");
-  log("  # Quick start: exclude git diff/show from rewriting so sddkit-code-reviewer");
+  log("  # Quick start: exclude git diff/show from rewriting so the code reviewers");
   log("  # and sddkit-docs-writer see full diffs \u2014 in ~/.config/rtk/config.toml:");
   log("  #   [hooks]");
   log('  #   exclude_commands = ["git diff", "git show"]');
