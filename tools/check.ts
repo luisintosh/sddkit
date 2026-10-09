@@ -4,7 +4,7 @@
  *   1. catalog.yaml shape + prompt files
  *   2. dist/ frontmatter matches catalog models
  *   3. README profile × host matrix matches catalog
- *   4. source prompt contracts (cheapest-oracle, decide events, review guard, QA route)
+ *   4. source prompt contracts (cheapest-oracle, decide events, review guard, QA route, reporting)
  *   5. manifest.txt matches dist/ hashes
  *   6. dist/install.js (npx/bunx CLI) is present and not stale
  */
@@ -537,7 +537,14 @@ if (catalog) {
     [conductor, "--intent-to-add", "conductor tracks new files"],
     [conductor, "quest-state version", "conductor CLI protocol check"],
     [conductor, "absolute path", "conductor absolute checklist paths"],
+    [conductor, "**Next:**", "conductor reports the next step"],
+    [conductor, "first use", "conductor glosses concepts on first use"],
+    [conductor, "**Needs you**", "conductor attention tag"],
   ]
+  for (const name of ["design", "design-reviewer", "implementer", "code-reviewer", "qa", "docs-writer"]) {
+    const body = await readOr(path.join(root, "dist", "claude", "agents", `shadow-${name}.md`))
+    contracts.push([body, "headline:", `shadow-${name} reply headline`])
+  }
   for (const [body, phrase, label] of contracts) {
     if (!body.includes(phrase)) fail(`prompt contract missing ${label}: "${phrase}"`)
   }

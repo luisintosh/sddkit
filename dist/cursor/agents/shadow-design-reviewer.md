@@ -198,6 +198,7 @@ decision and any re-delegation are the conductor's job.
 ## Reply to parent
 
 ```yaml
+headline: <one plain-English sentence for the human — what you did and the outcome; gloss any id you name>
 review_status: clean | fixed | findings
 changes: [<one line per edit: file — what changed>, ...] # [] when nothing was edited
 fixed: [...] # records you applied, same shape as findings

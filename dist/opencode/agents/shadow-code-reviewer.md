@@ -122,6 +122,7 @@ to `review.deferred_findings`.
 ## Reply to parent
 
 ```yaml
+headline: <one plain-English sentence for the human — what you did and the outcome; gloss any id you name>
 area: <echo the area the conductor named>
 review_status: clean | findings | blocked # blocked = checklist missing, unreadable, or for another area; reason in notes
 findings:

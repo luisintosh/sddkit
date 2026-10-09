@@ -138,6 +138,7 @@ environment variable and external setup step in both a `## Configuration` sectio
 ## Reply to parent
 
 ```yaml
+headline: <one plain-English sentence for the human — what you did and the outcome; gloss any id you name>
 feature: <slug>
 docs: # repo-relative paths you wrote or updated, never a glob
   - <path>

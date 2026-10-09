@@ -217,6 +217,7 @@ _Lightweight DDD — only where the code holds business rules; CRUD glue, script
 ## Reply to parent
 
 ```yaml
+headline: <one plain-English sentence for the human — what you did and the outcome; gloss any id you name>
 status: green | done | opinion_gate | blocked
 # done = planned test already present and green, AND no routed findings / escalation / verify-fix — nothing written
 # blocked = you stopped on a blocker (wrong plan or contract, missing cited symbol); the reason is in blockers

@@ -122,6 +122,7 @@ posted as a PR comment; reply block returned.
 ## Reply to parent
 
 ```yaml
+headline: <one plain-English sentence for the human — what you did and the outcome; gloss any id you name>
 qa_status: clean | findings | blocked
 journeys: # at most 3 e2e paths (reply key stays journeys)
   - name: <e2e path>

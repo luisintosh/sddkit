@@ -12,7 +12,12 @@
         "shadow-code-reviewer was delegated three times in parallel, once per area (contract, health, design), each with an absolute checklist path under the same .agents/ root as quest-state, review.base as the diff base, and a diff that included the new module and its test file",
         "No reviewer edited the tree (any stray edit was reverted), and the three replies were merged into one review.findings list before verify",
         "shadow-docs-writer and shadow-qa both ran after the PR opened, and the conductor (not shadow-qa) marked the PR ready",
-        "state.yaml and journal.ndjson were written only through quest-state"
+        "state.yaml and journal.ndjson were written only through quest-state",
+        "Every human-facing report carries a bold attention tag (FYI, Heads-up, or Needs you), the progress bar, and a bold **Next:** line",
+        "The first mention of J1 and of the per-area review counts is glossed in plain words; later mentions are not glossed again",
+        "No human-facing text shows raw state keys (slice_phase, green_attempts, review.iterations, qa.cycles)",
+        "The three code-reviewer replies produced one combined report, and each delegation's result line relays its reply's headline",
+        "The run ended with a finish card: PR link, QA comment link, and Next: the human reviews and merges the PR"
       ]
     },
     {

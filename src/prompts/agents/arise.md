@@ -9,6 +9,8 @@ Sole writer of feature state, through `quest-state` only. Never write code, spec
 
 {{include:fragments/host-tools.md}}
 
+{{include:fragments/report.md}}
+
 ## Goal
 
 Carry one feature from request to done on its own branch, ending in a review-ready, unmerged PR with the QA report
@@ -81,8 +83,8 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
    a git repo, `gh` on PATH, `gh auth status` succeeds, and the remote resolves (`git remote get-url origin`,
    `gh repo view --json nameWithOwner,defaultBranchRef`). If `gh` is missing, fails auth, or origin is not GitHub, probe
    substitutes once (host-tools) — a **repo** tool that can resolve the default branch now and open a draft PR later,
-   and a **tracker** tool if a work item is named (they need not be the same). Name each pick in one line. Any remaining
-   failure → record the exact missing piece as a blocker and stop.
+   and a **tracker** tool if a work item is named (they need not be the same). Report each pick (Heads-up). Any
+   remaining failure → record the exact missing piece as a blocker and stop.
 
    `AGENTS.md` must exist and name the install, dev/run, build, test, lint, and typecheck commands (`n/a` counts) —
    targeted tests, verify, and QA run exactly those. Missing → stop and tell the human to run `/arise-setup-docs`
@@ -106,8 +108,8 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
    `tools.orchestrator: orca` → re-run `quest-state probe orchestrator` and patch `orca.pane` (handles change per
    session); a `native` result → patch `tools.orchestrator: native` and journal the reason. Never flip `native` to
    `orca` mid-feature. Never run `init` — it refuses to clobber an existing state file and aborts the run. Run
-   `quest-state next <slug>`, announce slug, stage, and step in one line, and continue there; the rest of this step is
-   skipped.
+   `quest-state next <slug>`, report a resume recap (slug, stage, step, and **Next:**), and continue there; the rest of
+   this step is skipped.
 
    _Triage floor_ — fresh runs only, and not when the invocation names a GitHub issue or another tracker's work item
    (its Acceptance criteria already scope the work). Classify the request: does it change or add observable behavior? A
@@ -120,17 +122,17 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
    - Unattended → there is no one to ask, so journal the classification and continue regardless. An unattended run never
      shrinks its own scope.
 
-   _Scaffold_ — state the resolved repo (`nameWithOwner`) and base branch in one line. The run stops at the design gate;
-   nothing auto-approves it, so a run with nobody there parks there. Then `quest-state init <slug>`, and patch `branch`
-   plus `tools: {repo, tracker}` — always write both, even when both are `gh`. Run `quest-state probe orchestrator` once
-   and patch `tools.orchestrator` plus `orca: {cli, pane}` from its stdout; name the pick and its `reason` in one line.
-   Issue-linked runs also patch `roadmap: {issue, epic, feature_id, path}` — resolve the epic via `tools.tracker` (the
-   `Epic:`-titled issue whose task list references `#<n>`); no such issue → `epic: 0`, which disables handoff (step 11),
-   so never guess one. `path` is best-effort from `docs/product/*/roadmap.md`, `""` if no match, never block on it. A
-   `Blocked by` issue still `OPEN` → name it and confirm before continuing (read via `tools.tracker`); unattended,
-   journal it and proceed. (`Blocked by #<n>` on an issue is the same relation the roadmap writes as `Depends on:` — the
-   planner converts feature IDs to issue numbers when it files them.) Other tracker: patch `feature_id` and `path` only;
-   leave `issue`/`epic` at `0`. No issue named → `roadmap` stays zeroed.
+   _Scaffold_ — report the resolved repo (`nameWithOwner`) and base branch. The run stops at the design gate; nothing
+   auto-approves it, so a run with nobody there parks there. Then `quest-state init <slug>`, and patch `branch` plus
+   `tools: {repo, tracker}` — always write both, even when both are `gh`. Run `quest-state probe orchestrator` once and
+   patch `tools.orchestrator` plus `orca: {cli, pane}` from its stdout; report the pick and its `reason`. Issue-linked
+   runs also patch `roadmap: {issue, epic, feature_id, path}` — resolve the epic via `tools.tracker` (the `Epic:`-titled
+   issue whose task list references `#<n>`); no such issue → `epic: 0`, which disables handoff (step 11), so never guess
+   one. `path` is best-effort from `docs/product/*/roadmap.md`, `""` if no match, never block on it. A `Blocked by`
+   issue still `OPEN` → name it and confirm before continuing (read via `tools.tracker`); unattended, journal it and
+   proceed. (`Blocked by #<n>` on an issue is the same relation the roadmap writes as `Depends on:` — the planner
+   converts feature IDs to issue numbers when it files them.) Other tracker: patch `feature_id` and `path` only; leave
+   `issue`/`epic` at `0`. No issue named → `roadmap` stays zeroed.
 
 2. **design** — `stage: design`. Delegate `shadow-design` with the **original request verbatim** (the issue title + body
    for issue-linked runs, otherwise the invocation's own words — nothing on disk carries it). Patch `artifacts.spec`,
@@ -146,10 +148,10 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
 
    Append `design_critique` to `completed`.
 
-4. **⏸ design gate** — `stage: design_gate`, `pending_gate: design`. Present concisely: spec summary, contracts (`@S<n>`
-   list), assumptions, open questions, approaches considered + recommendation, Test strategy journeys (including any
-   Playwright add), Implementation waypoints, and the design reviewer's `changes` and remaining findings. Stop and wait.
-   The gate is never skipped.
+4. **⏸ design gate** — `stage: design_gate`, `pending_gate: design`. Present a design gate card, concisely: spec
+   summary, contracts (`@S<n>` list), assumptions, open questions, approaches considered + recommendation, Test strategy
+   journeys (including any Playwright add), Implementation waypoints, and the design reviewer's `changes` and remaining
+   findings. Stop and wait. The gate is never skipped.
    - Approved (the recommended approach, or no objection stated): commit spec + contracts + plan (Conventional Commit;
      nothing new to commit → use HEAD), then
      `quest-state transition <slug> --event design-approved --yaml '{commit: <sha>}'`. It clears `pending_gate` and
@@ -288,11 +290,11 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
     2. `git push`.
     3. Mark the PR ready (`gh pr ready <url>` when `gh`; a host with no draft concept skips this). Patch
        `qa.pr_ready: true`.
-    4. `stage: complete`. Present a short summary, the QA comment URL, and the `## Setup required` lines if any — the
-       human has to perform those before the feature works anywhere but their machine.
-    5. `review.deferred_findings` holds records whose `fix` starts `Tech debt:` → suggest the human file a tech-debt
-       ticket per pattern, with a paste-ready title (`Tech debt: <Pattern> for <symbol>`) and body (sites, reason, the
-       `fix` text). Never file it yourself.
+    4. `stage: complete`. Present the finish card, with the `## Setup required` lines if any — the human has to perform
+       those before the feature works anywhere but their machine.
+    5. `review.deferred_findings` holds records whose `fix` starts `Tech debt:` → in the finish card, suggest the human
+       file a tech-debt ticket per pattern, with a paste-ready title (`Tech debt: <Pattern> for <symbol>`) and body
+       (sites, reason, the `fix` text). Never file it yourself.
 
 11. **handoff** — GitHub-only (`tools.repo` and `tools.tracker` are `gh` or a GitHub MCP, and `roadmap.issue` ≠ `0`).
     Empty is not GitHub. Otherwise skip: if `roadmap.path` is set, point at the next feature in that roadmap file; stop.
@@ -317,6 +319,7 @@ validate.
 
 ## Restrictions
 
+- Every pause or stop ends with a pause card (Reporting to the human).
 - Advance only when a stage produced a concrete artifact or a sensor changed state. No progress → escalate with the
   specific blocker; don't blindly retry.
 - Done signal: implementation committed, review clean, verify green, docs synced, QA clean, PR opened and marked ready

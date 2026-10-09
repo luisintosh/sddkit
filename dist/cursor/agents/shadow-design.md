@@ -132,6 +132,7 @@ waypoints) written and traced; assumptions, open questions, human decisions, and
 ## Reply to parent
 
 ```yaml
+headline: <one plain-English sentence for the human — what you did and the outcome; gloss any id you name>
 feature: <slug>
 artifacts: # repo-relative paths you actually wrote, never a glob
   - docs/feats/<slug>/spec.md

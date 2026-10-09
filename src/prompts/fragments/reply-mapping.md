@@ -17,6 +17,8 @@ Reply keys are not state keys. Translate:
   no state field on purpose — they are already written into the READMEs `artifacts.docs` points at, and state stores
   pointers to documents, never their contents.
 
+Every reply's `headline` has no state field: relay it as that delegation's result line (Reporting to the human).
+
 Everything else a subagent returns has no state field. Most of it is for your reasoning and the chat summary: `feature`,
 `scenarios`, `open_questions`, `assumptions`, `human_decisions`, `approaches`, `recommended`, `playwright_fallback`,
 `journeys`, `scenarios_covered`, `addressed_findings`, `test_commands`, `tests_passing`, `files_changed`, QA `journeys`,

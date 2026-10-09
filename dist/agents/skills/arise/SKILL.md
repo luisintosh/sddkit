@@ -82,6 +82,82 @@ install tools. Do not invent APIs, close/merge keywords, or comment URLs. Probe 
 and reuse that pick. Cannot perform the needed write (open a PR, create an item) → blocker, or skip the optional
 tracker-mirror step.
 
+## Reporting to the human
+
+The human follows the run only through your chat messages, attended or not, on every host and orchestrator. Keep them in
+the loop with short reports they can read at a glance.
+
+### When to report
+
+- **Report:** a stage entered; a delegation returned (parallel runs — the three reviewers, docs ∥ QA, the escalation
+  worktrees — get **one** combined report after every reply is in); a decision you made on your own (critique skipped,
+  journeys batched, an unattended triage, a tool substitute or orchestrator pick, a reviewer edit reverted, a QA route,
+  an escalation reset, a dispute outcome); a loop budget consumed; anything that needs the human (design gate, opinion
+  gate, blocker, dispute); the PR opened or marked ready.
+- **Stay silent about:** `patch` calls, state commits, `--intent-to-add`, raw `decide` / `next` stdout, per-path
+  reverts, pushes, and the YAML replies themselves.
+
+### Shape
+
+Every report, in this order:
+
+1. **Attention tag**, bold: **FYI** (progress, nothing to do) · **Heads-up** (a retry, a budget nearly spent, a decision
+   you made alone) · **Needs you** (gate, question, blocker, PR ready to review).
+2. **Progress bar** on one line — done `✓`, skipped `–`, paused `⏸`, current stage bold:
+   `design ✓ · critique – · **impl (J1 ✓, J2 1/2)** · review · verify · pr · qa · done`. Slices appear inside `impl`
+   only while it runs.
+3. **What happened** — 1–3 bullets, result lines below. Bold the key words; lists over prose.
+4. **Next:** one line — the next step and who runs it, or for **Needs you**, exactly what the human must do.
+
+### Explain on first use
+
+The first time a concept appears in this conversation, gloss it inline in a few words; afterwards use the bare term. A
+resume in a new session is a new conversation, so glosses repeat once there. Gloss only terms you actually use:
+
+- **journey** `J<n>` — one end-to-end test path that proves part of the feature; name what it exercises ("J1 — the
+  `--name` CLI path").
+- **scenario** `@S<n>` — one acceptance scenario from the contracts.
+- **slice** — one implementation pass covering one or more journeys.
+- **attempt `n/2`**, **review round `n/2`**, **QA cycle `n/2`** — how much of a bounded retry budget is spent; at the
+  limit the run pauses for the human.
+- **review counts** — `contract 1/1/0` = blocker/major/minor findings from the contract reviewer (diff vs. the
+  scenarios); **health** reviews code quality, **design** reviews structure. Blockers and majors get fixed; minors are
+  deferred.
+- **design gate**, **opinion gate**, **design delta** (the design is revised mid-run), **verify-fix** (a fix for a
+  failing build/test/lint/typecheck command).
+
+Never show raw state keys (`slice_phase`, `green_attempts`, `review.iterations`, `qa.cycles`) — say "attempt", "round",
+"cycle".
+
+### No repetition
+
+A report adds only what the chat does not already show. Never restate an earlier report, a headline already relayed, or
+a finished stage's details; the design gate builds on the design result line rather than repeating it, and the finish
+card links rather than re-summarises. The progress bar is the only element that repeats.
+
+### Result lines
+
+One line per delegation: `**<who> — <outcome>:** <headline>`, plus the one or two numbers that matter. Relay the reply's
+`headline` as written (trim only) — never paraphrase the YAML.
+
+- implementer: status, files changed, journey commands passing.
+- code reviewers, one combined line:
+  `**Review round 1:** 1 blocker, 2 major, 3 minor (contract 1/1/0 · health 0/1/2 · design 0/0/1)`, then where they go
+  (fix round, deferred, dispute).
+- design reviewer: edits applied, findings left.
+- QA: `n/m scenarios pass`, each failure and where it is routed.
+- docs writer: the files written.
+
+### Cards
+
+- **Pause** — every pause or stop, tagged **Needs you**: **What happened** · **Why I stopped** (the rule or the spent
+  budget) · **What I need from you** (a concrete choice or action) · **To resume** (answer here, or re-invoke with
+  "resume <slug>").
+- **Design gate** — the gate contents step 4 lists, under the **Needs you** tag and the progress bar.
+- **Finish** — PR link, QA comment link, scenarios passing, review rounds and attempts used, **Setup required** lines if
+  any, tech-debt suggestions if any, and **Next:** the human reviews and merges the PR.
+- **Resume recap** — one **Last time:** line from `quest-state show` and the journal tail, then a normal report.
+
 ## Goal
 
 Carry one feature from request to done on its own branch, ending in a review-ready, unmerged PR with the QA report
@@ -154,8 +230,8 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
    a git repo, `gh` on PATH, `gh auth status` succeeds, and the remote resolves (`git remote get-url origin`,
    `gh repo view --json nameWithOwner,defaultBranchRef`). If `gh` is missing, fails auth, or origin is not GitHub, probe
    substitutes once (host-tools) — a **repo** tool that can resolve the default branch now and open a draft PR later,
-   and a **tracker** tool if a work item is named (they need not be the same). Name each pick in one line. Any remaining
-   failure → record the exact missing piece as a blocker and stop.
+   and a **tracker** tool if a work item is named (they need not be the same). Report each pick (Heads-up). Any
+   remaining failure → record the exact missing piece as a blocker and stop.
 
    `AGENTS.md` must exist and name the install, dev/run, build, test, lint, and typecheck commands (`n/a` counts) —
    targeted tests, verify, and QA run exactly those. Missing → stop and tell the human to run `/arise-setup-docs`
@@ -179,8 +255,8 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
    `tools.orchestrator: orca` → re-run `quest-state probe orchestrator` and patch `orca.pane` (handles change per
    session); a `native` result → patch `tools.orchestrator: native` and journal the reason. Never flip `native` to
    `orca` mid-feature. Never run `init` — it refuses to clobber an existing state file and aborts the run. Run
-   `quest-state next <slug>`, announce slug, stage, and step in one line, and continue there; the rest of this step is
-   skipped.
+   `quest-state next <slug>`, report a resume recap (slug, stage, step, and **Next:**), and continue there; the rest of
+   this step is skipped.
 
    _Triage floor_ — fresh runs only, and not when the invocation names a GitHub issue or another tracker's work item
    (its Acceptance criteria already scope the work). Classify the request: does it change or add observable behavior? A
@@ -193,17 +269,17 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
    - Unattended → there is no one to ask, so journal the classification and continue regardless. An unattended run never
      shrinks its own scope.
 
-   _Scaffold_ — state the resolved repo (`nameWithOwner`) and base branch in one line. The run stops at the design gate;
-   nothing auto-approves it, so a run with nobody there parks there. Then `quest-state init <slug>`, and patch `branch`
-   plus `tools: {repo, tracker}` — always write both, even when both are `gh`. Run `quest-state probe orchestrator` once
-   and patch `tools.orchestrator` plus `orca: {cli, pane}` from its stdout; name the pick and its `reason` in one line.
-   Issue-linked runs also patch `roadmap: {issue, epic, feature_id, path}` — resolve the epic via `tools.tracker` (the
-   `Epic:`-titled issue whose task list references `#<n>`); no such issue → `epic: 0`, which disables handoff (step 11),
-   so never guess one. `path` is best-effort from `docs/product/*/roadmap.md`, `""` if no match, never block on it. A
-   `Blocked by` issue still `OPEN` → name it and confirm before continuing (read via `tools.tracker`); unattended,
-   journal it and proceed. (`Blocked by #<n>` on an issue is the same relation the roadmap writes as `Depends on:` — the
-   planner converts feature IDs to issue numbers when it files them.) Other tracker: patch `feature_id` and `path` only;
-   leave `issue`/`epic` at `0`. No issue named → `roadmap` stays zeroed.
+   _Scaffold_ — report the resolved repo (`nameWithOwner`) and base branch. The run stops at the design gate; nothing
+   auto-approves it, so a run with nobody there parks there. Then `quest-state init <slug>`, and patch `branch` plus
+   `tools: {repo, tracker}` — always write both, even when both are `gh`. Run `quest-state probe orchestrator` once and
+   patch `tools.orchestrator` plus `orca: {cli, pane}` from its stdout; report the pick and its `reason`. Issue-linked
+   runs also patch `roadmap: {issue, epic, feature_id, path}` — resolve the epic via `tools.tracker` (the `Epic:`-titled
+   issue whose task list references `#<n>`); no such issue → `epic: 0`, which disables handoff (step 11), so never guess
+   one. `path` is best-effort from `docs/product/*/roadmap.md`, `""` if no match, never block on it. A `Blocked by`
+   issue still `OPEN` → name it and confirm before continuing (read via `tools.tracker`); unattended, journal it and
+   proceed. (`Blocked by #<n>` on an issue is the same relation the roadmap writes as `Depends on:` — the planner
+   converts feature IDs to issue numbers when it files them.) Other tracker: patch `feature_id` and `path` only; leave
+   `issue`/`epic` at `0`. No issue named → `roadmap` stays zeroed.
 
 2. **design** — `stage: design`. Delegate `shadow-design` with the **original request verbatim** (the issue title + body
    for issue-linked runs, otherwise the invocation's own words — nothing on disk carries it). Patch `artifacts.spec`,
@@ -219,10 +295,10 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
 
    Append `design_critique` to `completed`.
 
-4. **⏸ design gate** — `stage: design_gate`, `pending_gate: design`. Present concisely: spec summary, contracts (`@S<n>`
-   list), assumptions, open questions, approaches considered + recommendation, Test strategy journeys (including any
-   Playwright add), Implementation waypoints, and the design reviewer's `changes` and remaining findings. Stop and wait.
-   The gate is never skipped.
+4. **⏸ design gate** — `stage: design_gate`, `pending_gate: design`. Present a design gate card, concisely: spec
+   summary, contracts (`@S<n>` list), assumptions, open questions, approaches considered + recommendation, Test strategy
+   journeys (including any Playwright add), Implementation waypoints, and the design reviewer's `changes` and remaining
+   findings. Stop and wait. The gate is never skipped.
    - Approved (the recommended approach, or no objection stated): commit spec + contracts + plan (Conventional Commit;
      nothing new to commit → use HEAD), then
      `quest-state transition <slug> --event design-approved --yaml '{commit: <sha>}'`. It clears `pending_gate` and
@@ -361,11 +437,11 @@ that blocker, and continue at `resume_step` with the decision. `step: 9-delta` �
     2. `git push`.
     3. Mark the PR ready (`gh pr ready <url>` when `gh`; a host with no draft concept skips this). Patch
        `qa.pr_ready: true`.
-    4. `stage: complete`. Present a short summary, the QA comment URL, and the `## Setup required` lines if any — the
-       human has to perform those before the feature works anywhere but their machine.
-    5. `review.deferred_findings` holds records whose `fix` starts `Tech debt:` → suggest the human file a tech-debt
-       ticket per pattern, with a paste-ready title (`Tech debt: <Pattern> for <symbol>`) and body (sites, reason, the
-       `fix` text). Never file it yourself.
+    4. `stage: complete`. Present the finish card, with the `## Setup required` lines if any — the human has to perform
+       those before the feature works anywhere but their machine.
+    5. `review.deferred_findings` holds records whose `fix` starts `Tech debt:` → in the finish card, suggest the human
+       file a tech-debt ticket per pattern, with a paste-ready title (`Tech debt: <Pattern> for <symbol>`) and body
+       (sites, reason, the `fix` text). Never file it yourself.
 
 11. **handoff** — GitHub-only (`tools.repo` and `tools.tracker` are `gh` or a GitHub MCP, and `roadmap.issue` ≠ `0`).
     Empty is not GitHub. Otherwise skip: if `roadmap.path` is set, point at the next feature in that roadmap file; stop.
@@ -395,6 +471,7 @@ pass one through verbatim.
 
 ## Restrictions
 
+- Every pause or stop ends with a pause card (Reporting to the human).
 - Advance only when a stage produced a concrete artifact or a sensor changed state. No progress → escalate with the
   specific blocker; don't blindly retry.
 - Done signal: implementation committed, review clean, verify green, docs synced, QA clean, PR opened and marked ready
